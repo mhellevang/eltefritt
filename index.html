@@ -307,6 +307,78 @@
     cursor: default;
   }
 
+  /* Stepper: erstatter slidere for å unngå scroll-konflikt på mobil */
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    touch-action: pan-y;
+  }
+
+  .step-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface-2);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    font-size: 1.4rem;
+    font-weight: 500;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    transition: background 0.12s, transform 0.08s, border-color 0.12s, color 0.12s;
+  }
+
+  .step-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .step-btn:active { transform: scale(0.94); background: var(--surface); }
+  .step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .step-btn:disabled:hover { border-color: var(--line); color: var(--ink); background: var(--surface-2); }
+
+  .step-track {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .step-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: inherit;
+    transition: width 0.18s ease-out;
+  }
+
+  .stepper:focus-within .step-track {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+
+  .flour-row .stepper { gap: 0.55rem; }
+  .flour-row .step-btn {
+    width: 36px; height: 36px; flex-basis: 36px;
+    font-size: 1.15rem;
+  }
+
   .add-flour {
     appearance: none;
     background: transparent;
@@ -699,10 +771,15 @@
         <span>Hydrering</span>
         <span class="field-value"><span id="hydration-value">75</span>%</span>
       </div>
-      <input type="range" id="hydration" min="60" max="85" value="75" step="1" />
+      <div class="stepper" data-stepper-for="hydration">
+        <input type="range" id="hydration" class="visually-hidden" min="60" max="85" value="75" step="1" />
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hydrering">−</button>
+        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hydrering">+</button>
+      </div>
       <div class="slider-marks">
         <span>tørrere</span>
-        <span>blautere</span>
+        <span>våtere</span>
       </div>
       <p class="helper-text">Mer vann = åpnere krumme, men klissete deig. Anbefaling justeres med meltype.</p>
     </div>
@@ -723,7 +800,12 @@
         <span>Romtemperatur</span>
         <span class="field-value"><span id="temp-value">21</span>°C</span>
       </div>
-      <input type="range" id="temp" min="15" max="28" value="21" step="1" />
+      <div class="stepper" data-stepper-for="temp">
+        <input type="range" id="temp" class="visually-hidden" min="15" max="28" value="21" step="1" />
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser romtemperatur">−</button>
+        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk romtemperatur">+</button>
+      </div>
       <div class="slider-marks">
         <span>15°</span>
         <span>21°</span>
@@ -737,7 +819,12 @@
           <span>Ønsket hevetid</span>
           <span class="field-value"><span id="time-value">14</span> t</span>
         </div>
-        <input type="range" id="rise-time" min="4" max="24" value="14" step="1" />
+        <div class="stepper" data-stepper-for="rise-time">
+          <input type="range" id="rise-time" class="visually-hidden" min="4" max="24" value="14" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hevetid">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hevetid">+</button>
+        </div>
         <div class="slider-marks">
           <span>4 t</span>
           <span>14 t</span>
@@ -753,7 +840,12 @@
           <span>Bulkheving (romtemp)</span>
           <span class="field-value"><span id="bulk-time-value">2</span> t</span>
         </div>
-        <input type="range" id="bulk-time" min="1" max="6" value="2" step="1" />
+        <div class="stepper" data-stepper-for="bulk-time">
+          <input type="range" id="bulk-time" class="visually-hidden" min="1" max="6" value="2" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser bulkheving">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk bulkheving">+</button>
+        </div>
         <div class="slider-marks">
           <span>1 t</span>
           <span>3 t</span>
@@ -766,7 +858,12 @@
           <span>Kald etterheving</span>
           <span class="field-value"><span id="cold-time-value">12</span> t</span>
         </div>
-        <input type="range" id="cold-time" min="6" max="36" value="12" step="1" />
+        <div class="stepper" data-stepper-for="cold-time">
+          <input type="range" id="cold-time" class="visually-hidden" min="6" max="36" value="12" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kald etterheving">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kald etterheving">+</button>
+        </div>
         <div class="slider-marks">
           <span>6 t</span>
           <span>18 t</span>
@@ -780,7 +877,12 @@
           <span>Kjøleskapstemp</span>
           <span class="field-value"><span id="cold-temp-value">4</span>°C</span>
         </div>
-        <input type="range" id="cold-temp" min="2" max="10" value="4" step="1" />
+        <div class="stepper" data-stepper-for="cold-temp">
+          <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="4" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kjøleskapstemperatur">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
+        </div>
         <div class="slider-marks">
           <span>2°</span>
           <span>4°</span>
@@ -902,6 +1004,81 @@
 
   const addMinutes = (d, m) => new Date(d.getTime() + m * 60 * 1000);
   const addHours = (d, h) => addMinutes(d, h * 60);
+
+  // ---- Stepper ----
+  // Stepper-knapper (− [bar] +) erstatter slidere så vertikal scrolling på mobil
+  // ikke krasjer med horisontal drag. Beholder <input type="range"> visuelt
+  // skjult for å bevare tastatur og ARIA, og for at eksisterende input-handlers
+  // kan kjøre uendret når stepperen dispatcher "input".
+  function refreshStepperVisual(input) {
+    const stepper = input.closest('.stepper');
+    if (!stepper) return;
+    const fill = stepper.querySelector('.step-fill');
+    if (!fill) return;
+    const min = parseFloat(input.min) || 0;
+    const max = parseFloat(input.max) || 100;
+    const val = parseFloat(input.value) || 0;
+    const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+    fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  function attachHoldButton(btn, action) {
+    let holdTimer = null;
+    let repeatInterval = null;
+    let firedOnPointerdown = false;
+
+    const clear = () => {
+      clearTimeout(holdTimer);
+      clearInterval(repeatInterval);
+      holdTimer = repeatInterval = null;
+    };
+
+    btn.addEventListener('pointerdown', (e) => {
+      if (btn.disabled) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      firedOnPointerdown = true;
+      action();
+      holdTimer = setTimeout(() => {
+        repeatInterval = setInterval(() => {
+          if (btn.disabled) { clear(); return; }
+          action();
+        }, 80);
+      }, 400);
+    });
+    btn.addEventListener('pointerup', clear);
+    btn.addEventListener('pointerleave', clear);
+    btn.addEventListener('pointercancel', clear);
+    btn.addEventListener('click', (e) => {
+      if (firedOnPointerdown) {
+        firedOnPointerdown = false;
+        e.preventDefault();
+        return;
+      }
+      if (btn.disabled) return;
+      action();
+    });
+  }
+
+  function initStepper(input) {
+    const stepper = input.closest('.stepper');
+    if (!stepper) return;
+    const minus = stepper.querySelector('[data-step-dir="-1"]');
+    const plus = stepper.querySelector('[data-step-dir="1"]');
+
+    const step = (dir) => {
+      const before = input.value;
+      if (dir > 0) input.stepUp(); else input.stepDown();
+      if (input.value !== before) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    };
+
+    if (minus) attachHoldButton(minus, () => step(-1));
+    if (plus) attachHoldButton(plus, () => step(1));
+
+    input.addEventListener('input', () => refreshStepperVisual(input));
+    refreshStepperVisual(input);
+  }
 
   // ---- Hevemoduser ----
   // All mode-spesifikk oppførsel samles her: gjærberegning, varighet, plansteg, instruksjoner.
@@ -1094,14 +1271,50 @@
       top.appendChild(pctLabel);
       top.appendChild(removeBtn);
 
+      const stepper = document.createElement('div');
+      stepper.className = 'stepper';
+
       const slider = document.createElement('input');
       slider.type = 'range';
-      slider.className = 'flour-slider';
+      slider.className = 'flour-slider visually-hidden';
       slider.min = '0';
       slider.max = '100';
-      slider.step = '1';
+      slider.step = '5';
       slider.value = f.pct;
-      if (state.flours.length === 1) slider.disabled = true;
+      slider.setAttribute('aria-label', `Andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+
+      const minusBtn = document.createElement('button');
+      minusBtn.type = 'button';
+      minusBtn.className = 'step-btn';
+      minusBtn.setAttribute('data-step-dir', '-1');
+      minusBtn.setAttribute('aria-label', `Reduser andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+      minusBtn.textContent = '−';
+
+      const track = document.createElement('div');
+      track.className = 'step-track';
+      track.setAttribute('aria-hidden', 'true');
+      const fill = document.createElement('div');
+      fill.className = 'step-fill';
+      track.appendChild(fill);
+
+      const plusBtn = document.createElement('button');
+      plusBtn.type = 'button';
+      plusBtn.className = 'step-btn';
+      plusBtn.setAttribute('data-step-dir', '1');
+      plusBtn.setAttribute('aria-label', `Øk andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+      plusBtn.textContent = '+';
+
+      stepper.appendChild(slider);
+      stepper.appendChild(minusBtn);
+      stepper.appendChild(track);
+      stepper.appendChild(plusBtn);
+
+      if (state.flours.length === 1) {
+        slider.disabled = true;
+        minusBtn.disabled = true;
+        plusBtn.disabled = true;
+      }
+
       slider.addEventListener('input', e => {
         const v = parseInt(e.target.value, 10);
         setFlourPct(idx, v);
@@ -1110,8 +1323,10 @@
       });
 
       row.appendChild(top);
-      row.appendChild(slider);
+      row.appendChild(stepper);
       list.appendChild(row);
+
+      initStepper(slider);
     });
 
     const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
@@ -1256,6 +1471,7 @@
     if (!state.hydrationManual) {
       state.hydration = Math.round(recommended);
       $('#hydration').value = state.hydration;
+      refreshStepperVisual($('#hydration'));
     }
     $('#hydration-value').textContent = state.hydration;
 
@@ -1283,8 +1499,10 @@
         const pctLabel = row.querySelector('.flour-pct');
         const slider = row.querySelector('.flour-slider');
         if (pctLabel) pctLabel.textContent = `${f.pct}%`;
-        // Ikke overskriv glideren brukeren drar i
-        if (slider && i !== opts.fromSlider) slider.value = f.pct;
+        if (slider && i !== opts.fromSlider) {
+          slider.value = f.pct;
+          refreshStepperVisual(slider);
+        }
       });
       const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
       const warn = $('#flour-warning');
@@ -1441,6 +1659,12 @@
     state.anchorTime = formatTimeHM(d);
     state.timeAnchor = 'start';
   }
+
+  // Init steppers etter at input.value er satt (initStepper synker visualet)
+  ['hydration', 'temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp'].forEach(id => {
+    const inp = document.getElementById(id);
+    if (inp) initStepper(inp);
+  });
 
   update();
 })();
