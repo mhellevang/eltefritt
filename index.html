@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#3a2a1a" />
+<title>Eltefritt — kalkulator for eltefritt brød</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f2ed;
+    --ink: #2a2826;
+    --ink-soft: #6e6a64;
+    --ink-mute: #aaa6a0;
+    --accent: #d97757;
+    --accent-soft: #f0b896;
+    --line: #ecebe6;
+    --good: #6e8f53;
+    --shadow: 0 1px 2px rgba(40, 30, 20, 0.04),
+               0 6px 20px rgba(40, 30, 20, 0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1b18;
+      --surface: #26241f;
+      --surface-2: #2f2d28;
+      --ink: #f5f2ec;
+      --ink-soft: #b8b3a8;
+      --ink-mute: #807b73;
+      --accent: #e89977;
+      --accent-soft: #b86d3e;
+      --line: #3a3732;
+      --good: #9bc170;
+      --shadow: 0 1px 2px rgba(0,0,0,0.25),
+                 0 6px 20px rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .app {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  .logo {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.25rem;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+  }
+
+  .field {
+    margin-bottom: 1.5rem;
+  }
+
+  .field:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+  }
+
+  .field-label > span:first-child {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .field-value {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .seg {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    gap: 4px;
+    background: var(--surface-2);
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .seg button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    padding: 0.7rem 0.5rem;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .seg button:hover {
+    color: var(--ink);
+  }
+
+  .seg button[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(40,30,20,0.08);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    outline: none;
+    margin: 0;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    cursor: grab;
+    box-shadow: 0 2px 6px rgba(40,30,20,0.15);
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(1.1);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    cursor: grab;
+    box-shadow: 0 2px 6px rgba(40,30,20,0.15);
+  }
+
+  .slider-marks {
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-mute);
+    font-size: 0.75rem;
+    margin-top: 0.4rem;
+  }
+
+  .flour-row {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem 0.85rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .flour-row:last-of-type {
+    margin-bottom: 0.5rem;
+  }
+
+  .flour-row-top {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.55rem;
+  }
+
+  .flour-row select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0.2rem 1.4rem 0.2rem 0;
+    font: inherit;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath d='M1 1l5 5 5-5' stroke='%236e6a64' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.2rem center;
+    outline: none;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .flour-row .flour-pct {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 3.2rem;
+    text-align: right;
+  }
+
+  .flour-row .remove-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--ink-mute);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    line-height: 1;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .flour-row .remove-btn:hover {
+    color: var(--accent);
+    background: var(--surface);
+  }
+
+  .flour-row .flour-slider {
+    width: 100%;
+    height: 5px;
+    margin: 0;
+  }
+
+  .flour-row .flour-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    border-width: 2px;
+  }
+
+  .flour-row .flour-slider:disabled {
+    opacity: 0.5;
+  }
+
+  .flour-row .flour-slider:disabled::-webkit-slider-thumb {
+    cursor: default;
+  }
+
+  .add-flour {
+    appearance: none;
+    background: transparent;
+    border: 1px dashed var(--line);
+    color: var(--ink-soft);
+    border-radius: 10px;
+    padding: 0.6rem;
+    width: 100%;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 500;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .add-flour:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .flour-warning {
+    font-size: 0.8rem;
+    color: var(--ink-mute);
+    margin-top: 0.5rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .flour-warning.error {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Output card */
+  .card-output {
+    background: linear-gradient(170deg, var(--surface) 0%, var(--surface-2) 100%);
+    border: 1px solid var(--line);
+  }
+
+  .recipe-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ingredient {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ingredient:last-of-type {
+    border-bottom: none;
+  }
+
+  .ingredient .name {
+    font-weight: 500;
+  }
+
+  .ingredient .amount {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ingredient .sub {
+    font-size: 0.8rem;
+    color: var(--ink-mute);
+    font-weight: 400;
+    margin-left: 0.5rem;
+  }
+
+  .sub-ingredients {
+    padding-left: 1rem;
+    margin-top: -0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .sub-ingredients .ingredient {
+    padding: 0.35rem 0;
+    border: none;
+    color: var(--ink-soft);
+  }
+
+  .sub-ingredients .ingredient .name {
+    font-weight: 400;
+    font-size: 0.9rem;
+  }
+
+  .sub-ingredients .ingredient .amount {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+  }
+
+  .plan {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 2px dashed var(--line);
+  }
+
+  .plan h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 0.85rem;
+  }
+
+  .plan-step {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.4rem 0;
+  }
+
+  .plan-step .plan-icon {
+    font-size: 1rem;
+    text-align: center;
+    color: var(--ink-mute);
+  }
+
+  .plan-step .plan-label {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  .plan-step .plan-time {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+  }
+
+  .plan-step .plan-time .plan-day {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    color: var(--ink-mute);
+    font-weight: 400;
+  }
+
+  .plan-anchor {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    margin: 0.35rem 0;
+  }
+
+  .plan-anchor .plan-icon {
+    font-size: 1.3rem;
+  }
+
+  .plan-anchor .plan-label {
+    font-weight: 600;
+    color: var(--ink);
+    flex: 0 0 auto;
+  }
+
+  .plan-anchor .plan-time-input {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.45rem 0.55rem;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    width: 6rem;
+  }
+
+  .plan-anchor .plan-day {
+    font-size: 0.8rem;
+    color: var(--ink-mute);
+    flex: 1 1 auto;
+  }
+
+  .plan-anchor.plan-anchor-ready {
+    background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in srgb, var(--good) 12%, var(--surface-2)) 100%);
+  }
+
+  .plan-anchor.plan-anchor-ready .plan-label {
+    color: var(--good);
+  }
+
+  .plan-now-btn {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    white-space: nowrap;
+  }
+
+  .plan-now-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .plan-duration {
+    margin-left: 0.7rem;
+    padding: 0.4rem 0 0.4rem 1.4rem;
+    border-left: 2px dashed var(--line);
+    color: var(--ink-mute);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .helper-text {
+    font-size: 0.85rem;
+    color: var(--ink-mute);
+    margin-top: 0.5rem;
+    line-height: 1.45;
+  }
+
+  details {
+    margin-top: 1rem;
+  }
+
+  details summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--ink-soft);
+    padding: 0.5rem 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details summary::before {
+    content: "›";
+    transition: transform 0.2s;
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--ink-mute);
+  }
+
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  .method {
+    padding-top: 0.75rem;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  .method ol {
+    padding-left: 1.25rem;
+    margin: 0;
+  }
+
+  .method li {
+    margin-bottom: 0.5rem;
+  }
+
+  .method li strong {
+    color: var(--ink);
+  }
+
+  footer {
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 0.8rem;
+    margin-top: 2rem;
+    line-height: 1.6;
+  }
+
+  footer a {
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 480px) {
+    .app { padding: 1rem 0.875rem 3rem; }
+    .card { padding: 1rem; border-radius: 16px; }
+    h1 { font-size: 1.7rem; }
+    .flour-row { padding: 0.65rem 0.75rem 0.75rem; }
+  }
+
+  /* Tablet: litt romsligere */
+  @media (min-width: 720px) {
+    .app {
+      max-width: 680px;
+      padding: 2.25rem 1.5rem 4rem;
+    }
+    .card { padding: 1.5rem; }
+    h1 { font-size: 2.4rem; }
+    .logo { font-size: 3rem; }
+    .subtitle { font-size: 1rem; }
+    .recipe-title { font-size: 1.5rem; }
+    .ingredient .amount { font-size: 1.25rem; }
+  }
+
+  /* Desktop: to kolonner — inndata til venstre, oppskrift til høyre */
+  @media (min-width: 1024px) {
+    .app {
+      max-width: 1080px;
+      padding: 2.5rem 2rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 1.75rem;
+      align-items: start;
+    }
+    header, footer {
+      grid-column: 1 / -1;
+    }
+    header { margin-bottom: 2.5rem; }
+    .card { margin-bottom: 0; }
+    .card-output {
+      position: sticky;
+      top: 1.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">🍞</div>
+    <h1>Eltefritt</h1>
+    <p class="subtitle">Kalkulator for eltefritt brød</p>
+  </header>
+
+  <section class="card" aria-label="Inndata">
+
+    <div class="field">
+      <div class="field-label">
+        <span>Antall brød</span>
+        <span class="field-value" id="loaves-value">1</span>
+      </div>
+      <div class="seg" style="--cols: 4" role="radiogroup" aria-label="Antall brød">
+        <button data-loaves="1" aria-pressed="true">1</button>
+        <button data-loaves="2" aria-pressed="false">2</button>
+        <button data-loaves="3" aria-pressed="false">3</button>
+        <button data-loaves="4" aria-pressed="false">4</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Brødstørrelse</span>
+        <span class="field-value" id="size-value">Medium</span>
+      </div>
+      <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Brødstørrelse">
+        <button data-size="350" aria-pressed="false">Lite</button>
+        <button data-size="500" aria-pressed="true">Medium</button>
+        <button data-size="650" aria-pressed="false">Stort</button>
+      </div>
+      <p class="helper-text" id="size-detail">≈ 500 g mel · ~750 g ferdig brød</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4 L, eller brødform 1,5 L</p>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Meltype</span>
+        <span class="field-value" id="hydration-suggestion">75%</span>
+      </div>
+      <div id="flour-list"></div>
+      <button type="button" class="add-flour" id="add-flour-btn">+ Legg til meltype</button>
+      <div class="flour-warning" id="flour-warning">Sum: 100%</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Hydrering</span>
+        <span class="field-value"><span id="hydration-value">75</span>%</span>
+      </div>
+      <input type="range" id="hydration" min="60" max="85" value="75" step="1" />
+      <div class="slider-marks">
+        <span>tørrere</span>
+        <span>blautere</span>
+      </div>
+      <p class="helper-text">Mer vann = åpnere krumme, men klissete deig. Anbefaling justeres med meltype.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Hevemetode</span>
+      </div>
+      <div class="seg" style="--cols: 2" role="radiogroup" aria-label="Hevemetode">
+        <button data-mode="classic" aria-pressed="true">Klassisk</button>
+        <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
+      </div>
+      <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Romtemperatur</span>
+        <span class="field-value"><span id="temp-value">21</span>°C</span>
+      </div>
+      <input type="range" id="temp" min="15" max="28" value="21" step="1" />
+      <div class="slider-marks">
+        <span>15°</span>
+        <span>21°</span>
+        <span>28°</span>
+      </div>
+    </div>
+
+    <div id="classic-controls">
+      <div class="field">
+        <div class="field-label">
+          <span>Ønsket hevetid</span>
+          <span class="field-value"><span id="time-value">14</span> t</span>
+        </div>
+        <input type="range" id="rise-time" min="4" max="24" value="14" step="1" />
+        <div class="slider-marks">
+          <span>4 t</span>
+          <span>14 t</span>
+          <span>24 t</span>
+        </div>
+        <p class="helper-text">12–18 timer gir best smak og struktur. Kortere tid krever mer gjær.</p>
+      </div>
+    </div>
+
+    <div id="cold-controls" hidden>
+      <div class="field">
+        <div class="field-label">
+          <span>Bulkheving (romtemp)</span>
+          <span class="field-value"><span id="bulk-time-value">2</span> t</span>
+        </div>
+        <input type="range" id="bulk-time" min="1" max="6" value="2" step="1" />
+        <div class="slider-marks">
+          <span>1 t</span>
+          <span>3 t</span>
+          <span>6 t</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span>Kald etterheving</span>
+          <span class="field-value"><span id="cold-time-value">12</span> t</span>
+        </div>
+        <input type="range" id="cold-time" min="6" max="36" value="12" step="1" />
+        <div class="slider-marks">
+          <span>6 t</span>
+          <span>18 t</span>
+          <span>36 t</span>
+        </div>
+        <p class="helper-text">Lengre tid i kjøleskap = dypere smak og enklere håndtering. 12–24 t er typisk.</p>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span>Kjøleskapstemp</span>
+          <span class="field-value"><span id="cold-temp-value">4</span>°C</span>
+        </div>
+        <input type="range" id="cold-temp" min="2" max="10" value="4" step="1" />
+        <div class="slider-marks">
+          <span>2°</span>
+          <span>4°</span>
+          <span>10°</span>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="card card-output" aria-label="Oppskrift">
+    <h2 class="recipe-title">📋 Oppskrift</h2>
+
+    <div class="ingredient">
+      <span class="name">Mel <span class="sub" id="flour-types-label"></span></span>
+      <span class="amount"><span id="flour-amount">430</span> g</span>
+    </div>
+    <div class="sub-ingredients" id="flour-breakdown"></div>
+
+    <div class="ingredient">
+      <span class="name">Vann <span class="sub">romtemperert</span></span>
+      <span class="amount"><span id="water-amount">323</span> g</span>
+    </div>
+
+    <div class="ingredient">
+      <span class="name">Salt <span class="sub">2 %</span></span>
+      <span class="amount"><span id="salt-amount">8,6</span> g</span>
+    </div>
+
+    <div class="ingredient">
+      <span class="name">Tørrgjær <span class="sub" id="yeast-fresh"></span></span>
+      <span class="amount"><span id="yeast-amount">1,0</span> g</span>
+    </div>
+
+    <div class="plan">
+      <h3>Tidsplan</h3>
+
+      <div class="plan-anchor plan-anchor-start">
+        <span class="plan-icon">⏱</span>
+        <span class="plan-label">Start</span>
+        <input type="time" class="plan-time-input" id="start-time" />
+        <span class="plan-day" id="start-day"></span>
+        <button type="button" class="plan-now-btn" id="now-btn" title="Sett start til nå">↻ nå</button>
+      </div>
+
+      <div id="plan-steps"></div>
+
+      <div class="plan-anchor plan-anchor-ready">
+        <span class="plan-icon">🍞</span>
+        <span class="plan-label">Klar</span>
+        <input type="time" class="plan-time-input" id="ready-time" />
+        <span class="plan-day" id="ready-day"></span>
+      </div>
+    </div>
+
+    <details>
+      <summary>Slik gjør du det</summary>
+      <div class="method">
+        <ol id="method-list"></ol>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    Eltefritt-kalkulator · basert på Jim Lahey-metoden<br>
+    Mengder er per brød × antall brød. Tilpass etter erfaring og bakebehov.
+  </footer>
+</div>
+
+<script>
+(() => {
+  // ---- Meltyper med anbefalt hydrering ----
+  const FLOUR_TYPES = {
+    hvete:      { name: 'Hvetemel',         hydration: 70 },
+    sammalt:    { name: 'Sammalt hvete',    hydration: 78 },
+    sammaltfin: { name: 'Sammalt hvete, fin',hydration: 76 },
+    rug:        { name: 'Rugmel',           hydration: 82 },
+    sammaltrug: { name: 'Sammalt rug',      hydration: 85 },
+    spelt:      { name: 'Speltmel',         hydration: 72 },
+    durum:      { name: 'Durumhvete',       hydration: 70 },
+    havre:      { name: 'Havremel',         hydration: 75 },
+    bygg:       { name: 'Byggmel',          hydration: 76 }
+  };
+
+  // ---- State ----
+  const state = {
+    loaves: 1,
+    sizePerLoaf: 500,
+    flours: [
+      { type: 'hvete', pct: 100 }
+    ],
+    hydration: 75,
+    hydrationManual: false,
+    temperatureC: 21,
+    mode: 'classic',           // 'classic' | 'cold'
+    riseHours: 14,             // brukes i classic
+    bulkHours: 2,              // brukes i cold
+    coldHours: 12,             // brukes i cold
+    coldTempC: 4,              // brukes i cold
+    timeAnchor: 'start',       // 'start' | 'ready' — hvilket endepunkt brukeren sist satte
+    anchorTime: '10:00'        // HH:MM
+  };
+
+  // ---- Helpers ----
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => document.querySelectorAll(sel);
+
+  const formatGrams = (g) => {
+    if (g >= 100) return Math.round(g).toString();
+    if (g >= 10) return (Math.round(g * 10) / 10).toString().replace('.', ',');
+    return (Math.round(g * 10) / 10).toString().replace('.', ',');
+  };
+
+  const formatTimeHM = (date) => {
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  const addMinutes = (d, m) => new Date(d.getTime() + m * 60 * 1000);
+  const addHours = (d, h) => addMinutes(d, h * 60);
+
+  // ---- Hevemoduser ----
+  // All mode-spesifikk oppførsel samles her: gjærberegning, varighet, plansteg, instruksjoner.
+  // Når en ny modus legges til, er dette i hovedsak det eneste stedet som må røres.
+  const REF_TEMP = 21;
+  const BAKE_MIN = 60;
+
+  const MODES = {
+    classic: {
+      label: 'Klassisk',
+      detail: 'Lang bulkheving + kort etterheving før steking.',
+      controlsId: 'classic-controls',
+      // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2)
+      effectiveHours: () =>
+        state.riseHours * Math.pow(2, (state.temperatureC - REF_TEMP) / 10),
+      totalMinutes: () => state.riseHours * 60 + 45 + BAKE_MIN,
+      planItems: (start) => {
+        const shape = addHours(start, state.riseHours);
+        const bake = addMinutes(shape, 45);
+        return [
+          { kind: 'duration', text: `Bulkheving · ${state.riseHours} t ved ${state.temperatureC}°C` },
+          { kind: 'step', label: 'Form og etterhev', time: shape },
+          { kind: 'duration', text: 'Etterheving · 45 min' },
+          { kind: 'step', label: 'Inn i ovnen', time: bake },
+          { kind: 'duration', text: 'Steking · ~1 t' }
+        ];
+      },
+      instructions: [
+        ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle.'],
+        ['Tilsett vann', 'Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'],
+        ['Bulkheving', 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.'],
+        ['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.'],
+        ['Stek', 'Sett en gryte med lokk (jerngryte eller annen ovnsfast) i ovnen og varm til 250 °C. Vipp deigen forsiktig oppi den varme gryta, sett på lokket og stek 30 min. Ta av lokket og stek videre 10–15 min til brødet er gyllent og lyder hult når du banker på bunnen.'],
+        ['Avkjøl', 'La brødet avkjøle på rist i minst 30 min før du skjærer.']
+      ]
+    },
+    cold: {
+      label: 'Kald etterheving',
+      detail: 'Kort bulk + lang etterheving i kjøleskap — banneton-vennlig.',
+      controlsId: 'cold-controls',
+      effectiveHours: () => {
+        const bulkFactor = Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
+        const coldFactor = Math.pow(2, (state.coldTempC - REF_TEMP) / 10);
+        return state.bulkHours * bulkFactor + state.coldHours * coldFactor;
+      },
+      totalMinutes: () => state.bulkHours * 60 + state.coldHours * 60 + BAKE_MIN,
+      planItems: (start) => {
+        const shape = addHours(start, state.bulkHours);
+        const bake = addHours(shape, state.coldHours);
+        return [
+          { kind: 'duration', text: `Bulkheving · ${state.bulkHours} t ved ${state.temperatureC}°C` },
+          { kind: 'step', label: 'Form og legg i banneton', time: shape },
+          { kind: 'duration', text: `I kjøleskap · ${state.coldHours} t ved ${state.coldTempC}°C` },
+          { kind: 'step', label: 'Inn i ovnen (rett fra kjøleskap)', time: bake },
+          { kind: 'duration', text: 'Steking · ~1 t' }
+        ];
+      },
+      instructions: [
+        ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle.'],
+        ['Tilsett vann', 'Hell i alt vannet og rør med slikkepott til alt er fuktet. Klissete, uregelmessig — ikke elt.'],
+        ['Kort bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.'],
+        ['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.'],
+        ['Kald etterheving', 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.'],
+        ['Stek direkte fra kjøleskap', 'Forvarm jerngryte til 250 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Lokk av, stek 10–15 min til gyllent.'],
+        ['Avkjøl', 'La avkjøle på rist i minst 30 min før du skjærer.']
+      ]
+    }
+  };
+
+  const currentMode = () => MODES[state.mode];
+
+  // ---- Calculations ----
+  function weightedHydration() {
+    let sum = 0, total = 0;
+    state.flours.forEach(f => {
+      const ft = FLOUR_TYPES[f.type];
+      if (!ft) return;
+      sum += ft.hydration * f.pct;
+      total += f.pct;
+    });
+    return total > 0 ? sum / total : 75;
+  }
+
+  function calculateYeast(flourGrams) {
+    // Referanse: 0.23 % instant tørrgjær gir ~14 t god heving ved 21 °C.
+    // Hver modus oversetter sin egen tidsplan til "21°C-ekvivalente timer".
+    const refYeastPct = 0.23;
+    const refHours = 14;
+    const effHours = currentMode().effectiveHours();
+    const yeastPct = refYeastPct * refHours / Math.max(effHours, 0.1);
+    return { grams: (yeastPct / 100) * flourGrams, pct: yeastPct };
+  }
+
+  function compute() {
+    const flourTotal = state.sizePerLoaf * state.loaves;
+    const hydration = state.hydrationManual ? state.hydration : weightedHydration();
+    const water = flourTotal * (hydration / 100);
+    const salt = flourTotal * 0.02;
+    const yeastInfo = calculateYeast(flourTotal);
+
+    return { flourTotal, hydration, water, salt, yeast: yeastInfo.grams, yeastPct: yeastInfo.pct };
+  }
+
+  // ---- Render ----
+  function renderSegment(buttons, currentValue, attr) {
+    buttons.forEach(b => {
+      const active = b.dataset[attr] == currentValue;
+      b.setAttribute('aria-pressed', active);
+    });
+  }
+
+  function setFlourPct(idx, newPct) {
+    // Auto-balanser: når brukeren endrer én glider, justeres resten proporsjonalt så summen blir 100.
+    const n = state.flours.length;
+    if (n === 1) {
+      state.flours[0].pct = 100;
+      return;
+    }
+    newPct = Math.max(0, Math.min(100, Math.round(newPct)));
+    state.flours[idx].pct = newPct;
+    const remainder = 100 - newPct;
+    const others = state.flours.map((_, i) => i).filter(i => i !== idx);
+    const otherSum = others.reduce((s, i) => s + state.flours[i].pct, 0);
+
+    if (otherSum === 0) {
+      const each = Math.floor(remainder / others.length);
+      others.forEach(i => state.flours[i].pct = each);
+    } else {
+      others.forEach(i => {
+        state.flours[i].pct = Math.round((state.flours[i].pct / otherSum) * remainder);
+      });
+    }
+    // Korrigér evt. rundingsfeil ved å justere den siste "andre"
+    const total = state.flours.reduce((s, f) => s + f.pct, 0);
+    if (total !== 100 && others.length > 0) {
+      state.flours[others[others.length - 1]].pct += (100 - total);
+    }
+  }
+
+  function renderFlourList() {
+    const list = $('#flour-list');
+    list.innerHTML = '';
+    state.flours.forEach((f, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flour-row';
+
+      const top = document.createElement('div');
+      top.className = 'flour-row-top';
+
+      const select = document.createElement('select');
+      Object.entries(FLOUR_TYPES).forEach(([key, val]) => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = val.name;
+        if (key === f.type) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', e => {
+        state.flours[idx].type = e.target.value;
+        state.hydrationManual = false;
+        update();
+      });
+
+      const pctLabel = document.createElement('span');
+      pctLabel.className = 'flour-pct';
+      pctLabel.textContent = `${f.pct}%`;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'remove-btn';
+      removeBtn.setAttribute('aria-label', 'Fjern meltype');
+      removeBtn.innerHTML = '×';
+      if (state.flours.length === 1) {
+        removeBtn.style.visibility = 'hidden';
+      }
+      removeBtn.addEventListener('click', () => {
+        state.flours.splice(idx, 1);
+        // Re-normaliser etter fjerning
+        const total = state.flours.reduce((s, ff) => s + ff.pct, 0);
+        if (total > 0 && total !== 100) {
+          state.flours.forEach(ff => ff.pct = Math.round((ff.pct / total) * 100));
+          const newTotal = state.flours.reduce((s, ff) => s + ff.pct, 0);
+          if (newTotal !== 100) state.flours[0].pct += (100 - newTotal);
+        }
+        state.hydrationManual = false;
+        update();
+      });
+
+      top.appendChild(select);
+      top.appendChild(pctLabel);
+      top.appendChild(removeBtn);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'flour-slider';
+      slider.min = '0';
+      slider.max = '100';
+      slider.step = '1';
+      slider.value = f.pct;
+      if (state.flours.length === 1) slider.disabled = true;
+      slider.addEventListener('input', e => {
+        const v = parseInt(e.target.value, 10);
+        setFlourPct(idx, v);
+        state.hydrationManual = false;
+        update({ skipFlourList: true, fromSlider: idx });
+      });
+
+      row.appendChild(top);
+      row.appendChild(slider);
+      list.appendChild(row);
+    });
+
+    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
+    const warn = $('#flour-warning');
+    warn.textContent = `Sum: ${totalPct}%`;
+    warn.classList.toggle('error', totalPct !== 100);
+  }
+
+  function renderFlourBreakdown(flourTotal) {
+    const wrap = $('#flour-breakdown');
+    wrap.innerHTML = '';
+    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
+    if (state.flours.length === 1) {
+      $('#flour-types-label').textContent = FLOUR_TYPES[state.flours[0].type]?.name.toLowerCase() || '';
+      return;
+    }
+    $('#flour-types-label').textContent = `(${state.flours.length} typer)`;
+    state.flours.forEach(f => {
+      if (f.pct === 0) return;
+      const ft = FLOUR_TYPES[f.type];
+      const grams = (f.pct / Math.max(totalPct, 1)) * flourTotal;
+      const row = document.createElement('div');
+      row.className = 'ingredient';
+      row.innerHTML = `
+        <span class="name">${ft.name} <span class="sub">${f.pct}%</span></span>
+        <span class="amount">${formatGrams(grams)} g</span>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  function resolveAnchorDate(timeStr) {
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const now = new Date();
+    const nowMinute = new Date(now);
+    nowMinute.setSeconds(0, 0);
+    const d = new Date(now);
+    d.setHours(hh, mm, 0, 0);
+    // Bruk strict < og minutt-presisjon, så "akkurat nå" ikke bumpes til i morgen
+    if (d < nowMinute) d.setDate(d.getDate() + 1);
+    return d;
+  }
+
+  function formatDayLabel(date) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
+    const dDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    if (dDate.getTime() === today.getTime()) return 'i dag';
+    if (dDate.getTime() === tomorrow.getTime()) return 'i morgen';
+    if (dDate.getTime() === dayAfter.getTime()) return 'overimorgen';
+    const days = ['søn','man','tir','ons','tor','fre','lør'];
+    return days[date.getDay()];
+  }
+
+  function getStartAndReady() {
+    const total = currentMode().totalMinutes();
+    if (state.timeAnchor === 'ready') {
+      let ready = resolveAnchorDate(state.anchorTime);
+      let start = addMinutes(ready, -total);
+      // Hvis Start havner før nå, flytt Ready én dag fram (cap for sikkerhet)
+      const now = new Date();
+      let safety = 5;
+      while (start < now && safety-- > 0) {
+        ready = addMinutes(ready, 24 * 60);
+        start = addMinutes(ready, -total);
+      }
+      return { start, ready };
+    }
+    const start = resolveAnchorDate(state.anchorTime);
+    return { start, ready: addMinutes(start, total) };
+  }
+
+  function renderInstructions(instructions) {
+    const ol = $('#method-list');
+    ol.innerHTML = '';
+    instructions.forEach(([title, body]) => {
+      const li = document.createElement('li');
+      const strong = document.createElement('strong');
+      strong.textContent = title + ':';
+      li.appendChild(strong);
+      li.appendChild(document.createTextNode(' ' + body));
+      ol.appendChild(li);
+    });
+  }
+
+  function renderPlan() {
+    const { start, ready } = getStartAndReady();
+    const startInput = $('#start-time');
+    const readyInput = $('#ready-time');
+    if (document.activeElement !== startInput) startInput.value = formatTimeHM(start);
+    if (document.activeElement !== readyInput) readyInput.value = formatTimeHM(ready);
+    $('#start-day').textContent = formatDayLabel(start);
+    $('#ready-day').textContent = formatDayLabel(ready);
+
+    const stepsEl = $('#plan-steps');
+    stepsEl.innerHTML = '';
+    currentMode().planItems(start).forEach(item => {
+      if (item.kind === 'duration') {
+        const d = document.createElement('div');
+        d.className = 'plan-duration';
+        d.textContent = item.text;
+        stepsEl.appendChild(d);
+      } else {
+        const s = document.createElement('div');
+        s.className = 'plan-step';
+        const dayLabel = formatDayLabel(item.time);
+        const dayHtml = dayLabel && dayLabel !== 'i dag' ? ` <span class="plan-day">${dayLabel}</span>` : '';
+        s.innerHTML = `
+          <span class="plan-icon">·</span>
+          <span class="plan-label">${item.label}</span>
+          <span class="plan-time">${formatTimeHM(item.time)}${dayHtml}</span>
+        `;
+        stepsEl.appendChild(s);
+      }
+    });
+  }
+
+  function update(opts = {}) {
+    // Brødstørrelse-detalj
+    const sizeNames = { 350: 'Lite', 500: 'Medium', 650: 'Stort' };
+    const equipment = {
+      350: 'Jerngryte 3 L, eller brødform 1 L (~20 cm)',
+      500: 'Jerngryte 4 L, eller brødform 1,5 L (~25 cm)',
+      650: 'Jerngryte 5 L, eller brødform 2 L (~30 cm)'
+    };
+    $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
+    // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
+    const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
+    $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
+    $('#equipment-detail').textContent = `🥘 ${equipment[state.sizePerLoaf] || 'tilpass utstyr etter deigmengde'}` + (state.loaves > 1 ? ` (per brød)` : '');
+
+    // Antall brød
+    $('#loaves-value').textContent = state.loaves;
+
+    // Meltype-anbefaling
+    const recommended = weightedHydration();
+    $('#hydration-suggestion').textContent = `~${Math.round(recommended)}% vann`;
+
+    // Hvis ikke manuelt overstyrt, oppdater hydrering fra meltype
+    if (!state.hydrationManual) {
+      state.hydration = Math.round(recommended);
+      $('#hydration').value = state.hydration;
+    }
+    $('#hydration-value').textContent = state.hydration;
+
+    $('#temp-value').textContent = state.temperatureC;
+    $('#time-value').textContent = state.riseHours;
+    $('#bulk-time-value').textContent = state.bulkHours;
+    $('#cold-time-value').textContent = state.coldHours;
+    $('#cold-temp-value').textContent = state.coldTempC;
+
+    // Vis riktig kontrollsett basert på modus, og oppdater mode-spesifikk tekst/instruksjoner.
+    Object.entries(MODES).forEach(([key, mode]) => {
+      $(`#${mode.controlsId}`).hidden = state.mode !== key;
+    });
+    $('#mode-detail').textContent = currentMode().detail;
+    renderInstructions(currentMode().instructions);
+
+    if (!opts.skipFlourList) {
+      renderFlourList();
+    } else {
+      // Synkroniser eksisterende DOM uten å rebygge (så drag-interaksjonen ikke brytes)
+      const rows = $('#flour-list').children;
+      state.flours.forEach((f, i) => {
+        const row = rows[i];
+        if (!row) return;
+        const pctLabel = row.querySelector('.flour-pct');
+        const slider = row.querySelector('.flour-slider');
+        if (pctLabel) pctLabel.textContent = `${f.pct}%`;
+        // Ikke overskriv glideren brukeren drar i
+        if (slider && i !== opts.fromSlider) slider.value = f.pct;
+      });
+      const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
+      const warn = $('#flour-warning');
+      warn.textContent = `Sum: ${totalPct}%`;
+      warn.classList.toggle('error', totalPct !== 100);
+    }
+
+    const { flourTotal, water, salt, yeast, yeastPct } = compute();
+    $('#flour-amount').textContent = formatGrams(flourTotal);
+    $('#water-amount').textContent = formatGrams(water);
+    $('#salt-amount').textContent = formatGrams(salt);
+    $('#yeast-amount').textContent = formatGrams(yeast);
+
+    // Vis prosent + fersk gjær (≈ 3× tørrgjær)
+    const pctStr = yeastPct.toFixed(2).replace('.', ',') + ' %';
+    $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(yeast * 3)} g fersk`;
+
+    renderFlourBreakdown(flourTotal);
+    renderPlan();
+
+    // Lagre state
+    try {
+      localStorage.setItem('eltefritt-state', JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  // ---- Wire up controls ----
+  $$('.seg button[data-loaves]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.loaves = parseInt(btn.dataset.loaves, 10);
+      renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
+      update();
+    });
+  });
+
+  $$('.seg button[data-size]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.sizePerLoaf = parseInt(btn.dataset.size, 10);
+      renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+      update();
+    });
+  });
+
+  $('#hydration').addEventListener('input', e => {
+    state.hydration = parseInt(e.target.value, 10);
+    state.hydrationManual = true;
+    update();
+  });
+
+  $('#temp').addEventListener('input', e => {
+    state.temperatureC = parseInt(e.target.value, 10);
+    update();
+  });
+
+  $('#rise-time').addEventListener('input', e => {
+    state.riseHours = parseInt(e.target.value, 10);
+    update();
+  });
+
+  $$('.seg button[data-mode]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.mode = btn.dataset.mode;
+      renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+      update();
+    });
+  });
+
+  $('#bulk-time').addEventListener('input', e => {
+    state.bulkHours = parseInt(e.target.value, 10);
+    update({ skipFlourList: true });
+  });
+
+  $('#cold-time').addEventListener('input', e => {
+    state.coldHours = parseInt(e.target.value, 10);
+    update({ skipFlourList: true });
+  });
+
+  $('#cold-temp').addEventListener('input', e => {
+    state.coldTempC = parseInt(e.target.value, 10);
+    update({ skipFlourList: true });
+  });
+
+  $('#start-time').addEventListener('input', e => {
+    if (!e.target.value) return;
+    state.timeAnchor = 'start';
+    state.anchorTime = e.target.value;
+    update({ skipFlourList: true });
+  });
+
+  $('#ready-time').addEventListener('input', e => {
+    if (!e.target.value) return;
+    state.timeAnchor = 'ready';
+    state.anchorTime = e.target.value;
+    update({ skipFlourList: true });
+  });
+
+  $('#now-btn').addEventListener('click', () => {
+    const now = new Date();
+    state.timeAnchor = 'start';
+    state.anchorTime = formatTimeHM(now);
+    update({ skipFlourList: true });
+  });
+
+  $('#add-flour-btn').addEventListener('click', () => {
+    // Gi den nye meltypen ~1/(n+1) av andelen, og skaler eksisterende proporsjonalt ned.
+    const initialNewPct = Math.round(100 / (state.flours.length + 1));
+    const scale = (100 - initialNewPct) / 100;
+    state.flours.forEach(f => f.pct = Math.round(f.pct * scale));
+    const used = new Set(state.flours.map(f => f.type));
+    const nextType = Object.keys(FLOUR_TYPES).find(k => !used.has(k)) || 'sammalt';
+    state.flours.push({ type: nextType, pct: initialNewPct });
+    // Rett opp rundingsfeil
+    const total = state.flours.reduce((s, f) => s + f.pct, 0);
+    if (total !== 100) state.flours[0].pct += (100 - total);
+    state.hydrationManual = false;
+    update();
+  });
+
+  // ---- Restore state ----
+  try {
+    const saved = localStorage.getItem('eltefritt-state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(state, parsed);
+      // Migrer gamle størrelser til nye
+      const validSizes = [350, 500, 650];
+      if (!validSizes.includes(state.sizePerLoaf)) {
+        const sizeMigration = { 300: 350, 400: 350, 430: 500, 550: 500, 600: 650, 750: 650 };
+        state.sizePerLoaf = sizeMigration[state.sizePerLoaf] || 500;
+      }
+      // Synkroniser DOM-kontroller
+      renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
+      renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+      renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+      $('#hydration').value = state.hydration;
+      $('#temp').value = state.temperatureC;
+      $('#rise-time').value = state.riseHours;
+      $('#bulk-time').value = state.bulkHours;
+      $('#cold-time').value = state.coldHours;
+      $('#cold-temp').value = state.coldTempC;
+
+      // Migrer fra gammel state med targetTime
+      if (parsed.targetTime && !parsed.anchorTime) {
+        state.anchorTime = parsed.targetTime;
+        state.timeAnchor = 'ready';
+      }
+    }
+  } catch (e) {}
+
+  // Default for ny bruker: start = nå rundet til neste hele time
+  if (!localStorage.getItem('eltefritt-state')) {
+    const d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0);
+    state.anchorTime = formatTimeHM(d);
+    state.timeAnchor = 'start';
+  }
+
+  update();
+})();
+</script>
+</body>
+</html>
