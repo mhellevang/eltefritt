@@ -411,6 +411,27 @@
     font-weight: 500;
   }
 
+  .flour-tip {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-top: 0.6rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--surface-2);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-soft);
+    line-height: 1.45;
+  }
+
+  .flour-tip[hidden] { display: none; }
+
+  .flour-tip p {
+    margin: 0;
+  }
+
+  .flour-tip p + p {
+    margin-top: 0.4rem;
+  }
+
   /* Output card */
   .card-output {
     background: linear-gradient(170deg, var(--surface) 0%, var(--surface-2) 100%);
@@ -764,6 +785,7 @@
       <div id="flour-list"></div>
       <button type="button" class="add-flour" id="add-flour-btn">+ Legg til meltype</button>
       <div class="flour-warning" id="flour-warning">Sum: 100%</div>
+      <div class="flour-tip" id="flour-tip" hidden></div>
     </div>
 
     <div class="field">
@@ -966,6 +988,11 @@
     havre:      { name: 'Havremel',         hydration: 75 },
     bygg:       { name: 'Byggmel',          hydration: 76 }
   };
+
+  // Meltyper som hever dårlig uten surdeig / mangler gluten.
+  // Brukes til å vise tips når en blanding er kjent for å gi problemer.
+  const RYE_TYPES = new Set(['rug', 'sammaltrug']);
+  const LOW_GLUTEN_TYPES = new Set(['havre', 'bygg']);
 
   // ---- State ----
   const state = {
@@ -1335,6 +1362,26 @@
     warn.classList.toggle('error', totalPct !== 100);
   }
 
+  function renderFlourTip() {
+    const ryePct = state.flours.reduce((s, f) => s + (RYE_TYPES.has(f.type) ? f.pct : 0), 0);
+    const lowGlutenPct = state.flours.reduce((s, f) => s + (LOW_GLUTEN_TYPES.has(f.type) ? f.pct : 0), 0);
+    const tips = [];
+    if (ryePct > 50) {
+      tips.push('Rene rugbrød hever dårlig med vanlig gjær — vurder surdeig, eller bland inn mer hvete.');
+    }
+    if (lowGlutenPct > 30) {
+      tips.push('Havre og bygg har lite gluten. Hold andelen under 30 % for en deig som hever godt.');
+    }
+    const el = $('#flour-tip');
+    if (tips.length === 0) {
+      el.hidden = true;
+      el.innerHTML = '';
+    } else {
+      el.hidden = false;
+      el.innerHTML = tips.map(t => `<p>💡 ${t}</p>`).join('');
+    }
+  }
+
   function renderFlourBreakdown(flourTotal) {
     const wrap = $('#flour-breakdown');
     wrap.innerHTML = '';
@@ -1509,6 +1556,7 @@
       warn.textContent = `Sum: ${totalPct}%`;
       warn.classList.toggle('error', totalPct !== 100);
     }
+    renderFlourTip();
 
     const { flourTotal, water, salt, yeast, yeastPct } = compute();
     $('#flour-amount').textContent = formatGrams(flourTotal);
