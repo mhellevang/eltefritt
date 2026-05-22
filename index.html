@@ -1111,7 +1111,7 @@
   // All mode-spesifikk oppførsel samles her: gjærberegning, varighet, plansteg, instruksjoner.
   // Når en ny modus legges til, er dette i hovedsak det eneste stedet som må røres.
   const REF_TEMP = 21;
-  const BAKE_MIN = 60;
+  const BAKE_MIN = 50;
 
   const MODES = {
     classic: {
@@ -1130,7 +1130,7 @@
           { kind: 'step', label: 'Form og etterhev', time: shape },
           { kind: 'duration', text: 'Etterheving · 45 min' },
           { kind: 'step', label: 'Inn i ovnen', time: bake },
-          { kind: 'duration', text: 'Steking · ~1 t' }
+          { kind: 'duration', text: 'Steking · ~45 min' }
         ];
       },
       instructions: [
@@ -1138,7 +1138,7 @@
         ['Tilsett vann', 'Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'],
         ['Bulkheving', 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.'],
         ['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.'],
-        ['Stek', 'Sett en gryte med lokk (jerngryte eller annen ovnsfast) i ovnen og varm til 250 °C. Vipp deigen forsiktig oppi den varme gryta, sett på lokket og stek 30 min. Ta av lokket og stek videre 10–15 min til brødet er gyllent og lyder hult når du banker på bunnen.'],
+        ['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.'],
         ['Avkjøl', 'La brødet avkjøle på rist i minst 30 min før du skjærer.']
       ]
     },
@@ -1160,7 +1160,7 @@
           { kind: 'step', label: 'Form og legg i banneton', time: shape },
           { kind: 'duration', text: `I kjøleskap · ${state.coldHours} t ved ${state.coldTempC}°C` },
           { kind: 'step', label: 'Inn i ovnen (rett fra kjøleskap)', time: bake },
-          { kind: 'duration', text: 'Steking · ~1 t' }
+          { kind: 'duration', text: 'Steking · ~45 min' }
         ];
       },
       instructions: [
@@ -1169,7 +1169,7 @@
         ['Kort bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.'],
         ['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.'],
         ['Kald etterheving', 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.'],
-        ['Stek direkte fra kjøleskap', 'Forvarm jerngryte til 250 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Lokk av, stek 10–15 min til gyllent.'],
+        ['Stek direkte fra kjøleskap', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til 220 °C og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.'],
         ['Avkjøl', 'La avkjøle på rist i minst 30 min før du skjærer.']
       ]
     }
