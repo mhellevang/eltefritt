@@ -8,17 +8,10 @@ Basert på Jim Lahey-metoden, med støtte for både klassisk lang heving og kald
 
 ## Funksjoner
 
-- Beregner mel, vann, salt og gjær for 1–4 brød i tre størrelser
-- Flere meltyper samtidig (hvete, sammalt, rug, spelt, durum, havre, bygg) med auto-balansert prosent og vektet hydreringsanbefaling
-- To hevemoduser:
-  - **Klassisk** — lang bulkheving + kort etterheving før steking
-  - **Kald etterheving** — kort bulk + lang heving i kjøleskap, banneton-vennlig
-- Gjærberegning vekter hver fase mot 21°C-ekvivalente timer (Q10 ≈ 2)
+- Mengder for 1–4 brød i tre størrelser, med utstyrsanbefaling
+- Flere meltyper samtidig med auto-balansert prosent og vektet hydreringsanbefaling
+- To hevemoduser: klassisk lang bulk, eller kort bulk + kald etterheving i banneton
 - Bakplan med toveis editerbare Start- og Klar-tidspunkter
-- Steg-for-steg instruksjoner tilpasset valgt hevemodus
-- Utstyrsanbefaling (jerngryte/brødform-størrelse) per brødstørrelse
-- Responsiv: én kolonne på mobil, to kolonner på desktop
-- Tilstand lagres i `localStorage`
 
 ## Bakerens formel
 
@@ -34,18 +27,4 @@ Referansepunktet er 0,23 % tørrgjær for 14 timers heving ved 21 °C. Fersk gj�
 
 ## Kjør lokalt
 
-```sh
-open index.html
-```
-
-Ingen byggesteg, ingen avhengigheter. Hele appen er én HTML-fil med inline CSS og JS.
-
-## Legge til en ny hevemodus
-
-All modus-spesifikk oppførsel ligger i `MODES`-tabellen i `index.html`. For å legge til f.eks. surdeig eller direktebakst:
-
-1. Ny entry i `MODES` med `label`, `detail`, `controlsId`, `effectiveHours()`, `totalMinutes()`, `planItems(start)` og `instructions`
-2. Ny `<div id="…-controls">`-blokk med tilhørende slidere
-3. Ny knapp i `<div class="seg">` for hevemetode
-
-Resten av appen oppdager den automatisk via oppslag i `MODES`.
+Åpne `index.html` i en nettleser.
