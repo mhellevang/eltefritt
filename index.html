@@ -359,9 +359,24 @@
     border-radius: 2px;
     overflow: hidden;
     pointer-events: none;
+    position: relative;
+  }
+
+  .step-recommend {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    background: var(--accent-soft);
+    opacity: 0.55;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: left 0.18s ease-out, width 0.18s ease-out;
   }
 
   .step-fill {
+    position: relative;
     height: 100%;
     width: 0%;
     background: var(--accent);
@@ -796,7 +811,7 @@
       <div class="stepper" data-stepper-for="hydration">
         <input type="range" id="hydration" class="visually-hidden" min="60" max="85" value="75" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hydrering">−</button>
-        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <div class="step-track" aria-hidden="true"><div class="step-recommend" id="hydration-recommend"></div><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hydrering">+</button>
       </div>
       <div class="slider-marks">
@@ -976,17 +991,20 @@
 
 <script>
 (() => {
-  // ---- Meltyper med anbefalt hydrering ----
+  // ---- Meltyper med anbefalt hydreringsområde ----
+  // Tallene er et utgangspunkt basert på vanlig praksis for eltefritt brød.
+  // Variasjon i mølle, sesong og malingsgrad gjør at "riktig" hydrering
+  // alltid er et område, ikke ett tall — brukeren overstyrer selv om ønskelig.
   const FLOUR_TYPES = {
-    hvete:      { name: 'Hvetemel',         hydration: 70 },
-    sammalt:    { name: 'Sammalt hvete',    hydration: 78 },
-    sammaltfin: { name: 'Sammalt hvete, fin',hydration: 76 },
-    rug:        { name: 'Rugmel',           hydration: 82 },
-    sammaltrug: { name: 'Sammalt rug',      hydration: 85 },
-    spelt:      { name: 'Speltmel',         hydration: 72 },
-    durum:      { name: 'Durumhvete',       hydration: 70 },
-    havre:      { name: 'Havremel',         hydration: 75 },
-    bygg:       { name: 'Byggmel',          hydration: 76 }
+    hvete:      { name: 'Hvetemel',          hydrationMin: 70, hydrationMax: 75 },
+    sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 80 },
+    sammaltfin: { name: 'Sammalt hvete, fin',hydrationMin: 73, hydrationMax: 78 },
+    rug:        { name: 'Rugmel',            hydrationMin: 80, hydrationMax: 85 },
+    sammaltrug: { name: 'Sammalt rug',       hydrationMin: 82, hydrationMax: 85 },
+    spelt:      { name: 'Speltmel',          hydrationMin: 65, hydrationMax: 72 },
+    durum:      { name: 'Durumhvete',        hydrationMin: 65, hydrationMax: 72 },
+    havre:      { name: 'Havremel',          hydrationMin: 72, hydrationMax: 78 },
+    bygg:       { name: 'Byggmel',           hydrationMin: 72, hydrationMax: 78 }
   };
 
   // Meltyper som hever dårlig uten surdeig / mangler gluten.
@@ -1047,6 +1065,22 @@
     const val = parseFloat(input.value) || 0;
     const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
     fill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  }
+
+  function refreshHydrationRecommend(recMin, recMax) {
+    const input = $('#hydration');
+    const band = $('#hydration-recommend');
+    if (!input || !band) return;
+    const sliderMin = parseFloat(input.min);
+    const sliderMax = parseFloat(input.max);
+    const span = sliderMax - sliderMin;
+    if (span <= 0) return;
+    const clampedMin = Math.max(sliderMin, Math.min(sliderMax, recMin));
+    const clampedMax = Math.max(sliderMin, Math.min(sliderMax, recMax));
+    const leftPct = ((clampedMin - sliderMin) / span) * 100;
+    const widthPct = ((clampedMax - clampedMin) / span) * 100;
+    band.style.left = leftPct + '%';
+    band.style.width = widthPct + '%';
   }
 
   function attachHoldButton(btn, action) {
@@ -1179,14 +1213,16 @@
 
   // ---- Calculations ----
   function weightedHydration() {
-    let sum = 0, total = 0;
+    let sumMin = 0, sumMax = 0, total = 0;
     state.flours.forEach(f => {
       const ft = FLOUR_TYPES[f.type];
       if (!ft) return;
-      sum += ft.hydration * f.pct;
+      sumMin += ft.hydrationMin * f.pct;
+      sumMax += ft.hydrationMax * f.pct;
       total += f.pct;
     });
-    return total > 0 ? sum / total : 75;
+    if (total === 0) return { min: 75, max: 75 };
+    return { min: sumMin / total, max: sumMax / total };
   }
 
   function calculateYeast(flourGrams) {
@@ -1201,7 +1237,13 @@
 
   function compute() {
     const flourTotal = state.sizePerLoaf * state.loaves;
-    const hydration = state.hydrationManual ? state.hydration : weightedHydration();
+    let hydration;
+    if (state.hydrationManual) {
+      hydration = state.hydration;
+    } else {
+      const r = weightedHydration();
+      hydration = (r.min + r.max) / 2;
+    }
     const water = flourTotal * (hydration / 100);
     const salt = flourTotal * 0.02;
     const yeastInfo = calculateYeast(flourTotal);
@@ -1512,11 +1554,16 @@
 
     // Meltype-anbefaling
     const recommended = weightedHydration();
-    $('#hydration-suggestion').textContent = `~${Math.round(recommended)}% vann`;
+    const recMin = Math.round(recommended.min);
+    const recMax = Math.round(recommended.max);
+    $('#hydration-suggestion').textContent = recMin === recMax
+      ? `~${recMin}% vann`
+      : `${recMin}–${recMax}% vann`;
+    refreshHydrationRecommend(recommended.min, recommended.max);
 
-    // Hvis ikke manuelt overstyrt, oppdater hydrering fra meltype
+    // Hvis ikke manuelt overstyrt, sett hydrering til midtpunkt av anbefalt område
     if (!state.hydrationManual) {
-      state.hydration = Math.round(recommended);
+      state.hydration = Math.round((recommended.min + recommended.max) / 2);
       $('#hydration').value = state.hydration;
       refreshStepperVisual($('#hydration'));
     }
