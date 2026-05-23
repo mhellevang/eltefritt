@@ -1031,28 +1031,16 @@
   </footer>
 </div>
 
+<script src="src/logic.js"></script>
 <script>
 (() => {
-  // ---- Meltyper med anbefalt hydreringsområde ----
-  // Tallene er et utgangspunkt basert på vanlig praksis for eltefritt brød.
-  // Variasjon i mølle, sesong og malingsgrad gjør at "riktig" hydrering
-  // alltid er et område, ikke ett tall — brukeren overstyrer selv om ønskelig.
-  const FLOUR_TYPES = {
-    hvete:      { name: 'Hvetemel',          hydrationMin: 70, hydrationMax: 75 },
-    sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 80 },
-    sammaltfin: { name: 'Sammalt hvete, fin',hydrationMin: 73, hydrationMax: 78 },
-    rug:        { name: 'Rugmel',            hydrationMin: 80, hydrationMax: 85 },
-    sammaltrug: { name: 'Sammalt rug',       hydrationMin: 82, hydrationMax: 85 },
-    spelt:      { name: 'Speltmel',          hydrationMin: 65, hydrationMax: 72 },
-    durum:      { name: 'Durumhvete',        hydrationMin: 65, hydrationMax: 72 },
-    havre:      { name: 'Havremel',          hydrationMin: 72, hydrationMax: 78 },
-    bygg:       { name: 'Byggmel',           hydrationMin: 72, hydrationMax: 78 }
-  };
-
-  // Meltyper som hever dårlig uten surdeig / mangler gluten.
-  // Brukes til å vise tips når en blanding er kjent for å gi problemer.
-  const RYE_TYPES = new Set(['rug', 'sammaltrug']);
-  const LOW_GLUTEN_TYPES = new Set(['havre', 'bygg']);
+  const {
+    FLOUR_TYPES, LEAVEN_DETAILS, MODE_META,
+    addMinutes, addHours,
+    weightedHydration, modeEffectiveHours, modeTotalMinutes,
+    modePlanItems, modeInstructions,
+    computeRecipe, flourTips
+  } = window.EltefrittLogic;
 
   // ---- State ----
   const state = {
@@ -1090,9 +1078,6 @@
     const m = date.getMinutes().toString().padStart(2, '0');
     return `${h}:${m}`;
   };
-
-  const addMinutes = (d, m) => new Date(d.getTime() + m * 60 * 1000);
-  const addHours = (d, h) => addMinutes(d, h * 60);
 
   // ---- Stepper ----
   // Stepper-knapper (− [bar] +) erstatter slidere så vertikal scrolling på mobil
@@ -1185,173 +1170,7 @@
     refreshStepperVisual(input);
   }
 
-  // ---- Hevemoduser ----
-  // All mode-spesifikk oppførsel samles her: gjærberegning, varighet, plansteg, instruksjoner.
-  // Når en ny modus legges til, er dette i hovedsak det eneste stedet som må røres.
-  const REF_TEMP = 21;
-  const BAKE_MIN = 50;
-
-  // Instruksjons-bygger: hver modus genererer steg basert på valgt heveform.
-  // Holder mel/vann/form/stek-stegene mode-spesifikke; bland-steget varierer med leaven.
-  function blandStep(leaven) {
-    if (leaven === 'sourdough') {
-      return ['Bland', 'Løs opp surdeigen i vannet med fingrene. Tilsett mel og salt, og rør til en grov, klissete deig.'];
-    }
-    if (leaven === 'fresh') {
-      return ['Bland', 'Visp sammen mel og salt i en stor bolle. Smuldre ferskgjæren i vannet og rør raskt sammen, og hell over melet. Rør til en klissete, uregelmessig deig — ikke elt.'];
-    }
-    return ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'];
-  }
-
-  const sourdoughCheck = ['Sjekk starter', 'Bruk en aktiv, 100%-hydrert starter — peak ca. 4–8 t etter mating ved romtemp. Float-test: en liten klatt skal flyte i et glass vann.'];
-
-  const MODES = {
-    classic: {
-      label: 'Klassisk',
-      detail: 'Lang bulkheving + kort etterheving før steking.',
-      controlsId: 'classic-controls',
-      // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2)
-      effectiveHours: () =>
-        state.riseHours * Math.pow(2, (state.temperatureC - REF_TEMP) / 10),
-      totalMinutes: () => state.riseHours * 60 + 45 + BAKE_MIN,
-      planItems: (start) => {
-        const shape = addHours(start, state.riseHours);
-        const bake = addMinutes(shape, 45);
-        return [
-          { kind: 'duration', text: `Bulkheving · ${state.riseHours} t ved ${state.temperatureC}°C` },
-          { kind: 'step', label: 'Form og etterhev', time: shape },
-          { kind: 'duration', text: 'Etterheving · 45 min' },
-          { kind: 'step', label: 'Inn i ovnen', time: bake },
-          { kind: 'duration', text: 'Steking · ~45 min' }
-        ];
-      },
-      instructions: (leaven) => {
-        const steps = [];
-        if (leaven === 'sourdough') steps.push(sourdoughCheck);
-        steps.push(blandStep(leaven));
-        const bulkText = leaven === 'sourdough'
-          ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler — 50–75% større når den er klar.'
-          : 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.';
-        steps.push(['Bulkheving', bulkText]);
-        steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.']);
-        steps.push(['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
-        steps.push(['Avkjøl', leaven === 'sourdough'
-          ? 'La avkjøle på rist i minst 1 t før du skjærer — surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
-          : 'La brødet avkjøle på rist i minst 30 min før du skjærer.']);
-        return steps;
-      }
-    },
-    cold: {
-      label: 'Kald etterheving',
-      detail: 'Kort bulk + lang etterheving i kjøleskap — banneton-vennlig.',
-      controlsId: 'cold-controls',
-      effectiveHours: () => {
-        const bulkFactor = Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
-        const coldFactor = Math.pow(2, (state.coldTempC - REF_TEMP) / 10);
-        return state.bulkHours * bulkFactor + state.coldHours * coldFactor;
-      },
-      totalMinutes: () => state.bulkHours * 60 + state.coldHours * 60 + BAKE_MIN,
-      planItems: (start) => {
-        const shape = addHours(start, state.bulkHours);
-        const bake = addHours(shape, state.coldHours);
-        return [
-          { kind: 'duration', text: `Bulkheving · ${state.bulkHours} t ved ${state.temperatureC}°C` },
-          { kind: 'step', label: 'Form og legg i banneton', time: shape },
-          { kind: 'duration', text: `I kjøleskap · ${state.coldHours} t ved ${state.coldTempC}°C` },
-          { kind: 'step', label: 'Inn i ovnen (rett fra kjøleskap)', time: bake },
-          { kind: 'duration', text: 'Steking · ~45 min' }
-        ];
-      },
-      instructions: (leaven) => {
-        const steps = [];
-        if (leaven === 'sourdough') steps.push(sourdoughCheck);
-        steps.push(blandStep(leaven));
-        steps.push(['Bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.']);
-        steps.push(['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.']);
-        steps.push(['Kald etterheving', leaven === 'sourdough'
-          ? 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. 12–18 t gir god smak og enklere skåring.'
-          : 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.']);
-        steps.push(['Stek direkte fra kjøleskap', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til 220 °C og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
-        steps.push(['Avkjøl', leaven === 'sourdough'
-          ? 'La avkjøle på rist i minst 1 t før du skjærer.'
-          : 'La avkjøle på rist i minst 30 min før du skjærer.']);
-        return steps;
-      }
-    }
-  };
-
-  const LEAVEN_DETAILS = {
-    dry: 'Standard. 0,23% gir 14 t god heving ved 21 °C.',
-    fresh: '≈ 3× tørrgjær, smuldres direkte i vannet.',
-    sourdough: 'Aktiv 100%-hydrert starter. Krever erfaring med starter-styrke; tider er omtrentlige.'
-  };
-
-  const currentMode = () => MODES[state.mode];
-
-  // ---- Calculations ----
-  function weightedHydration() {
-    let sumMin = 0, sumMax = 0, total = 0;
-    state.flours.forEach(f => {
-      const ft = FLOUR_TYPES[f.type];
-      if (!ft) return;
-      sumMin += ft.hydrationMin * f.pct;
-      sumMax += ft.hydrationMax * f.pct;
-      total += f.pct;
-    });
-    if (total === 0) return { min: 75, max: 75 };
-    return { min: sumMin / total, max: sumMax / total };
-  }
-
-  function calculateYeast(flourGrams) {
-    // Referanse: 0.23 % instant tørrgjær gir ~14 t god heving ved 21 °C.
-    // Hver modus oversetter sin egen tidsplan til "21°C-ekvivalente timer".
-    const refYeastPct = 0.23;
-    const refHours = 14;
-    const effHours = currentMode().effectiveHours();
-    const yeastPct = refYeastPct * refHours / Math.max(effHours, 0.1);
-    return { grams: (yeastPct / 100) * flourGrams, pct: yeastPct };
-  }
-
-  function compute() {
-    const flourTotal = state.sizePerLoaf * state.loaves;
-    let hydration;
-    if (state.hydrationManual) {
-      hydration = state.hydration;
-    } else {
-      const r = weightedHydration();
-      hydration = (r.min + r.max) / 2;
-    }
-    const totalWater = flourTotal * (hydration / 100);
-    const salt = flourTotal * 0.02;
-
-    if (state.leaven === 'sourdough') {
-      const starter = flourTotal * (state.sourInoculation / 100);
-      // 100%-hydrert starter: halvparten mel, halvparten vann.
-      const starterFlour = starter / 2;
-      const starterWater = starter / 2;
-      return {
-        flourTotal,
-        flourAdded: flourTotal - starterFlour,
-        hydration,
-        water: totalWater - starterWater,
-        salt,
-        starter,
-        leaven: 'sourdough'
-      };
-    }
-
-    const yeastInfo = calculateYeast(flourTotal);
-    return {
-      flourTotal,
-      flourAdded: flourTotal,
-      hydration,
-      water: totalWater,
-      salt,
-      yeast: yeastInfo.grams,
-      yeastPct: yeastInfo.pct,
-      leaven: state.leaven
-    };
-  }
+  const currentModeMeta = () => MODE_META[state.mode];
 
   // ---- Render ----
   function renderSegment(buttons, currentValue, attr) {
@@ -1507,15 +1326,7 @@
   }
 
   function renderFlourTip() {
-    const ryePct = state.flours.reduce((s, f) => s + (RYE_TYPES.has(f.type) ? f.pct : 0), 0);
-    const lowGlutenPct = state.flours.reduce((s, f) => s + (LOW_GLUTEN_TYPES.has(f.type) ? f.pct : 0), 0);
-    const tips = [];
-    if (ryePct > 50) {
-      tips.push('Rene rugbrød hever dårlig med vanlig gjær — vurder surdeig, eller bland inn mer hvete.');
-    }
-    if (lowGlutenPct > 30) {
-      tips.push('Havre og bygg har lite gluten. Hold andelen under 30 % for en deig som hever godt.');
-    }
+    const tips = flourTips(state.flours);
     const el = $('#flour-tip');
     if (tips.length === 0) {
       el.hidden = true;
@@ -1575,7 +1386,7 @@
   }
 
   function getStartAndReady() {
-    const total = currentMode().totalMinutes();
+    const total = modeTotalMinutes(state);
     if (state.timeAnchor === 'ready') {
       let ready = resolveAnchorDate(state.anchorTime);
       let start = addMinutes(ready, -total);
@@ -1616,7 +1427,7 @@
 
     const stepsEl = $('#plan-steps');
     stepsEl.innerHTML = '';
-    currentMode().planItems(start).forEach(item => {
+    modePlanItems(state, start).forEach(item => {
       if (item.kind === 'duration') {
         const d = document.createElement('div');
         d.className = 'plan-duration';
@@ -1655,7 +1466,7 @@
     $('#loaves-value').textContent = state.loaves;
 
     // Meltype-anbefaling
-    const recommended = weightedHydration();
+    const recommended = weightedHydration(state.flours);
     const recMin = Math.round(recommended.min);
     const recMax = Math.round(recommended.max);
     $('#hydration-suggestion').textContent = recMin === recMax
@@ -1679,13 +1490,13 @@
     $('#sour-inoculation-value').textContent = state.sourInoculation;
 
     // Vis riktig kontrollsett basert på modus og heveform.
-    Object.entries(MODES).forEach(([key, mode]) => {
-      $(`#${mode.controlsId}`).hidden = state.mode !== key;
+    Object.entries(MODE_META).forEach(([key, meta]) => {
+      $(`#${meta.controlsId}`).hidden = state.mode !== key;
     });
     $('#sourdough-controls').hidden = state.leaven !== 'sourdough';
-    $('#mode-detail').textContent = currentMode().detail;
+    $('#mode-detail').textContent = currentModeMeta().detail;
     $('#leaven-detail').textContent = LEAVEN_DETAILS[state.leaven] || '';
-    renderInstructions(currentMode().instructions(state.leaven));
+    renderInstructions(modeInstructions(state));
 
     if (!opts.skipFlourList) {
       renderFlourList();
@@ -1710,7 +1521,7 @@
     }
     renderFlourTip();
 
-    const result = compute();
+    const result = computeRecipe(state);
     $('#flour-amount').textContent = formatGrams(result.flourAdded);
     $('#water-amount').textContent = formatGrams(result.water);
     $('#salt-amount').textContent = formatGrams(result.salt);

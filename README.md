@@ -30,3 +30,19 @@ Referansepunktet er 0,23 % tørrgjær for 14 timers heving ved 21 °C. Ferskgjæ
 ## Kjør lokalt
 
 Åpne `index.html` i en nettleser.
+
+## Struktur
+
+- `index.html` — hele UI-et, inline CSS og scripts
+- `src/logic.js` — rene helpers (matte, tabeller, modes) som lastes i nettleser og brukes av tester
+- `tests/` — `node --test`-baserte enhets- og DOM-tester
+- `sw.js` — service worker for PWA
+
+## Tester
+
+```
+npm install   # installerer jsdom (eneste devDep)
+npm test      # kjører alle tester
+```
+
+Logikk-tester går mot `src/logic.js`. DOM-tester laster `index.html` inn i jsdom og asserter på computed styles — fanger CSS-feller som ren enhetstest ville glipt.

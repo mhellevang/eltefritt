@@ -1,0 +1,11 @@
+{
+  "name": "eltefritt",
+  "private": true,
+  "description": "Kalkulator for eltefritt brød. Statisk PWA — index.html er hovedfil, pure helpers ligger i src/logic.js og enhetstestes.",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}
