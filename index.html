@@ -471,6 +471,10 @@
     border-bottom: 1px solid var(--line);
   }
 
+  .ingredient[hidden] {
+    display: none;
+  }
+
   .ingredient:last-of-type {
     border-bottom: none;
   }
@@ -928,6 +932,39 @@
       </div>
     </div>
 
+    <div class="field">
+      <div class="field-label">
+        <span>Heveform</span>
+      </div>
+      <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Heveform">
+        <button data-leaven="dry" aria-pressed="true">Tørrgjær</button>
+        <button data-leaven="fresh" aria-pressed="false">Ferskgjær</button>
+        <button data-leaven="sourdough" aria-pressed="false">Surdeig</button>
+      </div>
+      <p class="helper-text" id="leaven-detail">Standard. 0,23% gir 14 t god heving ved 21 °C.</p>
+    </div>
+
+    <div id="sourdough-controls" hidden>
+      <div class="field">
+        <div class="field-label">
+          <span>Surdeig-mengde</span>
+          <span class="field-value"><span id="sour-inoculation-value">20</span>%</span>
+        </div>
+        <div class="stepper" data-stepper-for="sour-inoculation">
+          <input type="range" id="sour-inoculation" class="visually-hidden" min="10" max="30" value="20" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser surdeig-mengde">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk surdeig-mengde">+</button>
+        </div>
+        <div class="slider-marks">
+          <span>10%</span>
+          <span>20%</span>
+          <span>30%</span>
+        </div>
+        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating).</p>
+      </div>
+    </div>
+
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
@@ -949,9 +986,14 @@
       <span class="amount"><span id="salt-amount">8,6</span> g</span>
     </div>
 
-    <div class="ingredient">
-      <span class="name">Tørrgjær <span class="sub" id="yeast-fresh"></span></span>
+    <div class="ingredient" id="yeast-row">
+      <span class="name"><span id="yeast-label">Tørrgjær</span> <span class="sub" id="yeast-fresh"></span></span>
       <span class="amount"><span id="yeast-amount">1,0</span> g</span>
+    </div>
+
+    <div class="ingredient" id="starter-row" hidden>
+      <span class="name">Surdeig <span class="sub">aktiv, 100% hydrering</span></span>
+      <span class="amount"><span id="starter-amount">100</span> g</span>
     </div>
 
     <div class="plan">
@@ -1022,11 +1064,13 @@
     hydration: 75,
     hydrationManual: false,
     temperatureC: 21,
-    mode: 'classic',           // 'classic' | 'cold'
+    mode: 'classic',           // 'classic' | 'cold' — påvirker tidsplan
+    leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough' — påvirker ingrediens
     riseHours: 14,             // brukes i classic
     bulkHours: 2,              // brukes i cold
     coldHours: 12,             // brukes i cold
     coldTempC: 4,              // brukes i cold
+    sourInoculation: 20,       // brukes når leaven === 'sourdough' — % av total mel
     timeAnchor: 'start',       // 'start' | 'ready' — hvilket endepunkt brukeren sist satte
     anchorTime: '10:00'        // HH:MM
   };
@@ -1147,6 +1191,20 @@
   const REF_TEMP = 21;
   const BAKE_MIN = 50;
 
+  // Instruksjons-bygger: hver modus genererer steg basert på valgt heveform.
+  // Holder mel/vann/form/stek-stegene mode-spesifikke; bland-steget varierer med leaven.
+  function blandStep(leaven) {
+    if (leaven === 'sourdough') {
+      return ['Bland', 'Løs opp surdeigen i vannet med fingrene. Tilsett mel og salt, og rør til en grov, klissete deig.'];
+    }
+    if (leaven === 'fresh') {
+      return ['Bland', 'Visp sammen mel og salt i en stor bolle. Smuldre ferskgjæren i vannet og rør raskt sammen, og hell over melet. Rør til en klissete, uregelmessig deig — ikke elt.'];
+    }
+    return ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'];
+  }
+
+  const sourdoughCheck = ['Sjekk starter', 'Bruk en aktiv, 100%-hydrert starter — peak ca. 4–8 t etter mating ved romtemp. Float-test: en liten klatt skal flyte i et glass vann.'];
+
   const MODES = {
     classic: {
       label: 'Klassisk',
@@ -1167,14 +1225,21 @@
           { kind: 'duration', text: 'Steking · ~45 min' }
         ];
       },
-      instructions: [
-        ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle.'],
-        ['Tilsett vann', 'Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'],
-        ['Bulkheving', 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.'],
-        ['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.'],
-        ['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.'],
-        ['Avkjøl', 'La brødet avkjøle på rist i minst 30 min før du skjærer.']
-      ]
+      instructions: (leaven) => {
+        const steps = [];
+        if (leaven === 'sourdough') steps.push(sourdoughCheck);
+        steps.push(blandStep(leaven));
+        const bulkText = leaven === 'sourdough'
+          ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler — 50–75% større når den er klar.'
+          : 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.';
+        steps.push(['Bulkheving', bulkText]);
+        steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.']);
+        steps.push(['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
+        steps.push(['Avkjøl', leaven === 'sourdough'
+          ? 'La avkjøle på rist i minst 1 t før du skjærer — surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
+          : 'La brødet avkjøle på rist i minst 30 min før du skjærer.']);
+        return steps;
+      }
     },
     cold: {
       label: 'Kald etterheving',
@@ -1197,16 +1262,28 @@
           { kind: 'duration', text: 'Steking · ~45 min' }
         ];
       },
-      instructions: [
-        ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle.'],
-        ['Tilsett vann', 'Hell i alt vannet og rør med slikkepott til alt er fuktet. Klissete, uregelmessig — ikke elt.'],
-        ['Kort bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.'],
-        ['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.'],
-        ['Kald etterheving', 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.'],
-        ['Stek direkte fra kjøleskap', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til 220 °C og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.'],
-        ['Avkjøl', 'La avkjøle på rist i minst 30 min før du skjærer.']
-      ]
+      instructions: (leaven) => {
+        const steps = [];
+        if (leaven === 'sourdough') steps.push(sourdoughCheck);
+        steps.push(blandStep(leaven));
+        steps.push(['Bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.']);
+        steps.push(['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.']);
+        steps.push(['Kald etterheving', leaven === 'sourdough'
+          ? 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. 12–18 t gir god smak og enklere skåring.'
+          : 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.']);
+        steps.push(['Stek direkte fra kjøleskap', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til 220 °C og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
+        steps.push(['Avkjøl', leaven === 'sourdough'
+          ? 'La avkjøle på rist i minst 1 t før du skjærer.'
+          : 'La avkjøle på rist i minst 30 min før du skjærer.']);
+        return steps;
+      }
     }
+  };
+
+  const LEAVEN_DETAILS = {
+    dry: 'Standard. 0,23% gir 14 t god heving ved 21 °C.',
+    fresh: '≈ 3× tørrgjær, smuldres direkte i vannet.',
+    sourdough: 'Aktiv 100%-hydrert starter. Krever erfaring med starter-styrke; tider er omtrentlige.'
   };
 
   const currentMode = () => MODES[state.mode];
@@ -1244,11 +1321,36 @@
       const r = weightedHydration();
       hydration = (r.min + r.max) / 2;
     }
-    const water = flourTotal * (hydration / 100);
+    const totalWater = flourTotal * (hydration / 100);
     const salt = flourTotal * 0.02;
-    const yeastInfo = calculateYeast(flourTotal);
 
-    return { flourTotal, hydration, water, salt, yeast: yeastInfo.grams, yeastPct: yeastInfo.pct };
+    if (state.leaven === 'sourdough') {
+      const starter = flourTotal * (state.sourInoculation / 100);
+      // 100%-hydrert starter: halvparten mel, halvparten vann.
+      const starterFlour = starter / 2;
+      const starterWater = starter / 2;
+      return {
+        flourTotal,
+        flourAdded: flourTotal - starterFlour,
+        hydration,
+        water: totalWater - starterWater,
+        salt,
+        starter,
+        leaven: 'sourdough'
+      };
+    }
+
+    const yeastInfo = calculateYeast(flourTotal);
+    return {
+      flourTotal,
+      flourAdded: flourTotal,
+      hydration,
+      water: totalWater,
+      salt,
+      yeast: yeastInfo.grams,
+      yeastPct: yeastInfo.pct,
+      leaven: state.leaven
+    };
   }
 
   // ---- Render ----
@@ -1574,13 +1676,16 @@
     $('#bulk-time-value').textContent = state.bulkHours;
     $('#cold-time-value').textContent = state.coldHours;
     $('#cold-temp-value').textContent = state.coldTempC;
+    $('#sour-inoculation-value').textContent = state.sourInoculation;
 
-    // Vis riktig kontrollsett basert på modus, og oppdater mode-spesifikk tekst/instruksjoner.
+    // Vis riktig kontrollsett basert på modus og heveform.
     Object.entries(MODES).forEach(([key, mode]) => {
       $(`#${mode.controlsId}`).hidden = state.mode !== key;
     });
+    $('#sourdough-controls').hidden = state.leaven !== 'sourdough';
     $('#mode-detail').textContent = currentMode().detail;
-    renderInstructions(currentMode().instructions);
+    $('#leaven-detail').textContent = LEAVEN_DETAILS[state.leaven] || '';
+    renderInstructions(currentMode().instructions(state.leaven));
 
     if (!opts.skipFlourList) {
       renderFlourList();
@@ -1605,17 +1710,31 @@
     }
     renderFlourTip();
 
-    const { flourTotal, water, salt, yeast, yeastPct } = compute();
-    $('#flour-amount').textContent = formatGrams(flourTotal);
-    $('#water-amount').textContent = formatGrams(water);
-    $('#salt-amount').textContent = formatGrams(salt);
-    $('#yeast-amount').textContent = formatGrams(yeast);
+    const result = compute();
+    $('#flour-amount').textContent = formatGrams(result.flourAdded);
+    $('#water-amount').textContent = formatGrams(result.water);
+    $('#salt-amount').textContent = formatGrams(result.salt);
 
-    // Vis prosent + fersk gjær (≈ 3× tørrgjær)
-    const pctStr = yeastPct.toFixed(2).replace('.', ',') + ' %';
-    $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(yeast * 3)} g fersk`;
+    if (result.leaven === 'sourdough') {
+      $('#yeast-row').hidden = true;
+      $('#starter-row').hidden = false;
+      $('#starter-amount').textContent = formatGrams(result.starter);
+    } else {
+      $('#yeast-row').hidden = false;
+      $('#starter-row').hidden = true;
+      const pctStr = result.yeastPct.toFixed(2).replace('.', ',') + ' %';
+      if (result.leaven === 'fresh') {
+        $('#yeast-label').textContent = 'Ferskgjær';
+        $('#yeast-amount').textContent = formatGrams(result.yeast * 3);
+        $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(result.yeast)} g tørr`;
+      } else {
+        $('#yeast-label').textContent = 'Tørrgjær';
+        $('#yeast-amount').textContent = formatGrams(result.yeast);
+        $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(result.yeast * 3)} g fersk`;
+      }
+    }
 
-    renderFlourBreakdown(flourTotal);
+    renderFlourBreakdown(result.flourAdded);
     renderPlan();
 
     // Lagre state
@@ -1680,6 +1799,19 @@
     update({ skipFlourList: true });
   });
 
+  $('#sour-inoculation').addEventListener('input', e => {
+    state.sourInoculation = parseInt(e.target.value, 10);
+    update({ skipFlourList: true });
+  });
+
+  $$('.seg button[data-leaven]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.leaven = btn.dataset.leaven;
+      renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
+      update();
+    });
+  });
+
   $('#start-time').addEventListener('input', e => {
     if (!e.target.value) return;
     state.timeAnchor = 'start';
@@ -1729,15 +1861,22 @@
         state.sizePerLoaf = sizeMigration[state.sizePerLoaf] || 500;
       }
       // Synkroniser DOM-kontroller
+      // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle ble lagt til).
+      if (state.mode === 'sourdough') {
+        state.mode = 'cold';
+        state.leaven = 'sourdough';
+      }
       renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
       renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
       renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+      renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
       $('#hydration').value = state.hydration;
       $('#temp').value = state.temperatureC;
       $('#rise-time').value = state.riseHours;
       $('#bulk-time').value = state.bulkHours;
       $('#cold-time').value = state.coldHours;
       $('#cold-temp').value = state.coldTempC;
+      $('#sour-inoculation').value = state.sourInoculation;
 
       // Migrer fra gammel state med targetTime
       if (parsed.targetTime && !parsed.anchorTime) {
@@ -1756,7 +1895,7 @@
   }
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)
-  ['hydration', 'temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp'].forEach(id => {
+  ['hydration', 'temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation'].forEach(id => {
     const inp = document.getElementById(id);
     if (inp) initStepper(inp);
   });
