@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#3a2a1a" />
 <meta name="description" content="Kalkulator og bakplan for eltefritt brød. Jim Lahey-metoden, med støtte for kald etterheving." />
-<title>Eltefritt — kalkulator for eltefritt brød</title>
+<title>Eltefritt: kalkulator for eltefritt brød</title>
 
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/svg+xml" href="icon.svg" />
@@ -737,7 +737,7 @@
     .ingredient .amount { font-size: 1.25rem; }
   }
 
-  /* Desktop: to kolonner — inndata til venstre, oppskrift til høyre */
+  /* Desktop: to kolonner. Inndata til venstre, oppskrift til høyre. */
   @media (min-width: 1024px) {
     .app {
       max-width: 1080px;
@@ -961,7 +961,7 @@
           <span>20%</span>
           <span>30%</span>
         </div>
-        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating).</p>
+        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~6 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
       </div>
     </div>
 
@@ -1039,7 +1039,8 @@
     addMinutes, addHours,
     weightedHydration, modeEffectiveHours, modeTotalMinutes,
     modePlanItems, modeInstructions,
-    computeRecipe, flourTips
+    computeRecipe, flourTips,
+    recommendedSourBulkHours, recommendedSourInoculation
   } = window.EltefrittLogic;
 
   // ---- State ----
@@ -1052,14 +1053,15 @@
     hydration: 75,
     hydrationManual: false,
     temperatureC: 21,
-    mode: 'classic',           // 'classic' | 'cold' — påvirker tidsplan
-    leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough' — påvirker ingrediens
+    mode: 'classic',           // 'classic' | 'cold'. Påvirker tidsplan.
+    leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough'. Påvirker ingrediens.
     riseHours: 14,             // brukes i classic
     bulkHours: 2,              // brukes i cold
     coldHours: 12,             // brukes i cold
     coldTempC: 4,              // brukes i cold
-    sourInoculation: 20,       // brukes når leaven === 'sourdough' — % av total mel
-    timeAnchor: 'start',       // 'start' | 'ready' — hvilket endepunkt brukeren sist satte
+    sourInoculation: 20,       // brukes når leaven === 'sourdough'. % av total mel.
+    sourLead: 'inoculation',   // 'inoculation' | 'time'. Hvilken slider som leder koblingen.
+    timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.
     anchorTime: '10:00'        // HH:MM
   };
 
@@ -1554,6 +1556,44 @@
     } catch (e) {}
   }
 
+  // ---- Surdeig-kobling ----
+  // Når leaven=sourdough koples inokulering og bulk-tid sammen via formelen
+  // i logic.js. Lederen (sourLead) styrer; følgeren oppdateres automatisk.
+  // Ved temperaturendring oppdateres bare følgeren.
+  function bulkSliderForMode() {
+    return state.mode === 'classic' ? $('#rise-time') : $('#bulk-time');
+  }
+  function bulkFieldForMode() {
+    return state.mode === 'classic' ? 'riseHours' : 'bulkHours';
+  }
+  function clampToSlider(slider, value) {
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    return Math.max(min, Math.min(max, Math.round(value)));
+  }
+  function syncSourBulkFromInoculation() {
+    const recommended = recommendedSourBulkHours(state.sourInoculation, state.temperatureC);
+    const slider = bulkSliderForMode();
+    const clamped = clampToSlider(slider, recommended);
+    state[bulkFieldForMode()] = clamped;
+    slider.value = clamped;
+    refreshStepperVisual(slider);
+  }
+  function syncSourInoculationFromBulk() {
+    const bulkHours = state[bulkFieldForMode()];
+    const recommended = recommendedSourInoculation(bulkHours, state.temperatureC);
+    const slider = $('#sour-inoculation');
+    const clamped = clampToSlider(slider, recommended);
+    state.sourInoculation = clamped;
+    slider.value = clamped;
+    refreshStepperVisual(slider);
+  }
+  function resyncSourFromLead() {
+    if (state.leaven !== 'sourdough') return;
+    if (state.sourLead === 'time') syncSourInoculationFromBulk();
+    else syncSourBulkFromInoculation();
+  }
+
   // ---- Wire up controls ----
   $$('.seg button[data-loaves]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1579,11 +1619,16 @@
 
   $('#temp').addEventListener('input', e => {
     state.temperatureC = parseInt(e.target.value, 10);
+    resyncSourFromLead();
     update();
   });
 
   $('#rise-time').addEventListener('input', e => {
     state.riseHours = parseInt(e.target.value, 10);
+    if (state.leaven === 'sourdough') {
+      state.sourLead = 'time';
+      syncSourInoculationFromBulk();
+    }
     update();
   });
 
@@ -1591,12 +1636,18 @@
     btn.addEventListener('click', () => {
       state.mode = btn.dataset.mode;
       renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+      // Når bulk-slideren bytter (riseHours ↔ bulkHours), må surdeig-koblingen re-synces.
+      resyncSourFromLead();
       update();
     });
   });
 
   $('#bulk-time').addEventListener('input', e => {
     state.bulkHours = parseInt(e.target.value, 10);
+    if (state.leaven === 'sourdough') {
+      state.sourLead = 'time';
+      syncSourInoculationFromBulk();
+    }
     update({ skipFlourList: true });
   });
 
@@ -1612,6 +1663,8 @@
 
   $('#sour-inoculation').addEventListener('input', e => {
     state.sourInoculation = parseInt(e.target.value, 10);
+    state.sourLead = 'inoculation';
+    if (state.leaven === 'sourdough') syncSourBulkFromInoculation();
     update({ skipFlourList: true });
   });
 
@@ -1619,6 +1672,8 @@
     btn.addEventListener('click', () => {
       state.leaven = btn.dataset.leaven;
       renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
+      // Når man bytter TIL surdeig, juster bulk eller inokulering til å matche lederen.
+      resyncSourFromLead();
       update();
     });
   });

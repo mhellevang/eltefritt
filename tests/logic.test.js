@@ -3,7 +3,7 @@
 // Kjøres med: node --test tests/
 //
 // Tester de rene hjelperne i src/logic.js. Små fixtures, tett kobling
-// mellom test og oppførselen vi vil sikre — ikke implementasjon.
+// mellom test og oppførselen vi vil sikre, ikke implementasjon.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -57,6 +57,34 @@ test('calculateYeast: veldig kort effHours clampes for å unngå deling på null
   // refYeastPct * refHours / 0.1 = 0.23 * 14 / 0.1 = 32.2
   assert.ok(Number.isFinite(r.pct));
   assert.ok(r.pct > 0);
+});
+
+// ─── recommendedSourBulkHours / recommendedSourInoculation ────────────────
+
+test('recommendedSourBulkHours: 20% @ 21°C = referanse 6 t', () => {
+  assert.equal(L.recommendedSourBulkHours(20, 21), 6);
+});
+
+test('recommendedSourBulkHours: halv inokulering dobler bulk-tid', () => {
+  assert.equal(L.recommendedSourBulkHours(10, 21), 12);
+});
+
+test('recommendedSourBulkHours: dobbel inokulering halverer bulk-tid', () => {
+  assert.equal(L.recommendedSourBulkHours(40, 21), 3);
+});
+
+test('recommendedSourBulkHours: 10°C varmere halverer bulk-tid (Q10)', () => {
+  assert.equal(L.recommendedSourBulkHours(20, 31), 3);
+});
+
+test('recommendedSourInoculation: 6 t @ 21°C = referanse 20%', () => {
+  assert.equal(L.recommendedSourInoculation(6, 21), 20);
+});
+
+test('inokulering ↔ bulk-tid: round-trip', () => {
+  const bulk = L.recommendedSourBulkHours(15, 23);
+  const inoc = L.recommendedSourInoculation(bulk, 23);
+  assert.ok(Math.abs(inoc - 15) < 0.001, `forventet ~15, fikk ${inoc}`);
 });
 
 // ─── modeEffectiveHours ────────────────────────────────────────────────────

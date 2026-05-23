@@ -4,8 +4,8 @@
 // Lastes i nettleseren som vanlig <script> (eksponerer window.EltefrittLogic);
 // importeres i tester via Node's require/import (module.exports = api).
 //
-// Funksjoner tar all data de trenger som argumenter — ingen closures over
-// `state` — så tester kan sende inn små fixtures.
+// Funksjoner tar all data de trenger som argumenter (ingen closures over
+// `state`), så tester kan sende inn små fixtures.
 
 (function (globalScope) {
   const REF_TEMP = 21;
@@ -14,7 +14,7 @@
   // ---- Meltyper med anbefalt hydreringsområde ----
   // Tallene er et utgangspunkt basert på vanlig praksis for eltefritt brød.
   // Variasjon i mølle, sesong og malingsgrad gjør at "riktig" hydrering
-  // alltid er et område, ikke ett tall — brukeren overstyrer selv om ønskelig.
+  // alltid er et område, ikke ett tall. Brukeren overstyrer selv om ønskelig.
   const FLOUR_TYPES = {
     hvete:      { name: 'Hvetemel',          hydrationMin: 70, hydrationMax: 75 },
     sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 80 },
@@ -45,7 +45,7 @@
     },
     cold: {
       label: 'Kald etterheving',
-      detail: 'Kort bulk + lang etterheving i kjøleskap — banneton-vennlig.',
+      detail: 'Kort bulk + lang etterheving i kjøleskap (banneton-vennlig).',
       controlsId: 'cold-controls'
     }
   };
@@ -74,6 +74,25 @@
     const refHours = 14;
     const yeastPct = refYeastPct * refHours / Math.max(effectiveHours, 0.1);
     return { grams: (yeastPct / 100) * flourGrams, pct: yeastPct };
+  }
+
+  // Surdeig: kobling mellom inokulering, bulkheving og temperatur.
+  // Referansepunkt 20 % surdeig @ 21 °C ≈ 6 t bulk er et informert anslag,
+  // ikke fra en sitert kilde. Starter-styrke varierer ±25 %. Inokulering ×
+  // bulk-tid er omvendt proporsjonalt, og produktet skalerer med Q10 ≈ 2.
+  const SOUR_BASE_BULK = 6;
+  const SOUR_BASE_INOC = 20;
+
+  function recommendedSourBulkHours(inoculation, temperatureC) {
+    if (inoculation <= 0) return SOUR_BASE_BULK;
+    const tempFactor = Math.pow(2, (REF_TEMP - temperatureC) / 10);
+    return SOUR_BASE_BULK * (SOUR_BASE_INOC / inoculation) * tempFactor;
+  }
+
+  function recommendedSourInoculation(bulkHours, temperatureC) {
+    if (bulkHours <= 0) return SOUR_BASE_INOC;
+    const tempFactor = Math.pow(2, (REF_TEMP - temperatureC) / 10);
+    return SOUR_BASE_INOC * (SOUR_BASE_BULK / bulkHours) * tempFactor;
   }
 
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
@@ -125,12 +144,12 @@
       return ['Bland', 'Løs opp surdeigen i vannet med fingrene. Tilsett mel og salt, og rør til en grov, klissete deig.'];
     }
     if (leaven === 'fresh') {
-      return ['Bland', 'Visp sammen mel og salt i en stor bolle. Smuldre ferskgjæren i vannet og rør raskt sammen, og hell over melet. Rør til en klissete, uregelmessig deig — ikke elt.'];
+      return ['Bland', 'Visp sammen mel og salt i en stor bolle. Smuldre ferskgjæren i vannet og rør raskt sammen, og hell over melet. Rør til en klissete, uregelmessig deig. Ikke elt.'];
     }
-    return ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig — ikke elt.'];
+    return ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig. Ikke elt.'];
   }
 
-  const SOURDOUGH_CHECK = ['Sjekk starter', 'Bruk en aktiv, 100%-hydrert starter — peak ca. 4–8 t etter mating ved romtemp. Float-test: en liten klatt skal flyte i et glass vann.'];
+  const SOURDOUGH_CHECK = ['Sjekk starter', 'Bruk en aktiv, 100%-hydrert starter (peak ca. 4–8 t etter mating ved romtemp). Float-test: en liten klatt skal flyte i et glass vann.'];
 
   function modeInstructions(state) {
     const leaven = state.leaven;
@@ -140,13 +159,13 @@
 
     if (state.mode === 'classic') {
       const bulkText = leaven === 'sourdough'
-        ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler — 50–75% større når den er klar.'
+        ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler, 50–75% større når den er klar.'
         : 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.';
       steps.push(['Bulkheving', bulkText]);
       steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle i 30–60 min.']);
       steps.push(['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
       steps.push(['Avkjøl', leaven === 'sourdough'
-        ? 'La avkjøle på rist i minst 1 t før du skjærer — surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
+        ? 'La avkjøle på rist i minst 1 t før du skjærer. Surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
         : 'La brødet avkjøle på rist i minst 30 min før du skjærer.']);
       return steps;
     }
@@ -210,7 +229,7 @@
     const lowGlutenPct = flours.reduce((s, f) => s + (LOW_GLUTEN_TYPES.has(f.type) ? f.pct : 0), 0);
     const tips = [];
     if (ryePct > 50) {
-      tips.push('Rene rugbrød hever dårlig med vanlig gjær — vurder surdeig, eller bland inn mer hvete.');
+      tips.push('Rene rugbrød hever dårlig med vanlig gjær. Vurder surdeig, eller bland inn mer hvete.');
     }
     if (lowGlutenPct > 30) {
       tips.push('Havre og bygg har lite gluten. Hold andelen under 30 % for en deig som hever godt.');
@@ -224,6 +243,7 @@
     LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
     weightedHydration, calculateYeast,
+    recommendedSourBulkHours, recommendedSourInoculation,
     modeEffectiveHours, modeTotalMinutes,
     modePlanItems, modeInstructions,
     blandStep,

@@ -1,6 +1,6 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v8';
+const CACHE_VERSION = 'eltefritt-v10';
 
 const CORE_ASSETS = [
   './',

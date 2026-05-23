@@ -4,7 +4,7 @@
 //
 // Strategi: les index.html, erstatt <script src="src/logic.js"> med innholdet
 // inline, og la jsdom kjøre alle inline scripts. Dermed unngår vi at jsdom
-// må hente noe over nettverket (bilder, fonter, CSS) — alt dropper bare.
+// må hente noe over nettverket. Bilder, fonter og CSS dropper bare.
 //
 // Bruk:
 //   const { loadPage, fire } = require('./harness');

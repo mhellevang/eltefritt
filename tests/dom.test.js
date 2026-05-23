@@ -1,7 +1,7 @@
 'use strict';
 
 // DOM-tester via jsdom. Laster index.html, driver klikk og asserter på
-// computed style — fanger bugger som ren logikk-test ikke ville sett
+// computed style, slik at vi fanger bugger som ren logikk-test ikke ville sett
 // (f.eks. CSS-overstyring av [hidden]-attributtet).
 
 const test = require('node:test');
@@ -99,6 +99,55 @@ test('Hevemetode = Kald viser cold-controls, skjuler classic-controls', async ()
     const classic = document.getElementById('classic-controls');
     assert.notEqual(window.getComputedStyle(cold).display, 'none');
     assert.equal(window.getComputedStyle(classic).display, 'none');
+  } finally {
+    close();
+  }
+});
+
+test('surdeig: å øke inokulering kortere bulk-tid (kobling)', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    // Bytt til Surdeig + Kald etterheving (bulk-time-slider blir aktiv).
+    fire(window, document.querySelector('button[data-leaven="sourdough"]'), 'click');
+    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+
+    const bulkSlider = document.getElementById('bulk-time');
+    const inoc = document.getElementById('sour-inoculation');
+
+    // Start: 20% inokulering → bulk skal være rundt 5 t (clamped til slider 1-6).
+    inoc.value = '20';
+    fire(window, inoc, 'input');
+    const bulkAt20 = parseInt(bulkSlider.value, 10);
+
+    // Øk til 30%. Formelen sier ~3,3 t.
+    inoc.value = '30';
+    fire(window, inoc, 'input');
+    const bulkAt30 = parseInt(bulkSlider.value, 10);
+
+    assert.ok(bulkAt30 < bulkAt20, `forventet at høyere inokulering gir kortere bulk (20%→${bulkAt20}, 30%→${bulkAt30})`);
+  } finally {
+    close();
+  }
+});
+
+test('surdeig: å forlenge bulk-tid reduserer inokulering (andre retning)', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    fire(window, document.querySelector('button[data-leaven="sourdough"]'), 'click');
+    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+
+    const bulkSlider = document.getElementById('bulk-time');
+    const inoc = document.getElementById('sour-inoculation');
+
+    bulkSlider.value = '3';
+    fire(window, bulkSlider, 'input');
+    const inocAt3 = parseInt(inoc.value, 10);
+
+    bulkSlider.value = '6';
+    fire(window, bulkSlider, 'input');
+    const inocAt6 = parseInt(inoc.value, 10);
+
+    assert.ok(inocAt6 < inocAt3, `forventet at lengre bulk gir lavere inokulering (3 t→${inocAt3}%, 6 t→${inocAt6}%)`);
   } finally {
     close();
   }
