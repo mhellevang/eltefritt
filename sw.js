@@ -1,16 +1,15 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v10';
+const CACHE_VERSION = 'eltefritt-v11';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './src/logic.js',
   './manifest.webmanifest',
-  './icon.svg',
-  './icon-192.png',
-  './icon-512.png',
-  './icon-maskable-512.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
   './apple-touch-icon.png',
   './favicon-32.png',
 ];
