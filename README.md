@@ -4,10 +4,6 @@ Kalkulator for eltefritt brød. Finn riktige mengder og en bakplan tilpasset dit
 
 **🍞 Live:** <https://mhellevang.github.io/eltefritt/>
 
-<p align="center">
-  <img src="docs/screenshot.png" alt="Skjermbilde av Eltefritt-kalkulatoren" width="360" />
-</p>
-
 Eltefritt er no-knead-metoden gjort kjent av Jim Lahey: lang heving erstatter eltingen, og stekingen skjer i jerngryte med lokk for å fange dampen. Appen støtter både klassisk lang heving og kald etterheving i banneton, og lar deg velge mellom tørrgjær, ferskgjær og surdeig som heveform.
 
 ## Funksjoner
