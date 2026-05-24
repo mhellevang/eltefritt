@@ -1431,6 +1431,14 @@
     return 'tilpass utstyr etter deigmengde';
   }
 
+  function bannetonForSize(g) {
+    if (g <= 600) return '22 cm rundt';
+    if (g <= 800) return '25 cm rundt';
+    if (g <= 1100) return '28 cm rundt';
+    if (g <= 1500) return '30 cm rundt (eller oval)';
+    return 'stor banneton';
+  }
+
   function setFlourPct(idx, newPct) {
     // Auto-balanser: når brukeren endrer én glider, justeres resten proporsjonalt så summen blir 100.
     const n = state.flours.length;
@@ -1706,7 +1714,12 @@
     // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
     const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
     $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
-    $('#equipment-detail').textContent = `🥘 ${equipmentForSize(state.sizePerLoaf)}` + (state.loaves > 1 ? ` (per brød)` : '');
+    let equipmentText = `🥘 ${equipmentForSize(state.sizePerLoaf)}`;
+    if (state.mode === 'cold') {
+      equipmentText += `. 🧺 Banneton ${bannetonForSize(state.sizePerLoaf)}`;
+    }
+    if (state.loaves > 1) equipmentText += ' (per brød)';
+    $('#equipment-detail').textContent = equipmentText;
 
     // Antall brød
     $('#loaves-value').textContent = state.loaves;
