@@ -1034,7 +1034,7 @@
         <span>g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
-      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 3 L (22 cm), eller brødform 1,5 L</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 3 L (22 cm), eller brødform 1,5 L. 🧺 Banneton 23 cm rundt (valgfritt)</p>
     </div>
 
     <div class="field">
@@ -1432,7 +1432,7 @@
   }
 
   function bannetonForSize(g) {
-    if (g <= 600) return '22 cm rundt';
+    if (g <= 600) return '23 cm rundt';
     if (g <= 800) return '25 cm rundt';
     if (g <= 1100) return '28 cm rundt';
     if (g <= 1500) return '30 cm rundt (eller oval)';
@@ -1714,10 +1714,7 @@
     // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
     const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
     $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
-    let equipmentText = `🥘 ${equipmentForSize(state.sizePerLoaf)}`;
-    if (state.mode === 'cold') {
-      equipmentText += `. 🧺 Banneton ${bannetonForSize(state.sizePerLoaf)}`;
-    }
+    let equipmentText = `🥘 ${equipmentForSize(state.sizePerLoaf)}. 🧺 Banneton ${bannetonForSize(state.sizePerLoaf)} (valgfritt)`;
     if (state.loaves > 1) equipmentText += ' (per brød)';
     $('#equipment-detail').textContent = equipmentText;
 
