@@ -16,6 +16,18 @@
 <meta name="apple-mobile-web-app-title" content="Eltefritt" />
 <meta name="mobile-web-app-capable" content="yes" />
 
+<script>
+  // Apply lagret tema før første render for å unngå blink.
+  (function() {
+    try {
+      var t = localStorage.getItem('eltefritt-theme');
+      if (t === 'light' || t === 'dark') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    } catch (e) {}
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -35,8 +47,23 @@
                0 6px 20px rgba(40, 30, 20, 0.05);
   }
 
+  :root[data-theme="dark"] {
+    --bg: #1c1b18;
+    --surface: #26241f;
+    --surface-2: #2f2d28;
+    --ink: #f5f2ec;
+    --ink-soft: #b8b3a8;
+    --ink-mute: #807b73;
+    --accent: #e89977;
+    --accent-soft: #b86d3e;
+    --line: #3a3732;
+    --good: #9bc170;
+    --shadow: 0 1px 2px rgba(0,0,0,0.25),
+               0 6px 20px rgba(0,0,0,0.3);
+  }
+
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #1c1b18;
       --surface: #26241f;
       --surface-2: #2f2d28;
@@ -73,6 +100,7 @@
   }
 
   header {
+    position: relative;
     text-align: center;
     margin-bottom: 2rem;
     padding-top: env(safe-area-inset-top, 0);
@@ -716,6 +744,115 @@
     color: var(--ink-soft);
   }
 
+  .theme-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .theme-toggle-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .theme-toggle-btn:hover {
+    color: var(--ink);
+    border-color: var(--ink-mute);
+  }
+
+  .theme-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .theme-toggle-btn .theme-icon {
+    display: none;
+  }
+
+  :root:not([data-theme]) .theme-toggle-btn .theme-icon-auto,
+  :root[data-theme="light"] .theme-toggle-btn .theme-icon-light,
+  :root[data-theme="dark"] .theme-toggle-btn .theme-icon-dark {
+    display: block;
+  }
+
+  .theme-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 4px;
+    min-width: 180px;
+    z-index: 10;
+    display: none;
+  }
+
+  .theme-menu[data-open="true"] {
+    display: block;
+  }
+
+  .theme-menu button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.92rem;
+    text-align: left;
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .theme-menu button:hover {
+    background: var(--surface-2);
+  }
+
+  .theme-menu button svg {
+    width: 16px;
+    height: 16px;
+    color: var(--ink-soft);
+    flex-shrink: 0;
+  }
+
+  .theme-menu button[aria-checked="true"] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .theme-menu button[aria-checked="true"] svg {
+    color: var(--accent);
+  }
+
+  .theme-menu button .check {
+    margin-left: auto;
+    color: var(--accent);
+    opacity: 0;
+  }
+
+  .theme-menu button[aria-checked="true"] .check {
+    opacity: 1;
+  }
+
   @media (max-width: 480px) {
     .app { padding: 1rem 0.875rem 3rem; }
     .card { padding: 1rem; border-radius: 16px; }
@@ -762,6 +899,53 @@
 <body>
 <div class="app">
   <header>
+    <div class="theme-toggle">
+      <button type="button" class="theme-toggle-btn" id="theme-toggle-btn"
+              aria-haspopup="menu" aria-expanded="false" aria-label="Velg tema">
+        <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="theme-icon theme-icon-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>
+        </svg>
+      </button>
+      <div class="theme-menu" id="theme-menu" role="menu" aria-labelledby="theme-toggle-btn">
+        <button type="button" role="menuitemradio" data-theme-value="light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <span>Lyst tema</span>
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12l5 5L20 7"/>
+          </svg>
+        </button>
+        <button type="button" role="menuitemradio" data-theme-value="dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <span>Mørkt tema</span>
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12l5 5L20 7"/>
+          </svg>
+        </button>
+        <button type="button" role="menuitemradio" data-theme-value="auto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>
+          </svg>
+          <span>Automatisk</span>
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12l5 5L20 7"/>
+          </svg>
+        </button>
+      </div>
+    </div>
     <div class="logo">🍞</div>
     <h1>Eltefritt</h1>
     <p class="subtitle">Kalkulator for eltefritt brød</p>
@@ -1768,6 +1952,89 @@
 
   update();
 })();
+</script>
+
+<script>
+  // Tema-meny
+  (function() {
+    const STORAGE_KEY = 'eltefritt-theme';
+    const btn = document.getElementById('theme-toggle-btn');
+    const menu = document.getElementById('theme-menu');
+    if (!btn || !menu) return;
+
+    const items = menu.querySelectorAll('button[data-theme-value]');
+
+    function currentChoice() {
+      try {
+        const t = localStorage.getItem(STORAGE_KEY);
+        return (t === 'light' || t === 'dark') ? t : 'auto';
+      } catch (e) {
+        return 'auto';
+      }
+    }
+
+    function syncChecked() {
+      const choice = currentChoice();
+      items.forEach(it => {
+        it.setAttribute('aria-checked', it.dataset.themeValue === choice ? 'true' : 'false');
+      });
+    }
+
+    function applyChoice(choice) {
+      try {
+        if (choice === 'light' || choice === 'dark') {
+          localStorage.setItem(STORAGE_KEY, choice);
+          document.documentElement.setAttribute('data-theme', choice);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+          document.documentElement.removeAttribute('data-theme');
+        }
+      } catch (e) {}
+      syncChecked();
+    }
+
+    function openMenu() {
+      menu.setAttribute('data-open', 'true');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+      menu.removeAttribute('data-open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function isOpen() {
+      return menu.getAttribute('data-open') === 'true';
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isOpen() ? closeMenu() : openMenu();
+    });
+
+    items.forEach(it => {
+      it.addEventListener('click', () => {
+        applyChoice(it.dataset.themeValue);
+        closeMenu();
+        btn.focus();
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (isOpen() && !menu.contains(e.target) && e.target !== btn) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen()) {
+        closeMenu();
+        btn.focus();
+      }
+    });
+
+    syncChecked();
+  })();
 </script>
 
 <script>
