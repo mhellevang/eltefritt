@@ -988,12 +988,12 @@
         <span class="field-value" id="size-value">Medium</span>
       </div>
       <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Brødstørrelse">
-        <button data-size="350" aria-pressed="false">Lite</button>
-        <button data-size="500" aria-pressed="true">Medium</button>
-        <button data-size="650" aria-pressed="false">Stort</button>
+        <button data-size="500" aria-pressed="true">Lite</button>
+        <button data-size="700" aria-pressed="false">Medium</button>
+        <button data-size="1000" aria-pressed="false">Stort</button>
       </div>
-      <p class="helper-text" id="size-detail">≈ 500 g mel · ~750 g ferdig brød</p>
-      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4 L, eller brødform 1,5 L</p>
+      <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4 L (24 cm), eller brødform 1,5 L</p>
     </div>
 
     <div class="field">
@@ -1652,11 +1652,11 @@
 
   function update(opts = {}) {
     // Brødstørrelse-detalj
-    const sizeNames = { 350: 'Lite', 500: 'Medium', 650: 'Stort' };
+    const sizeNames = { 500: 'Lite', 700: 'Medium', 1000: 'Stort' };
     const equipment = {
-      350: 'Jerngryte 3 L, eller brødform 1 L (~20 cm)',
-      500: 'Jerngryte 4 L, eller brødform 1,5 L (~25 cm)',
-      650: 'Jerngryte 5 L, eller brødform 2 L (~30 cm)'
+      500: 'Jerngryte 4 L (24 cm), eller brødform 1,5 L',
+      700: 'Jerngryte 5 L (26 cm), eller brødform 2 L',
+      1000: 'Jerngryte 6–7 L (28 cm), eller stor brødform (2,5 L)'
     };
     $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
     // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
@@ -1921,10 +1921,15 @@
       const parsed = JSON.parse(saved);
       Object.assign(state, parsed);
       // Migrer gamle størrelser til nye
-      const validSizes = [350, 500, 650];
+      const validSizes = [500, 700, 1000];
       if (!validSizes.includes(state.sizePerLoaf)) {
-        const sizeMigration = { 300: 350, 400: 350, 430: 500, 550: 500, 600: 650, 750: 650 };
-        state.sizePerLoaf = sizeMigration[state.sizePerLoaf] || 500;
+        const current = state.sizePerLoaf;
+        if (typeof current === 'number' && current > 0) {
+          state.sizePerLoaf = validSizes.reduce((best, s) =>
+            Math.abs(s - current) < Math.abs(best - current) ? s : best, validSizes[0]);
+        } else {
+          state.sizePerLoaf = 500;
+        }
       }
       // Synkroniser DOM-kontroller
       // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle ble lagt til).
