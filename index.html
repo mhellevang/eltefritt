@@ -1024,9 +1024,9 @@
         <span class="field-value" id="size-value">Lite</span>
       </div>
       <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Brødstørrelse">
-        <button data-size="500" aria-pressed="true">Lite</button>
-        <button data-size="700" aria-pressed="false">Medium</button>
-        <button data-size="900" aria-pressed="false">Stort</button>
+        <button data-size="400" aria-pressed="false">Lite</button>
+        <button data-size="500" aria-pressed="true">Medium</button>
+        <button data-size="700" aria-pressed="false">Stort</button>
       </div>
       <div class="size-custom">
         <label for="size-custom-input">eller egen vekt</label>
@@ -1709,7 +1709,7 @@
 
   function update(opts = {}) {
     // Brødstørrelse-detalj
-    const sizeNames = { 500: 'Lite', 700: 'Medium', 900: 'Stort' };
+    const sizeNames = { 400: 'Lite', 500: 'Medium', 700: 'Stort' };
     $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
     // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
     const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
