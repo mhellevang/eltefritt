@@ -210,6 +210,42 @@
     box-shadow: 0 1px 3px rgba(40,30,20,0.08);
   }
 
+  .size-custom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--ink-mute);
+  }
+
+  .size-custom-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    width: 4.5rem;
+    text-align: center;
+  }
+
+  .size-custom-input::-webkit-outer-spin-button,
+  .size-custom-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .size-custom-input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
   input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
@@ -985,15 +1021,20 @@
     <div class="field">
       <div class="field-label">
         <span>Brødstørrelse</span>
-        <span class="field-value" id="size-value">Medium</span>
+        <span class="field-value" id="size-value">Lite</span>
       </div>
       <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Brødstørrelse">
         <button data-size="500" aria-pressed="true">Lite</button>
         <button data-size="700" aria-pressed="false">Medium</button>
-        <button data-size="1000" aria-pressed="false">Stort</button>
+        <button data-size="900" aria-pressed="false">Stort</button>
+      </div>
+      <div class="size-custom">
+        <label for="size-custom-input">eller egen vekt</label>
+        <input type="number" id="size-custom-input" class="size-custom-input" min="100" max="3000" step="10" inputmode="numeric" value="500" />
+        <span>g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
-      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4 L (24 cm), eller brødform 1,5 L</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 3 L (22 cm), eller brødform 1,5 L</p>
     </div>
 
     <div class="field">
@@ -1382,6 +1423,14 @@
     });
   }
 
+  function equipmentForSize(g) {
+    if (g <= 600) return 'Jerngryte 3 L (22 cm), eller brødform 1,5 L';
+    if (g <= 800) return 'Jerngryte 4 L (24 cm), eller brødform 2 L';
+    if (g <= 1100) return 'Jerngryte 5 L (26 cm), eller brødform 2,5 L';
+    if (g <= 1500) return 'Jerngryte 6–7 L (28 cm), eller stor brødform';
+    return 'tilpass utstyr etter deigmengde';
+  }
+
   function setFlourPct(idx, newPct) {
     // Auto-balanser: når brukeren endrer én glider, justeres resten proporsjonalt så summen blir 100.
     const n = state.flours.length;
@@ -1652,17 +1701,12 @@
 
   function update(opts = {}) {
     // Brødstørrelse-detalj
-    const sizeNames = { 500: 'Lite', 700: 'Medium', 1000: 'Stort' };
-    const equipment = {
-      500: 'Jerngryte 4 L (24 cm), eller brødform 1,5 L',
-      700: 'Jerngryte 5 L (26 cm), eller brødform 2 L',
-      1000: 'Jerngryte 6–7 L (28 cm), eller stor brødform (2,5 L)'
-    };
+    const sizeNames = { 500: 'Lite', 700: 'Medium', 900: 'Stort' };
     $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
     // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
     const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
     $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
-    $('#equipment-detail').textContent = `🥘 ${equipment[state.sizePerLoaf] || 'tilpass utstyr etter deigmengde'}` + (state.loaves > 1 ? ` (per brød)` : '');
+    $('#equipment-detail').textContent = `🥘 ${equipmentForSize(state.sizePerLoaf)}` + (state.loaves > 1 ? ` (per brød)` : '');
 
     // Antall brød
     $('#loaves-value').textContent = state.loaves;
@@ -1807,8 +1851,17 @@
     btn.addEventListener('click', () => {
       state.sizePerLoaf = parseInt(btn.dataset.size, 10);
       renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+      $('#size-custom-input').value = state.sizePerLoaf;
       update();
     });
+  });
+
+  $('#size-custom-input').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    if (!Number.isFinite(v) || v < 100 || v > 3000) return;
+    state.sizePerLoaf = v;
+    renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+    update();
   });
 
   $('#hydration').addEventListener('input', e => {
@@ -1920,16 +1973,9 @@
     if (saved) {
       const parsed = JSON.parse(saved);
       Object.assign(state, parsed);
-      // Migrer gamle størrelser til nye
-      const validSizes = [500, 700, 1000];
-      if (!validSizes.includes(state.sizePerLoaf)) {
-        const current = state.sizePerLoaf;
-        if (typeof current === 'number' && current > 0) {
-          state.sizePerLoaf = validSizes.reduce((best, s) =>
-            Math.abs(s - current) < Math.abs(best - current) ? s : best, validSizes[0]);
-        } else {
-          state.sizePerLoaf = 500;
-        }
+      // Sanity-check melvekt (godta enhver gyldig verdi, ikke bare presets)
+      if (typeof state.sizePerLoaf !== 'number' || state.sizePerLoaf < 100 || state.sizePerLoaf > 3000) {
+        state.sizePerLoaf = 500;
       }
       // Synkroniser DOM-kontroller
       // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle ble lagt til).
@@ -1939,6 +1985,7 @@
       }
       renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
       renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+      $('#size-custom-input').value = state.sizePerLoaf;
       renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
       renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
       $('#hydration').value = state.hydration;
