@@ -2004,8 +2004,9 @@
     }
   } catch (e) {}
 
-  // Default for ny bruker: start = nå rundet til neste hele time
-  if (!localStorage.getItem('eltefritt-state')) {
+  // Nullstill bakplan-tid ved hver oppstart, så man ikke arver starttid
+  // fra en tidligere økt (f.eks. fra en bake for to dager siden).
+  {
     const d = new Date();
     d.setHours(d.getHours() + 1, 0, 0, 0);
     state.anchorTime = formatTimeHM(d);
