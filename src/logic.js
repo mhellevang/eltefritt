@@ -11,6 +11,17 @@
   const REF_TEMP = 21;
   const BAKE_MIN = 50;
 
+  // Newtons avkjøling: en typisk eltefritt-deig (500–1000 g) i tildekket
+  // bolle ved romtemp har en tidskonstant tau ≈ 2–4 t. Vi velger 2,5 t som
+  // grovt midtsjikt; tallet er ikke målt, og varierer mye med deigstørrelse,
+  // bolle, lokk, og om deigen står i trekk eller en lun krok.
+  const COOLING_TAU_HOURS = 2.5;
+
+  // Spesifikk varmekapasitet (J/g/K). Tørt mel ≈ 1,7; vann 4,18. Brukes til
+  // å vekte starttemperaturen i deigen basert på mel:vann-forholdet.
+  const FLOUR_HEAT_CAPACITY = 1.7;
+  const WATER_HEAT_CAPACITY = 4.18;
+
   // ---- Meltyper med anbefalt hydreringsområde ----
   // Tallene er et utgangspunkt basert på vanlig praksis for eltefritt brød.
   // Variasjon i mølle, sesong og malingsgrad gjør at "riktig" hydrering
@@ -95,15 +106,47 @@
     return SOUR_BASE_INOC * (SOUR_BASE_BULK / bulkHours) * tempFactor;
   }
 
+  // Starttemperatur i deigen rett etter blanding, vektet etter varmekapasitet.
+  // Antar at melet ligger ved romtemp; vannet er det vi varierer.
+  function initialDoughTempC(waterTempC, flourTempC, hydrationPct) {
+    const flourCap = FLOUR_HEAT_CAPACITY;
+    const waterCap = (hydrationPct / 100) * WATER_HEAT_CAPACITY;
+    return (flourCap * flourTempC + waterCap * waterTempC) / (flourCap + waterCap);
+  }
+
+  // Effektive (21°C-ekvivalente) timer for en bulkheving der vann startet
+  // varmere/kjøligere enn romtemp. Vi integrerer Q10≈2-faktoren numerisk
+  // mens deigtemperaturen konvergerer mot romtemp via Newtons avkjøling.
+  function effectiveBulkHours(bulkHours, roomTempC, waterTempC, hydrationPct) {
+    const baseFactor = Math.pow(2, (roomTempC - REF_TEMP) / 10);
+    const T0 = initialDoughTempC(waterTempC, roomTempC, hydrationPct);
+    const dT = T0 - roomTempC;
+    if (Math.abs(dT) < 0.05 || bulkHours <= 0) {
+      return bulkHours * baseFactor;
+    }
+    // Midpoint-regel med 240 steg er rikelig nøyaktig for et glatt integrand.
+    const N = 240;
+    const dt = bulkHours / N;
+    let sum = 0;
+    for (let i = 0; i < N; i++) {
+      const t = (i + 0.5) * dt;
+      const T = roomTempC + dT * Math.exp(-t / COOLING_TAU_HOURS);
+      sum += Math.pow(2, (T - REF_TEMP) / 10);
+    }
+    return sum * dt;
+  }
+
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
   function modeEffectiveHours(state) {
+    const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
+    const hydration = state.hydration != null ? state.hydration : 75;
     if (state.mode === 'classic') {
-      return state.riseHours * Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
+      return effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
     }
     if (state.mode === 'cold') {
-      const bulkFactor = Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
+      const bulk = effectiveBulkHours(state.bulkHours, state.temperatureC, waterTempC, hydration);
       const coldFactor = Math.pow(2, (state.coldTempC - REF_TEMP) / 10);
-      return state.bulkHours * bulkFactor + state.coldHours * coldFactor;
+      return bulk + state.coldHours * coldFactor;
     }
     return 0;
   }
@@ -239,10 +282,12 @@
 
   const api = {
     REF_TEMP, BAKE_MIN,
+    COOLING_TAU_HOURS, FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
     FLOUR_TYPES, RYE_TYPES, LOW_GLUTEN_TYPES,
     LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
     weightedHydration, calculateYeast,
+    initialDoughTempC, effectiveBulkHours,
     recommendedSourBulkHours, recommendedSourInoculation,
     modeEffectiveHours, modeTotalMinutes,
     modePlanItems, modeInstructions,

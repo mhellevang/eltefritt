@@ -1095,6 +1095,25 @@
       </div>
     </div>
 
+    <div class="field">
+      <div class="field-label">
+        <span>Vanntemperatur</span>
+        <span class="field-value"><span id="water-temp-value">21</span>°C</span>
+      </div>
+      <div class="stepper" data-stepper-for="water-temp">
+        <input type="range" id="water-temp" class="visually-hidden" min="5" max="40" value="21" step="1" />
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser vanntemperatur">−</button>
+        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk vanntemperatur">+</button>
+      </div>
+      <div class="slider-marks">
+        <span>5°</span>
+        <span>21°</span>
+        <span>40°</span>
+      </div>
+      <p class="helper-text" id="water-temp-detail">Følger romtemp som standard. Varmt vann gir hodestart i bulkhevingen, så modellen kompenserer ved å redusere gjær. Hold under 40 °C; over det skades gjær og surdeig.</p>
+    </div>
+
     <div id="classic-controls">
       <div class="field">
         <div class="field-label">
@@ -1218,7 +1237,7 @@
     <div class="sub-ingredients" id="flour-breakdown"></div>
 
     <div class="ingredient">
-      <span class="name">Vann <span class="sub">romtemperert</span></span>
+      <span class="name">Vann <span class="sub" id="water-sub">romtemperert</span></span>
       <span class="amount"><span id="water-amount">323</span> g</span>
     </div>
 
@@ -1294,6 +1313,7 @@
     hydration: 75,
     hydrationManual: false,
     temperatureC: 21,
+    waterTempC: 21,            // Default = romtemp; "følger" så lenge verdiene matcher.
     mode: 'classic',           // 'classic' | 'cold'. Påvirker tidsplan.
     leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough'. Påvirker ingrediens.
     riseHours: 14,             // brukes i classic
@@ -1739,6 +1759,7 @@
     $('#hydration-value').textContent = state.hydration;
 
     $('#temp-value').textContent = state.temperatureC;
+    $('#water-temp-value').textContent = state.waterTempC;
     $('#time-value').textContent = state.riseHours;
     $('#bulk-time-value').textContent = state.bulkHours;
     $('#cold-time-value').textContent = state.coldHours;
@@ -1780,6 +1801,9 @@
     const result = computeRecipe(state);
     $('#flour-amount').textContent = formatGrams(result.flourAdded);
     $('#water-amount').textContent = formatGrams(result.water);
+    $('#water-sub').textContent = state.waterTempC === state.temperatureC
+      ? 'romtemperert'
+      : `${state.waterTempC} °C`;
     $('#salt-amount').textContent = formatGrams(result.salt);
 
     if (result.leaven === 'sourdough') {
@@ -1881,9 +1905,23 @@
   });
 
   $('#temp').addEventListener('input', e => {
-    state.temperatureC = parseInt(e.target.value, 10);
+    const oldRoom = state.temperatureC;
+    const newRoom = parseInt(e.target.value, 10);
+    state.temperatureC = newRoom;
+    // Hvis vannet fulgte romtemp, fortsett å følge. Hvis brukeren har satt et
+    // eget vanntall, ikke rør det.
+    if (state.waterTempC === oldRoom) {
+      state.waterTempC = newRoom;
+      $('#water-temp').value = newRoom;
+      refreshStepperVisual($('#water-temp'));
+    }
     resyncSourFromLead();
     update();
+  });
+
+  $('#water-temp').addEventListener('input', e => {
+    state.waterTempC = parseInt(e.target.value, 10);
+    update({ skipFlourList: true });
   });
 
   $('#rise-time').addEventListener('input', e => {
@@ -2000,6 +2038,9 @@
       renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
       $('#hydration').value = state.hydration;
       $('#temp').value = state.temperatureC;
+      // Migrer fra gammel state uten vanntemp: la den følge romtemp.
+      if (typeof state.waterTempC !== 'number') state.waterTempC = state.temperatureC;
+      $('#water-temp').value = state.waterTempC;
       $('#rise-time').value = state.riseHours;
       $('#bulk-time').value = state.bulkHours;
       $('#cold-time').value = state.coldHours;
@@ -2024,7 +2065,7 @@
   }
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)
-  ['hydration', 'temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation'].forEach(id => {
+  ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation'].forEach(id => {
     const inp = document.getElementById(id);
     if (inp) initStepper(inp);
   });

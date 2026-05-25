@@ -87,6 +87,62 @@ test('inokulering ↔ bulk-tid: round-trip', () => {
   assert.ok(Math.abs(inoc - 15) < 0.001, `forventet ~15, fikk ${inoc}`);
 });
 
+// ─── initialDoughTempC / effectiveBulkHours (vanntemperatur) ──────────────
+
+test('initialDoughTempC: vann og mel på samme temp gir samme deigtemp', () => {
+  assert.equal(L.initialDoughTempC(21, 21, 75), 21);
+  assert.equal(L.initialDoughTempC(10, 10, 80), 10);
+});
+
+test('initialDoughTempC: 35°C vann + 21°C mel ved 75% hydrering ligger mellom', () => {
+  const t = L.initialDoughTempC(35, 21, 75);
+  // Med c_vann ≈ 4,18 og c_mel ≈ 1,7 vekter vannet mer enn melmassen tilsier.
+  // Forventer ~29–31 °C; ikke 21, ikke 35.
+  assert.ok(t > 28 && t < 32, `forventet 28-32°C, fikk ${t}`);
+});
+
+test('initialDoughTempC: kjølig vann (5°C) trekker deigtemp under romtemp', () => {
+  const t = L.initialDoughTempC(5, 21, 75);
+  assert.ok(t < 21, `forventet < 21°C, fikk ${t}`);
+});
+
+test('initialDoughTempC: høyere hydrering forsterker vanntemperaturens vekt', () => {
+  const lav = L.initialDoughTempC(35, 21, 60);
+  const høy = L.initialDoughTempC(35, 21, 85);
+  assert.ok(høy > lav, `forventet at 85% gir høyere deigtemp enn 60% (lav=${lav}, høy=${høy})`);
+});
+
+test('effectiveBulkHours: vanntemp = romtemp gir samme som konstant faktor', () => {
+  const eff = L.effectiveBulkHours(14, 21, 21, 75);
+  assert.ok(Math.abs(eff - 14) < 1e-9, `forventet 14, fikk ${eff}`);
+});
+
+test('effectiveBulkHours: konstant faktor bevares når vann = romtemp ved andre temperaturer', () => {
+  const eff = L.effectiveBulkHours(14, 31, 31, 75);
+  assert.ok(Math.abs(eff - 28) < 1e-9, `forventet 28, fikk ${eff}`);
+});
+
+test('effectiveBulkHours: varmt vann gir flere effektive timer', () => {
+  const baseline = L.effectiveBulkHours(14, 21, 21, 75);
+  const warm = L.effectiveBulkHours(14, 21, 35, 75);
+  assert.ok(warm > baseline, `forventet warm > baseline (baseline=${baseline}, warm=${warm})`);
+});
+
+test('effectiveBulkHours: kjølig vann gir færre effektive timer', () => {
+  const baseline = L.effectiveBulkHours(14, 21, 21, 75);
+  const cool = L.effectiveBulkHours(14, 21, 10, 75);
+  assert.ok(cool < baseline, `forventet cool < baseline (baseline=${baseline}, cool=${cool})`);
+});
+
+test('effectiveBulkHours: kort bulk har større relativ effekt av varmt vann (avkjøling kicker inn)', () => {
+  // 2 t bulk: vannet har ikke kjølt seg ned ennå.
+  const shortRatio = L.effectiveBulkHours(2, 21, 35, 75) / L.effectiveBulkHours(2, 21, 21, 75);
+  // 14 t bulk: vannet nådde romtemp tidlig, så det varme bidraget utgjør lite av snittet.
+  const longRatio = L.effectiveBulkHours(14, 21, 35, 75) / L.effectiveBulkHours(14, 21, 21, 75);
+  assert.ok(shortRatio > longRatio,
+    `forventet at varmt vann har større relativ effekt på 2t enn 14t (kort=${shortRatio}, lang=${longRatio})`);
+});
+
 // ─── modeEffectiveHours ────────────────────────────────────────────────────
 
 test('modeEffectiveHours: klassisk @ 21°C er bare riseHours', () => {
@@ -114,6 +170,32 @@ test('modeEffectiveHours: kald summerer bulk + kjøleskap med egne faktorer', ()
   const bulk = 2 * Math.pow(2, 0);          // 21°C = ref, faktor 1
   const cold = 12 * Math.pow(2, (4 - 21) / 10);
   assert.equal(eff, bulk + cold);
+});
+
+test('modeEffectiveHours: varmt vann øker effektive timer i klassisk modus', () => {
+  const base = { mode: 'classic', riseHours: 14, temperatureC: 21, hydration: 75 };
+  const cold = L.modeEffectiveHours({ ...base, waterTempC: 21 });
+  const warm = L.modeEffectiveHours({ ...base, waterTempC: 35 });
+  assert.ok(warm > cold, `forventet warm > cold (cold=${cold}, warm=${warm})`);
+});
+
+test('modeEffectiveHours: varmt vann øker bulk-bidraget i kald modus, kjøleskap-bidrag uendret', () => {
+  const base = {
+    mode: 'cold', bulkHours: 2, coldHours: 12,
+    temperatureC: 21, coldTempC: 4, hydration: 75
+  };
+  const cold = L.modeEffectiveHours({ ...base, waterTempC: 21 });
+  const warm = L.modeEffectiveHours({ ...base, waterTempC: 35 });
+  const coldPhase = 12 * Math.pow(2, (4 - 21) / 10);
+  // Hele økningen skal sitte i bulk-leddet.
+  assert.ok(warm - cold > 0);
+  assert.ok(Math.abs((cold - coldPhase) - 2) < 1e-9, 'baseline bulk skal være 2 t når vann = romtemp');
+  assert.ok((warm - coldPhase) > 2, 'varmt vann skal gi bulk-bidrag større enn 2');
+});
+
+test('modeEffectiveHours: uten waterTempC i state faller den tilbake til romtemp', () => {
+  const eff = L.modeEffectiveHours({ mode: 'classic', riseHours: 14, temperatureC: 21 });
+  assert.equal(eff, 14);
 });
 
 // ─── computeRecipe ─────────────────────────────────────────────────────────
