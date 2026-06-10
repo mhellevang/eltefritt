@@ -31,6 +31,23 @@ Effektive timer = Σ fase_time × 2^((T - 21°C) / 10)
 
 Referansepunktet er 0,23 % tørrgjær for 14 timers heving ved 21 °C. Ferskgjær ≈ tørrgjær × 3. Med surdeig antas 100%-hydrert starter; halvparten av starter-vekten regnes som mel og halvparten som vann, og trekkes fra de mengdene du blander inn.
 
+Effektive timer er litt mer nyansert enn formelen over antyder: når vannet er varmere eller kjøligere enn rommet integreres Q10-faktoren mens deigtemperaturen glir mot romtemp via Newtons avkjøling (vektet etter mel/vann sin varmekapasitet). I kald modus modelleres på samme måte at en romtemperert deig fortsetter å gjære mens den kjøler ned i kjøleskapet. Klassisk modus regner med en andreheving på ~1,5 t i tillegg til bulken.
+
+### Surdeig-anker
+
+20 % levain ved 21 °C ≈ 11 t bulk til ~70–75 % heving, basert på [The Sourdough Journey](https://thesourdoughjourney.com/the-mystery-of-percentage-rise-in-bulk-fermentation/) sine bulk-tabeller. Inokulering × bulk-tid er omvendt proporsjonalt, og skalerer med Q10 ≈ 2 etter temperatur. Starter-styrke varierer ±25 %, så dette er veiledende.
+
+### Hydreringsområder
+
+Hydrering er alltid et område, ikke ett tall. Verdiene i `src/logic.js` er forankret slik:
+
+- Hvete er basislinjen (70–75 %, vanlig for no-knead; [King Arthur](https://www.kingarthurbaking.com/blog/2023/01/11/bread-hydration) testet brødmel godt opp mot 80 %).
+- Sammalt hvete trenger 5–10 % mer vann fordi kli suger vann ([King Arthur](https://www.kingarthurbaking.com/blog/2023/01/11/bread-hydration); [flourwise](https://flourwise.com/blog/bread-hydration-chart/)) → 75–82 %.
+- Rug er svært vannsugende, 10–15 % mer enn hvit → 80–88 %; sammalt rug høyere, 85–92 %.
+- Spelt har svakere gluten og tar ~5 % mindre vann → 65–72 % ([The Fresh Loaf](https://www.thefreshloaf.com/node/21548/hydration-speltwholewheat-sourdough)).
+- Durum suger ~2 % mer enn brødmel men gir fast deig → 65–72 % ([sourdoughhydration.com](https://sourdoughhydration.com/flour/durum-semolina)).
+- Havre og bygg har lite gluten; tallene er avledet fra helkorns-prinsippet, ikke en egen sitert kilde.
+
 ## Kjør lokalt
 
 Åpne `index.html` direkte i en nettleser. For å teste service worker og PWA-funksjoner må filene serveres over HTTP:

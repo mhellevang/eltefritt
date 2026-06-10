@@ -21,9 +21,9 @@ test('weightedHydration: 50/50 hvete + sammalt rug snitter', () => {
     { type: 'hvete', pct: 50 },
     { type: 'sammaltrug', pct: 50 }
   ]);
-  // hvete 70-75 + sammaltrug 82-85, halvparten av hver
-  assert.equal(r.min, (70 + 82) / 2);
-  assert.equal(r.max, (75 + 85) / 2);
+  // hvete 70-75 + sammaltrug 85-92, halvparten av hver
+  assert.equal(r.min, (70 + 85) / 2);
+  assert.equal(r.max, (75 + 92) / 2);
 });
 
 test('weightedHydration: ukjent meltype ignoreres', () => {
@@ -61,24 +61,24 @@ test('calculateYeast: veldig kort effHours clampes for å unngå deling på null
 
 // ─── recommendedSourBulkHours / recommendedSourInoculation ────────────────
 
-test('recommendedSourBulkHours: 20% @ 21°C = referanse 6 t', () => {
-  assert.equal(L.recommendedSourBulkHours(20, 21), 6);
+test('recommendedSourBulkHours: 20% @ 21°C = referanse 11 t', () => {
+  assert.equal(L.recommendedSourBulkHours(20, 21), 11);
 });
 
 test('recommendedSourBulkHours: halv inokulering dobler bulk-tid', () => {
-  assert.equal(L.recommendedSourBulkHours(10, 21), 12);
+  assert.equal(L.recommendedSourBulkHours(10, 21), 22);
 });
 
 test('recommendedSourBulkHours: dobbel inokulering halverer bulk-tid', () => {
-  assert.equal(L.recommendedSourBulkHours(40, 21), 3);
+  assert.equal(L.recommendedSourBulkHours(40, 21), 5.5);
 });
 
 test('recommendedSourBulkHours: 10°C varmere halverer bulk-tid (Q10)', () => {
-  assert.equal(L.recommendedSourBulkHours(20, 31), 3);
+  assert.equal(L.recommendedSourBulkHours(20, 31), 5.5);
 });
 
-test('recommendedSourInoculation: 6 t @ 21°C = referanse 20%', () => {
-  assert.equal(L.recommendedSourInoculation(6, 21), 20);
+test('recommendedSourInoculation: 11 t @ 21°C = referanse 20%', () => {
+  assert.equal(L.recommendedSourInoculation(11, 21), 20);
 });
 
 test('inokulering ↔ bulk-tid: round-trip', () => {
@@ -145,21 +145,23 @@ test('effectiveBulkHours: kort bulk har større relativ effekt av varmt vann (av
 
 // ─── modeEffectiveHours ────────────────────────────────────────────────────
 
-test('modeEffectiveHours: klassisk @ 21°C er bare riseHours', () => {
+test('modeEffectiveHours: klassisk @ 21°C er riseHours + andreheving', () => {
   const eff = L.modeEffectiveHours({
     mode: 'classic', riseHours: 14, temperatureC: 21
   });
-  assert.equal(eff, 14);
+  // 14 t bulk @ 21°C (faktor 1) + andreheving @ 21°C (faktor 1)
+  assert.equal(eff, 14 + L.SECOND_PROOF_HOURS);
 });
 
 test('modeEffectiveHours: klassisk @ 31°C halverer effektiv tid (Q10≈2)', () => {
   const eff = L.modeEffectiveHours({
     mode: 'classic', riseHours: 14, temperatureC: 31
   });
-  assert.equal(eff, 14 * 2); // høyere temp = mer effektiv tid per faktisk time
+  // Både bulk og andreheving skaleres med faktor 2 ved 31°C.
+  assert.equal(eff, (14 + L.SECOND_PROOF_HOURS) * 2);
 });
 
-test('modeEffectiveHours: kald summerer bulk + kjøleskap med egne faktorer', () => {
+test('modeEffectiveHours: kald summerer bulk + nedkjølt kjøleskapsfase', () => {
   const eff = L.modeEffectiveHours({
     mode: 'cold',
     temperatureC: 21,
@@ -167,9 +169,17 @@ test('modeEffectiveHours: kald summerer bulk + kjøleskap med egne faktorer', ()
     coldHours: 12,
     coldTempC: 4
   });
-  const bulk = 2 * Math.pow(2, 0);          // 21°C = ref, faktor 1
-  const cold = 12 * Math.pow(2, (4 - 21) / 10);
+  const bulk = L.effectiveBulkHours(2, 21, 21, 75); // 21°C = ref, vann = romtemp
+  const cold = L.effectiveColdHours(12, 4, 21);      // kjøler fra romtemp mot 4°C
   assert.equal(eff, bulk + cold);
+});
+
+test('effectiveColdHours: nedkjøling gir flere effektive timer enn konstant kjøleskapsfaktor', () => {
+  // En varm deig gjærer mer mens den kjøler ned enn om den var 4°C hele tiden.
+  const withCooldown = L.effectiveColdHours(12, 4, 21);
+  const constant = 12 * Math.pow(2, (4 - 21) / 10);
+  assert.ok(withCooldown > constant,
+    `forventet at nedkjøling gir mer gjæring (nedkjøl=${withCooldown}, konstant=${constant})`);
 });
 
 test('modeEffectiveHours: varmt vann øker effektive timer i klassisk modus', () => {
@@ -186,7 +196,8 @@ test('modeEffectiveHours: varmt vann øker bulk-bidraget i kald modus, kjøleska
   };
   const cold = L.modeEffectiveHours({ ...base, waterTempC: 21 });
   const warm = L.modeEffectiveHours({ ...base, waterTempC: 35 });
-  const coldPhase = 12 * Math.pow(2, (4 - 21) / 10);
+  // Kjøleskapsfasen er uavhengig av vanntemp (starter på romtemp etter bulk).
+  const coldPhase = L.effectiveColdHours(12, 4, 21);
   // Hele økningen skal sitte i bulk-leddet.
   assert.ok(warm - cold > 0);
   assert.ok(Math.abs((cold - coldPhase) - 2) < 1e-9, 'baseline bulk skal være 2 t når vann = romtemp');
@@ -195,7 +206,7 @@ test('modeEffectiveHours: varmt vann øker bulk-bidraget i kald modus, kjøleska
 
 test('modeEffectiveHours: uten waterTempC i state faller den tilbake til romtemp', () => {
   const eff = L.modeEffectiveHours({ mode: 'classic', riseHours: 14, temperatureC: 21 });
-  assert.equal(eff, 14);
+  assert.equal(eff, 14 + L.SECOND_PROOF_HOURS);
 });
 
 // ─── computeRecipe ─────────────────────────────────────────────────────────
@@ -224,8 +235,10 @@ test('computeRecipe: klassisk + tørrgjær gir riktige mengder', () => {
   assert.equal(r.water, 500 * 0.725);
   assert.equal(r.salt, 500 * 0.02);
   assert.equal(r.leaven, 'dry');
-  assert.equal(r.yeastPct, 0.23);
-  assert.equal(r.yeast, 500 * 0.0023);
+  // effHours = 14 t bulk + andreheving (begge @ 21°C, faktor 1).
+  const eff = 14 + L.SECOND_PROOF_HOURS;
+  assert.equal(r.yeastPct, 0.23 * 14 / eff);
+  assert.equal(r.yeast, (0.23 * 14 / eff / 100) * 500);
 });
 
 test('computeRecipe: manuell hydrering overstyrer anbefaling', () => {

@@ -11,11 +11,23 @@
   const REF_TEMP = 21;
   const BAKE_MIN = 50;
 
+  // Etterheving (andreheving) i klassisk modus, etter forming og før steking.
+  // Laheys originaloppskrift bruker ~2 t; vi velger 1,5 t som representativt
+  // midtsjikt og beskriver 1–2 t i instruksjonene. Tidligere var dette
+  // hardkodet til 45 min, som er i knappeste laget for en no-knead-deig.
+  const SECOND_PROOF_HOURS = 1.5;
+
   // Newtons avkjøling: en typisk eltefritt-deig (500–1000 g) i tildekket
   // bolle ved romtemp har en tidskonstant tau ≈ 2–4 t. Vi velger 2,5 t som
   // grovt midtsjikt; tallet er ikke målt, og varierer mye med deigstørrelse,
   // bolle, lokk, og om deigen står i trekk eller en lun krok.
   const COOLING_TAU_HOURS = 2.5;
+
+  // Samme prinsipp i kjøleskapet: en romtemperert deig kjøler ikke momentant
+  // ned til kjøleskapstemp. En deig på 500–1000 g bruker typisk noen timer på
+  // å nå kjernetemp i kjøleskap, og det skjer en god del gjæring underveis.
+  // tau er noe lengre enn ved romtemp pga. mindre konveksjon i kjøleskapet.
+  const COLD_COOLING_TAU_HOURS = 3;
 
   // Spesifikk varmekapasitet (J/g/K). Tørt mel ≈ 1,7; vann 4,18. Brukes til
   // å vekte starttemperaturen i deigen basert på mel:vann-forholdet.
@@ -23,15 +35,31 @@
   const WATER_HEAT_CAPACITY = 4.18;
 
   // ---- Meltyper med anbefalt hydreringsområde ----
-  // Tallene er et utgangspunkt basert på vanlig praksis for eltefritt brød.
-  // Variasjon i mølle, sesong og malingsgrad gjør at "riktig" hydrering
-  // alltid er et område, ikke ett tall. Brukeren overstyrer selv om ønskelig.
+  // Hydrering er alltid et område, ikke ett tall (mølle, sesong og malingsgrad
+  // varierer), og brukeren kan overstyre. Verdiene er forankret slik:
+  //
+  //  - Hvete er basislinjen: 70–75 % er vanlig for no-knead (Lahey ~75 %,
+  //    King Arthur testet brødmel godt opp mot 80 %).
+  //  - Sammalt hvete trenger 5–10 % mer vann enn hvit fordi kli suger vann
+  //    (King Arthur; flourwise). → 75–82 %. "Fin" sammalt ligger mellom hvit
+  //    og full sammalt → 73–78 %.
+  //  - Rug er svært vannsugende og trenger 10–15 % mer enn hvit (King Arthur;
+  //    flourwise). Blandbart rugmel 80–88 %, sammalt/helkorns rug høyere,
+  //    85–92 %. (Rene rugbrød kan gå 95–100 %+, men det er en egen stil.)
+  //  - Spelt har svakere gluten og tar ~5 % mindre vann enn hvete; 65–72 %
+  //    er et trygt utgangspunkt (The Fresh Loaf; Cook Geeks).
+  //  - Durum suger ~2 % mer enn brødmel men gir fast deig; 65–72 % er
+  //    arbeidbart (sourdoughhydration.com; pane di Altamura ~60 %).
+  //  - Havre og bygg har lite gluten; tallene er avledet fra helkorns-
+  //    prinsippet (kli suger vann) snarere enn en egen sitert kilde.
+  //
+  // Kilder: se README og src/logic.js-kommentarer.
   const FLOUR_TYPES = {
     hvete:      { name: 'Hvetemel',          hydrationMin: 70, hydrationMax: 75 },
-    sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 80 },
+    sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 82 },
     sammaltfin: { name: 'Sammalt hvete, fin',hydrationMin: 73, hydrationMax: 78 },
-    rug:        { name: 'Rugmel',            hydrationMin: 80, hydrationMax: 85 },
-    sammaltrug: { name: 'Sammalt rug',       hydrationMin: 82, hydrationMax: 85 },
+    rug:        { name: 'Rugmel',            hydrationMin: 80, hydrationMax: 88 },
+    sammaltrug: { name: 'Sammalt rug',       hydrationMin: 85, hydrationMax: 92 },
     spelt:      { name: 'Speltmel',          hydrationMin: 65, hydrationMax: 72 },
     durum:      { name: 'Durumhvete',        hydrationMin: 65, hydrationMax: 72 },
     havre:      { name: 'Havremel',          hydrationMin: 72, hydrationMax: 78 },
@@ -88,10 +116,13 @@
   }
 
   // Surdeig: kobling mellom inokulering, bulkheving og temperatur.
-  // Referansepunkt 20 % surdeig @ 21 °C ≈ 6 t bulk er et informert anslag,
-  // ikke fra en sitert kilde. Starter-styrke varierer ±25 %. Inokulering ×
-  // bulk-tid er omvendt proporsjonalt, og produktet skalerer med Q10 ≈ 2.
-  const SOUR_BASE_BULK = 6;
+  // Referansepunkt 20 % levain @ 21 °C ≈ 11 t bulk til ~70–75 % heving, basert
+  // på The Sourdough Journey sine bulk-tabeller (ved 21 °C tar bulken typisk
+  // 11–12 t med en sunn starter på 15–20 %). Tidligere brukte vi 6 t, som var
+  // for kort for romtemp. Starter-styrke varierer fortsatt ±25 %, så dette er
+  // veiledende. Inokulering × bulk-tid er omvendt proporsjonalt, og produktet
+  // skalerer med Q10 ≈ 2.
+  const SOUR_BASE_BULK = 11;
   const SOUR_BASE_INOC = 20;
 
   function recommendedSourBulkHours(inoculation, temperatureC) {
@@ -114,45 +145,64 @@
     return (flourCap * flourTempC + waterCap * waterTempC) / (flourCap + waterCap);
   }
 
-  // Effektive (21°C-ekvivalente) timer for en bulkheving der vann startet
-  // varmere/kjøligere enn romtemp. Vi integrerer Q10≈2-faktoren numerisk
-  // mens deigtemperaturen konvergerer mot romtemp via Newtons avkjøling.
-  function effectiveBulkHours(bulkHours, roomTempC, waterTempC, hydrationPct) {
-    const baseFactor = Math.pow(2, (roomTempC - REF_TEMP) / 10);
-    const T0 = initialDoughTempC(waterTempC, roomTempC, hydrationPct);
-    const dT = T0 - roomTempC;
-    if (Math.abs(dT) < 0.05 || bulkHours <= 0) {
-      return bulkHours * baseFactor;
+  // 21°C-ekvivalente timer for en fase der deigen starter ved en annen temp
+  // enn omgivelsene og konvergerer mot dem via Newtons avkjøling. Vi integrerer
+  // Q10≈2-faktoren numerisk mens deigtemperaturen glir fra startTempC mot
+  // ambientC med tidskonstant tau. Brukes både for romtemp-bulk (vann varmere/
+  // kjøligere enn rommet) og for kald etterheving (varm deig som kjøler ned).
+  function effectivePhaseHours(hours, ambientC, startTempC, tau) {
+    const baseFactor = Math.pow(2, (ambientC - REF_TEMP) / 10);
+    const dT = startTempC - ambientC;
+    if (Math.abs(dT) < 0.05 || hours <= 0) {
+      return hours * baseFactor;
     }
     // Midpoint-regel med 240 steg er rikelig nøyaktig for et glatt integrand.
     const N = 240;
-    const dt = bulkHours / N;
+    const dt = hours / N;
     let sum = 0;
     for (let i = 0; i < N; i++) {
       const t = (i + 0.5) * dt;
-      const T = roomTempC + dT * Math.exp(-t / COOLING_TAU_HOURS);
+      const T = ambientC + dT * Math.exp(-t / tau);
       sum += Math.pow(2, (T - REF_TEMP) / 10);
     }
     return sum * dt;
+  }
+
+  // Romtemp-bulk: deigen starter på blandetemperaturen (vektet vann/mel) og
+  // konvergerer mot romtemp.
+  function effectiveBulkHours(bulkHours, roomTempC, waterTempC, hydrationPct) {
+    const T0 = initialDoughTempC(waterTempC, roomTempC, hydrationPct);
+    return effectivePhaseHours(bulkHours, roomTempC, T0, COOLING_TAU_HOURS);
+  }
+
+  // Kald etterheving: en romtemperert deig (etter bulk) som kjøler mot
+  // kjøleskapstemp. Modellerer gjæringen som skjer mens deigen fortsatt er varm.
+  function effectiveColdHours(coldHours, coldTempC, startTempC) {
+    return effectivePhaseHours(coldHours, coldTempC, startTempC, COLD_COOLING_TAU_HOURS);
   }
 
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
   function modeEffectiveHours(state) {
     const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
     const hydration = state.hydration != null ? state.hydration : 75;
+    // Andrehevingen skjer ved romtemp etter at deigen har equilibrert, så den
+    // bidrar med SECOND_PROOF_HOURS skalert med romtempfaktoren.
+    const secondProofFactor = Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
     if (state.mode === 'classic') {
-      return effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
+      const bulk = effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
+      return bulk + SECOND_PROOF_HOURS * secondProofFactor;
     }
     if (state.mode === 'cold') {
       const bulk = effectiveBulkHours(state.bulkHours, state.temperatureC, waterTempC, hydration);
-      const coldFactor = Math.pow(2, (state.coldTempC - REF_TEMP) / 10);
-      return bulk + state.coldHours * coldFactor;
+      // Deigen går inn i kjøleskapet på romtemp og kjøler ned underveis.
+      const cold = effectiveColdHours(state.coldHours, state.coldTempC, state.temperatureC);
+      return bulk + cold;
     }
     return 0;
   }
 
   function modeTotalMinutes(state) {
-    if (state.mode === 'classic') return state.riseHours * 60 + 45 + BAKE_MIN;
+    if (state.mode === 'classic') return state.riseHours * 60 + SECOND_PROOF_HOURS * 60 + BAKE_MIN;
     if (state.mode === 'cold') return state.bulkHours * 60 + state.coldHours * 60 + BAKE_MIN;
     return 0;
   }
@@ -160,11 +210,11 @@
   function modePlanItems(state, start) {
     if (state.mode === 'classic') {
       const shape = addHours(start, state.riseHours);
-      const bake = addMinutes(shape, 45);
+      const bake = addHours(shape, SECOND_PROOF_HOURS);
       return [
         { kind: 'duration', text: `Bulkheving · ${state.riseHours} t ved ${state.temperatureC}°C` },
         { kind: 'step', label: 'Form og etterhev', time: shape },
-        { kind: 'duration', text: 'Etterheving · 45 min' },
+        { kind: 'duration', text: `Etterheving · ~${String(SECOND_PROOF_HOURS).replace('.', ',')} t` },
         { kind: 'step', label: 'Inn i ovnen', time: bake },
         { kind: 'duration', text: 'Steking · ~45 min' }
       ];
@@ -205,7 +255,7 @@
         ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler, 50–75% større når den er klar.'
         : 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.';
       steps.push(['Bulkheving', bulkText]);
-      steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle eller i banneton i 30–60 min. Snarvei: hopp over forming og plopp deigen rett i den varme gryta etter bulk, det blir litt rustikkere men funker fint.']);
+      steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle eller i banneton i 1–2 t, til deigen er synlig luftigere og rundt 50 % større. Snarvei: hopp over forming og plopp deigen rett i den varme gryta etter bulk, det blir litt rustikkere men funker fint.']);
       steps.push(['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
       steps.push(['Avkjøl', leaven === 'sourdough'
         ? 'La avkjøle på rist i minst 1 t før du skjærer. Surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
@@ -281,13 +331,14 @@
   }
 
   const api = {
-    REF_TEMP, BAKE_MIN,
-    COOLING_TAU_HOURS, FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
+    REF_TEMP, BAKE_MIN, SECOND_PROOF_HOURS,
+    COOLING_TAU_HOURS, COLD_COOLING_TAU_HOURS,
+    FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
     FLOUR_TYPES, RYE_TYPES, LOW_GLUTEN_TYPES,
     LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
     weightedHydration, calculateYeast,
-    initialDoughTempC, effectiveBulkHours,
+    initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
     recommendedSourBulkHours, recommendedSourInoculation,
     modeEffectiveHours, modeTotalMinutes,
     modePlanItems, modeInstructions,

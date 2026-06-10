@@ -1176,17 +1176,17 @@
       <div class="field">
         <div class="field-label">
           <span>Kjøleskapstemp</span>
-          <span class="field-value"><span id="cold-temp-value">4</span>°C</span>
+          <span class="field-value"><span id="cold-temp-value">6</span>°C</span>
         </div>
         <div class="stepper" data-stepper-for="cold-temp">
-          <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="4" step="1" />
+          <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="6" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kjøleskapstemperatur">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
         </div>
         <div class="slider-marks">
           <span>2°</span>
-          <span>4°</span>
+          <span>6°</span>
           <span>10°</span>
         </div>
       </div>
@@ -1211,17 +1211,17 @@
           <span class="field-value"><span id="sour-inoculation-value">20</span>%</span>
         </div>
         <div class="stepper" data-stepper-for="sour-inoculation">
-          <input type="range" id="sour-inoculation" class="visually-hidden" min="10" max="30" value="20" step="1" />
+          <input type="range" id="sour-inoculation" class="visually-hidden" min="10" max="40" value="20" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser surdeig-mengde">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk surdeig-mengde">+</button>
         </div>
         <div class="slider-marks">
           <span>10%</span>
-          <span>20%</span>
-          <span>30%</span>
+          <span>25%</span>
+          <span>40%</span>
         </div>
-        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~6 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
+        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~11 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
       </div>
     </div>
 
@@ -1319,7 +1319,7 @@
     riseHours: 14,             // brukes i classic
     bulkHours: 2,              // brukes i cold
     coldHours: 12,             // brukes i cold
-    coldTempC: 4,              // brukes i cold
+    coldTempC: 6,              // brukes i cold. Default 6°C: typisk norsk kjøleskap ligger nærmere 5-6°C enn Mattilsynets ideal på 4°C.
     sourInoculation: 20,       // brukes når leaven === 'sourdough'. % av total mel.
     sourLead: 'inoculation',   // 'inoculation' | 'time'. Hvilken slider som leder koblingen.
     timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.

@@ -107,19 +107,20 @@ test('Hevemetode = Kald viser cold-controls, skjuler classic-controls', async ()
 test('surdeig: å øke inokulering kortere bulk-tid (kobling)', async () => {
   const { window, document, close } = await loadPage();
   try {
-    // Bytt til Surdeig + Kald etterheving (bulk-time-slider blir aktiv).
+    // Surdeig i klassisk modus (rise-time-slider 4–24 t). I kald modus er
+    // bulk-slideren kappet til 6 t, og med realistisk anker (~11 t @ 20%)
+    // klamper anbefalt bulk til maks der, så koblingen er bare synlig her.
     fire(window, document.querySelector('button[data-leaven="sourdough"]'), 'click');
-    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
 
-    const bulkSlider = document.getElementById('bulk-time');
+    const bulkSlider = document.getElementById('rise-time');
     const inoc = document.getElementById('sour-inoculation');
 
-    // Start: 20% inokulering → bulk skal være rundt 5 t (clamped til slider 1-6).
+    // Start: 20% inokulering → ~11 t bulk.
     inoc.value = '20';
     fire(window, inoc, 'input');
     const bulkAt20 = parseInt(bulkSlider.value, 10);
 
-    // Øk til 30%. Formelen sier ~3,3 t.
+    // Øk til 30%. Formelen sier ~7,3 t.
     inoc.value = '30';
     fire(window, inoc, 'input');
     const bulkAt30 = parseInt(bulkSlider.value, 10);
