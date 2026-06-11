@@ -1,6 +1,6 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v14';
+const CACHE_VERSION = 'eltefritt-v15';
 
 const CORE_ASSETS = [
   './',
@@ -48,7 +48,12 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(req);
         const fetching = fetch(req)
           .then((res) => {
-            if (res && res.status === 200) cache.put(req, res.clone());
+            // Stylesheet-requesten mot fonts.googleapis.com går i no-cors og
+            // gir opaque respons (status 0). Uten unntaket her blir font-CSS
+            // aldri cachet, og offline faller alt tilbake til systemfonter.
+            const cacheable =
+              res && (res.status === 200 || (isGoogleFonts && res.type === 'opaque'));
+            if (cacheable) cache.put(req, res.clone());
             return res;
           })
           .catch(() => cached);

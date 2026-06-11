@@ -107,9 +107,8 @@ test('Hevemetode = Kald viser cold-controls, skjuler classic-controls', async ()
 test('surdeig: å øke inokulering kortere bulk-tid (kobling)', async () => {
   const { window, document, close } = await loadPage();
   try {
-    // Surdeig i klassisk modus (rise-time-slider 4–24 t). I kald modus er
-    // bulk-slideren kappet til 6 t, og med realistisk anker (~11 t @ 20%)
-    // klamper anbefalt bulk til maks der, så koblingen er bare synlig her.
+    // Surdeig i klassisk modus (rise-time-slider 4–24 t), der hele
+    // anbefalingsområdet får plass og koblingen er tydeligst synlig.
     fire(window, document.querySelector('button[data-leaven="sourdough"]'), 'click');
 
     const bulkSlider = document.getElementById('rise-time');
@@ -154,20 +153,20 @@ test('surdeig: å forlenge bulk-tid reduserer inokulering (andre retning)', asyn
   }
 });
 
-test('endring i flour-prosent oppdaterer Vann-mengden', async () => {
+test('endring i meltype oppdaterer Vann-mengden', async () => {
   const { window, document, close } = await loadPage();
   try {
     const waterBefore = document.getElementById('water-amount').textContent;
 
     // Bytt meltype til sammalt rug (høyere anbefalt hydrering).
+    // Ingen guard her: finnes ikke selecten, skal testen feile høylytt.
     const select = document.querySelector('.flour-type-select');
-    if (select) {
-      select.value = 'sammaltrug';
-      fire(window, select, 'change');
+    assert.ok(select, 'forventer .flour-type-select i flour-listen');
+    select.value = 'sammaltrug';
+    fire(window, select, 'change');
 
-      const waterAfter = document.getElementById('water-amount').textContent;
-      assert.notEqual(waterAfter, waterBefore, 'vannmengden skal endres når meltype byttes');
-    }
+    const waterAfter = document.getElementById('water-amount').textContent;
+    assert.notEqual(waterAfter, waterBefore, 'vannmengden skal endres når meltype byttes');
   } finally {
     close();
   }

@@ -87,6 +87,31 @@ test('inokulering ↔ bulk-tid: round-trip', () => {
   assert.ok(Math.abs(inoc - 15) < 0.001, `forventet ~15, fikk ${inoc}`);
 });
 
+test('recommendedSourBulkHours: kjøleskapsfasens effektive timer trekkes fra bulk-målet', () => {
+  // 20% @ 21°C trenger 11 effektive timer totalt; bidrar kjøleskapet med 5,
+  // gjenstår 6 t bulk ved romtemp (faktor 1).
+  assert.equal(L.recommendedSourBulkHours(20, 21, 5), 6);
+});
+
+test('recommendedSourBulkHours: kjøleskapsbidrag større enn målet gir 0 t bulk, ikke negativt', () => {
+  assert.equal(L.recommendedSourBulkHours(20, 21, 20), 0);
+});
+
+test('recommendedSourInoculation: kjøleskapsbidrag reduserer nødvendig inokulering', () => {
+  const uten = L.recommendedSourInoculation(6, 21);
+  const med = L.recommendedSourInoculation(6, 21, 5);
+  assert.ok(med < uten, `forventet med < uten (med=${med}, uten=${uten})`);
+  // 6 t bulk + 5 t kald = 11 effektive timer = referansen → 20%.
+  assert.equal(med, 20);
+});
+
+test('inokulering ↔ bulk-tid: round-trip med kjøleskapsbidrag', () => {
+  const coldEff = 3;
+  const bulk = L.recommendedSourBulkHours(15, 23, coldEff);
+  const inoc = L.recommendedSourInoculation(bulk, 23, coldEff);
+  assert.ok(Math.abs(inoc - 15) < 0.001, `forventet ~15, fikk ${inoc}`);
+});
+
 // ─── initialDoughTempC / effectiveBulkHours (vanntemperatur) ──────────────
 
 test('initialDoughTempC: vann og mel på samme temp gir samme deigtemp', () => {
@@ -231,8 +256,8 @@ test('computeRecipe: klassisk + tørrgjær gir riktige mengder', () => {
   const r = L.computeRecipe(baseState);
   assert.equal(r.flourTotal, 500);
   assert.equal(r.flourAdded, 500);
-  assert.equal(r.hydration, 72.5); // midt i 70-75 for hvete
-  assert.equal(r.water, 500 * 0.725);
+  assert.equal(r.hydration, 73); // midt i 70-75 for hvete, avrundet som i UI
+  assert.equal(r.water, 500 * 0.73);
   assert.equal(r.salt, 500 * 0.02);
   assert.equal(r.leaven, 'dry');
   // effHours = 14 t bulk + andreheving (begge @ 21°C, faktor 1).
@@ -250,7 +275,7 @@ test('computeRecipe: manuell hydrering overstyrer anbefaling', () => {
 test('computeRecipe: 2 brød × 500 g dobler totalt mel', () => {
   const r = L.computeRecipe({ ...baseState, loaves: 2 });
   assert.equal(r.flourTotal, 1000);
-  assert.equal(r.water, 1000 * 0.725);
+  assert.equal(r.water, 1000 * 0.73);
 });
 
 test('computeRecipe: surdeig trekker mel og vann fra starter (100 % hydrering)', () => {
@@ -259,7 +284,7 @@ test('computeRecipe: surdeig trekker mel og vann fra starter (100 % hydrering)',
   assert.equal(r.flourTotal, 500);
   assert.equal(r.starter, 100);
   assert.equal(r.flourAdded, 450);
-  assert.equal(r.water, 500 * 0.725 - 50);
+  assert.equal(r.water, 500 * 0.73 - 50);
   assert.equal(r.leaven, 'sourdough');
   assert.equal(r.yeast, undefined);
 });

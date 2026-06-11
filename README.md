@@ -37,6 +37,8 @@ Effektive timer er litt mer nyansert enn formelen over antyder: når vannet er v
 
 20 % levain ved 21 °C ≈ 11 t bulk til ~70–75 % heving, basert på [The Sourdough Journey](https://thesourdoughjourney.com/the-mystery-of-percentage-rise-in-bulk-fermentation/) sine bulk-tabeller. Inokulering × bulk-tid er omvendt proporsjonalt, og skalerer med Q10 ≈ 2 etter temperatur. Starter-styrke varierer ±25 %, så dette er veiledende.
 
+I kald modus teller også kjøleskapsfasen med: dens 21°-ekvivalente timer (fra samme Newtons avkjøling-modell som gjærberegningen) trekkes fra bulk-målet, slik at anbefalt bulk + kald etterheving til sammen treffer ankeret. Kan ikke slideren nå anbefalingen, vises et hint i stedet for at verdien klampes stille.
+
 ### Hydreringsområder
 
 Hydrering er alltid et område, ikke ett tall. Verdiene i `src/logic.js` er forankret slik:

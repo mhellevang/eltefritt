@@ -9,7 +9,8 @@
 
 (function (globalScope) {
   const REF_TEMP = 21;
-  const BAKE_MIN = 50;
+  // Steking: 30 min med lokk + ~15 min uten. Matcher "~45 min" i instruksjonene.
+  const BAKE_MIN = 45;
 
   // Etterheving (andreheving) i klassisk modus, etter forming og før steking.
   // Laheys originaloppskrift bruker ~2 t; vi velger 1,5 t som representativt
@@ -122,19 +123,28 @@
   // for kort for romtemp. Starter-styrke varierer fortsatt ±25 %, så dette er
   // veiledende. Inokulering × bulk-tid er omvendt proporsjonalt, og produktet
   // skalerer med Q10 ≈ 2.
+  //
+  // I kald modus bidrar også kjøleskapsfasen med gjæring (deigen er varm en
+  // stund mens den kjøler ned). Begge funksjonene tar derfor en valgfri
+  // coldEffectiveHours (21°-ekvivalente timer fra effectiveColdHours) som
+  // trekkes fra/legges til bulk-målet, slik at anbefalingen gjelder summen
+  // av bulk + kjøleskapsfase, ikke bulk alene.
   const SOUR_BASE_BULK = 11;
   const SOUR_BASE_INOC = 20;
 
-  function recommendedSourBulkHours(inoculation, temperatureC) {
+  function recommendedSourBulkHours(inoculation, temperatureC, coldEffectiveHours = 0) {
     if (inoculation <= 0) return SOUR_BASE_BULK;
     const tempFactor = Math.pow(2, (REF_TEMP - temperatureC) / 10);
-    return SOUR_BASE_BULK * (SOUR_BASE_INOC / inoculation) * tempFactor;
+    const targetEffective = SOUR_BASE_BULK * (SOUR_BASE_INOC / inoculation);
+    const remainingEffective = Math.max(0, targetEffective - coldEffectiveHours);
+    return remainingEffective * tempFactor;
   }
 
-  function recommendedSourInoculation(bulkHours, temperatureC) {
-    if (bulkHours <= 0) return SOUR_BASE_INOC;
-    const tempFactor = Math.pow(2, (REF_TEMP - temperatureC) / 10);
-    return SOUR_BASE_INOC * (SOUR_BASE_BULK / bulkHours) * tempFactor;
+  function recommendedSourInoculation(bulkHours, temperatureC, coldEffectiveHours = 0) {
+    const bulkEffective = Math.max(0, bulkHours) * Math.pow(2, (temperatureC - REF_TEMP) / 10);
+    const totalEffective = bulkEffective + coldEffectiveHours;
+    if (totalEffective <= 0) return SOUR_BASE_INOC;
+    return SOUR_BASE_INOC * (SOUR_BASE_BULK / totalEffective);
   }
 
   // Starttemperatur i deigen rett etter blanding, vektet etter varmekapasitet.
@@ -283,7 +293,9 @@
       hydration = state.hydration;
     } else {
       const r = weightedHydration(state.flours);
-      hydration = (r.min + r.max) / 2;
+      // Avrund til heltall så oppskriften bruker nøyaktig samme verdi som
+      // vises i UI-et (som viser hele prosent).
+      hydration = Math.round((r.min + r.max) / 2);
     }
     const totalWater = flourTotal * (hydration / 100);
     const salt = flourTotal * 0.02;

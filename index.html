@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#3a2a1a" />
+<meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)" />
 <meta name="description" content="Kalkulator og bakplan for eltefritt brød. Jim Lahey-metoden, med støtte for kald etterheving." />
 <title>Eltefritt: kalkulator for eltefritt brød</title>
 
@@ -23,6 +24,10 @@
       var t = localStorage.getItem('eltefritt-theme');
       if (t === 'light' || t === 'dark') {
         document.documentElement.setAttribute('data-theme', t);
+        // Manuelt tema overstyrer media-attributtene på theme-color-metaene.
+        var color = t === 'dark' ? '#1c1b18' : '#fafaf7';
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', color);
       }
     } catch (e) {}
   })();
@@ -1010,7 +1015,7 @@
         <span>Antall brød</span>
         <span class="field-value" id="loaves-value">1</span>
       </div>
-      <div class="seg" style="--cols: 4" role="radiogroup" aria-label="Antall brød">
+      <div class="seg" style="--cols: 4" role="group" aria-label="Antall brød">
         <button data-loaves="1" aria-pressed="true">1</button>
         <button data-loaves="2" aria-pressed="false">2</button>
         <button data-loaves="3" aria-pressed="false">3</button>
@@ -1023,7 +1028,7 @@
         <span>Brødstørrelse</span>
         <span class="field-value" id="size-value">Lite</span>
       </div>
-      <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Brødstørrelse">
+      <div class="seg" style="--cols: 3" role="group" aria-label="Brødstørrelse">
         <button data-size="400" aria-pressed="false">Lite</button>
         <button data-size="500" aria-pressed="true">Medium</button>
         <button data-size="700" aria-pressed="false">Stort</button>
@@ -1054,7 +1059,7 @@
         <span class="field-value"><span id="hydration-value">75</span>%</span>
       </div>
       <div class="stepper" data-stepper-for="hydration">
-        <input type="range" id="hydration" class="visually-hidden" min="60" max="85" value="75" step="1" />
+        <input type="range" id="hydration" class="visually-hidden" min="60" max="95" value="75" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hydrering">−</button>
         <div class="step-track" aria-hidden="true"><div class="step-recommend" id="hydration-recommend"></div><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hydrering">+</button>
@@ -1070,7 +1075,7 @@
       <div class="field-label">
         <span>Hevemetode</span>
       </div>
-      <div class="seg" style="--cols: 2" role="radiogroup" aria-label="Hevemetode">
+      <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
         <button data-mode="classic" aria-pressed="true">Klassisk</button>
         <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
       </div>
@@ -1196,7 +1201,7 @@
       <div class="field-label">
         <span>Heveform</span>
       </div>
-      <div class="seg" style="--cols: 3" role="radiogroup" aria-label="Heveform">
+      <div class="seg" style="--cols: 3" role="group" aria-label="Heveform">
         <button data-leaven="dry" aria-pressed="true">Tørrgjær</button>
         <button data-leaven="fresh" aria-pressed="false">Ferskgjær</button>
         <button data-leaven="sourdough" aria-pressed="false">Surdeig</button>
@@ -1222,6 +1227,7 @@
           <span>40%</span>
         </div>
         <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~11 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
+        <p class="helper-text" id="sour-clamp-note" hidden></p>
       </div>
     </div>
 
@@ -1300,7 +1306,8 @@
     weightedHydration, modeEffectiveHours, modeTotalMinutes,
     modePlanItems, modeInstructions,
     computeRecipe, flourTips,
-    recommendedSourBulkHours, recommendedSourInoculation
+    recommendedSourBulkHours, recommendedSourInoculation,
+    effectiveColdHours
   } = window.EltefrittLogic;
 
   // ---- State ----
@@ -1313,7 +1320,8 @@
     hydration: 75,
     hydrationManual: false,
     temperatureC: 21,
-    waterTempC: 21,            // Default = romtemp; "følger" så lenge verdiene matcher.
+    waterTempC: 21,            // Default = romtemp.
+    waterTempManual: false,    // true når brukeren har satt vanntemp ulik romtemp; da slutter den å følge.
     mode: 'classic',           // 'classic' | 'cold'. Påvirker tidsplan.
     leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough'. Påvirker ingrediens.
     riseHours: 14,             // brukes i classic
@@ -1332,7 +1340,6 @@
 
   const formatGrams = (g) => {
     if (g >= 100) return Math.round(g).toString();
-    if (g >= 10) return (Math.round(g * 10) / 10).toString().replace('.', ',');
     return (Math.round(g * 10) / 10).toString().replace('.', ',');
   };
 
@@ -1498,6 +1505,7 @@
       top.className = 'flour-row-top';
 
       const select = document.createElement('select');
+      select.className = 'flour-type-select';
       Object.entries(FLOUR_TYPES).forEach(([key, val]) => {
         const opt = document.createElement('option');
         opt.value = key;
@@ -1728,11 +1736,15 @@
   }
 
   function update(opts = {}) {
+    const result = computeRecipe(state);
+
     // Brødstørrelse-detalj
     const sizeNames = { 400: 'Lite', 500: 'Medium', 700: 'Stort' };
     $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
-    // Ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til nærmeste 50g
-    const finished = Math.round((state.sizePerLoaf * 1.78 * 0.88) / 50) * 50;
+    // Deig = mel × (1 + hydrering + 2 % salt); ferdig brød ≈ deig × 0.88
+    // (litt vekttap fra stekning), avrundet til nærmeste 50 g.
+    const doughFactor = 1 + result.hydration / 100 + 0.02;
+    const finished = Math.round((state.sizePerLoaf * doughFactor * 0.88) / 50) * 50;
     $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
     let equipmentText = `🥘 ${equipmentForSize(state.sizePerLoaf)}. 🧺 Banneton ${bannetonForSize(state.sizePerLoaf)} (valgfritt)`;
     if (state.loaves > 1) equipmentText += ' (per brød)';
@@ -1798,7 +1810,6 @@
     }
     renderFlourTip();
 
-    const result = computeRecipe(state);
     $('#flour-amount').textContent = formatGrams(result.flourAdded);
     $('#water-amount').textContent = formatGrams(result.water);
     $('#water-sub').textContent = state.waterTempC === state.temperatureC
@@ -1837,34 +1848,61 @@
   // ---- Surdeig-kobling ----
   // Når leaven=sourdough koples inokulering og bulk-tid sammen via formelen
   // i logic.js. Lederen (sourLead) styrer; følgeren oppdateres automatisk.
-  // Ved temperaturendring oppdateres bare følgeren.
+  // Ved temperaturendring oppdateres bare følgeren. I kald modus teller også
+  // kjøleskapsfasens gjæring med i regnestykket (effectiveColdHours).
   function bulkSliderForMode() {
     return state.mode === 'classic' ? $('#rise-time') : $('#bulk-time');
   }
   function bulkFieldForMode() {
     return state.mode === 'classic' ? 'riseHours' : 'bulkHours';
   }
+  function sourColdEffectiveHours() {
+    if (state.mode !== 'cold') return 0;
+    return effectiveColdHours(state.coldHours, state.coldTempC, state.temperatureC);
+  }
   function clampToSlider(slider, value) {
     const min = parseFloat(slider.min);
     const max = parseFloat(slider.max);
     return Math.max(min, Math.min(max, Math.round(value)));
   }
+  // Når anbefalingen klampes til sliderens grenser, si fra i stedet for å
+  // late som om den klampede verdien er anbefalt.
+  function setSourClampNote(text) {
+    const el = $('#sour-clamp-note');
+    el.hidden = !text;
+    el.textContent = text || '';
+  }
   function syncSourBulkFromInoculation() {
-    const recommended = recommendedSourBulkHours(state.sourInoculation, state.temperatureC);
+    const recommended = recommendedSourBulkHours(state.sourInoculation, state.temperatureC, sourColdEffectiveHours());
     const slider = bulkSliderForMode();
     const clamped = clampToSlider(slider, recommended);
     state[bulkFieldForMode()] = clamped;
     slider.value = clamped;
     refreshStepperVisual(slider);
+    const recText = recommended < 1 ? 'under 1' : `~${Math.round(recommended)}`;
+    if (recommended - clamped > 0.5) {
+      setSourClampNote(`⚠️ Anbefalt bulk er ${recText} t, mer enn slideren tillater (${slider.max} t). Øk surdeigsmengden${state.mode === 'cold' ? ', eller forleng kald etterheving' : ''}.`);
+    } else if (clamped - recommended > 0.5) {
+      setSourClampNote(`⚠️ Anbefalt bulk er bare ${recText} t. Reduser surdeigsmengden for å unngå overheving.`);
+    } else {
+      setSourClampNote(null);
+    }
   }
   function syncSourInoculationFromBulk() {
     const bulkHours = state[bulkFieldForMode()];
-    const recommended = recommendedSourInoculation(bulkHours, state.temperatureC);
+    const recommended = recommendedSourInoculation(bulkHours, state.temperatureC, sourColdEffectiveHours());
     const slider = $('#sour-inoculation');
     const clamped = clampToSlider(slider, recommended);
     state.sourInoculation = clamped;
     slider.value = clamped;
     refreshStepperVisual(slider);
+    if (recommended - clamped > 0.5) {
+      setSourClampNote(`⚠️ Så kort heving trenger ~${Math.round(recommended)} % surdeig; slideren stopper på ${slider.max} %. Forleng hevingen, eller regn med tettere brød.`);
+    } else if (clamped - recommended > 0.5) {
+      setSourClampNote(`⚠️ Så lang heving trenger bare ~${Math.round(recommended)} % surdeig; slideren stopper på ${slider.min} %. Kort ned hevingen for å unngå overheving.`);
+    } else {
+      setSourClampNote(null);
+    }
   }
   function resyncSourFromLead() {
     if (state.leaven !== 'sourdough') return;
@@ -1905,12 +1943,10 @@
   });
 
   $('#temp').addEventListener('input', e => {
-    const oldRoom = state.temperatureC;
     const newRoom = parseInt(e.target.value, 10);
     state.temperatureC = newRoom;
-    // Hvis vannet fulgte romtemp, fortsett å følge. Hvis brukeren har satt et
-    // eget vanntall, ikke rør det.
-    if (state.waterTempC === oldRoom) {
+    // Vannet følger romtemp til brukeren eksplisitt setter en egen verdi.
+    if (!state.waterTempManual) {
       state.waterTempC = newRoom;
       $('#water-temp').value = newRoom;
       refreshStepperVisual($('#water-temp'));
@@ -1921,6 +1957,8 @@
 
   $('#water-temp').addEventListener('input', e => {
     state.waterTempC = parseInt(e.target.value, 10);
+    // Settes vannet tilbake til romtemp, begynner det å følge igjen.
+    state.waterTempManual = state.waterTempC !== state.temperatureC;
     update({ skipFlourList: true });
   });
 
@@ -1954,11 +1992,14 @@
 
   $('#cold-time').addEventListener('input', e => {
     state.coldHours = parseInt(e.target.value, 10);
+    // Kjøleskapsfasen inngår i surdeigskoblingen; oppdater følgeren.
+    resyncSourFromLead();
     update({ skipFlourList: true });
   });
 
   $('#cold-temp').addEventListener('input', e => {
     state.coldTempC = parseInt(e.target.value, 10);
+    resyncSourFromLead();
     update({ skipFlourList: true });
   });
 
@@ -2016,21 +2057,57 @@
   });
 
   // ---- Restore state ----
+  // Feltvis validering i stedet for Object.assign: lagret state kan komme fra
+  // en eldre versjon av appen (andre felter, fjernede meltype-nøkler) eller
+  // være korrupt, og skal aldri kunne sette state utenfor gyldige grenser.
+  function restoreState(parsed) {
+    // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle).
+    if (parsed.mode === 'sourdough') {
+      parsed.mode = 'cold';
+      parsed.leaven = 'sourdough';
+    }
+
+    const num = (v, min, max, fallback) =>
+      (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max) ? v : fallback;
+    const oneOf = (v, allowed, fallback) => allowed.includes(v) ? v : fallback;
+
+    state.loaves = oneOf(parsed.loaves, [1, 2, 3, 4], state.loaves);
+    state.sizePerLoaf = num(parsed.sizePerLoaf, 100, 3000, state.sizePerLoaf);
+    if (Array.isArray(parsed.flours)) {
+      const flours = parsed.flours.filter(f =>
+        f && FLOUR_TYPES[f.type] && typeof f.pct === 'number' && f.pct >= 0 && f.pct <= 100);
+      const total = flours.reduce((s, f) => s + f.pct, 0);
+      if (flours.length > 0 && total > 0) {
+        flours.forEach(f => f.pct = Math.round((f.pct / total) * 100));
+        const newTotal = flours.reduce((s, f) => s + f.pct, 0);
+        if (newTotal !== 100) flours[0].pct += (100 - newTotal);
+        state.flours = flours;
+      }
+    }
+    state.hydration = num(parsed.hydration, 60, 95, state.hydration);
+    state.hydrationManual = parsed.hydrationManual === true;
+    state.temperatureC = num(parsed.temperatureC, 15, 28, state.temperatureC);
+    state.mode = oneOf(parsed.mode, Object.keys(MODE_META), state.mode);
+    state.leaven = oneOf(parsed.leaven, ['dry', 'fresh', 'sourdough'], state.leaven);
+    state.riseHours = num(parsed.riseHours, 4, 24, state.riseHours);
+    state.bulkHours = num(parsed.bulkHours, 1, 6, state.bulkHours);
+    state.coldHours = num(parsed.coldHours, 6, 36, state.coldHours);
+    state.coldTempC = num(parsed.coldTempC, 2, 10, state.coldTempC);
+    state.sourInoculation = num(parsed.sourInoculation, 10, 40, state.sourInoculation);
+    state.sourLead = oneOf(parsed.sourLead, ['inoculation', 'time'], state.sourLead);
+    // Gammel state manglet vanntemp: la den følge romtemp.
+    state.waterTempC = num(parsed.waterTempC, 5, 40, state.temperatureC);
+    state.waterTempManual = typeof parsed.waterTempManual === 'boolean'
+      ? parsed.waterTempManual
+      : state.waterTempC !== state.temperatureC;
+    // anchorTime/timeAnchor kopieres bevisst ikke; de nullstilles ved oppstart.
+  }
+
   try {
     const saved = localStorage.getItem('eltefritt-state');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.assign(state, parsed);
-      // Sanity-check melvekt (godta enhver gyldig verdi, ikke bare presets)
-      if (typeof state.sizePerLoaf !== 'number' || state.sizePerLoaf < 100 || state.sizePerLoaf > 3000) {
-        state.sizePerLoaf = 500;
-      }
+      restoreState(JSON.parse(saved));
       // Synkroniser DOM-kontroller
-      // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle ble lagt til).
-      if (state.mode === 'sourdough') {
-        state.mode = 'cold';
-        state.leaven = 'sourdough';
-      }
       renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
       renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
       $('#size-custom-input').value = state.sizePerLoaf;
@@ -2038,20 +2115,12 @@
       renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
       $('#hydration').value = state.hydration;
       $('#temp').value = state.temperatureC;
-      // Migrer fra gammel state uten vanntemp: la den følge romtemp.
-      if (typeof state.waterTempC !== 'number') state.waterTempC = state.temperatureC;
       $('#water-temp').value = state.waterTempC;
       $('#rise-time').value = state.riseHours;
       $('#bulk-time').value = state.bulkHours;
       $('#cold-time').value = state.coldHours;
       $('#cold-temp').value = state.coldTempC;
       $('#sour-inoculation').value = state.sourInoculation;
-
-      // Migrer fra gammel state med targetTime
-      if (parsed.targetTime && !parsed.anchorTime) {
-        state.anchorTime = parsed.targetTime;
-        state.timeAnchor = 'ready';
-      }
     }
   } catch (e) {}
 
@@ -2069,6 +2138,10 @@
     const inp = document.getElementById(id);
     if (inp) initStepper(inp);
   });
+
+  // Gjenopprettet surdeig-state kan være lagret med en eldre kobling-formel;
+  // resync så følgeren (og evt. klampe-hint) stemmer med dagens modell.
+  resyncSourFromLead();
 
   update();
 })();
@@ -2100,6 +2173,20 @@
       });
     }
 
+    function syncThemeColorMeta(choice) {
+      const metas = document.querySelectorAll('meta[name="theme-color"]');
+      metas.forEach(m => {
+        if (choice === 'light' || choice === 'dark') {
+          // Manuelt valg overstyrer media-attributtene: begge metaene får
+          // samme farge som det valgte temaet.
+          m.setAttribute('content', choice === 'dark' ? '#1c1b18' : '#fafaf7');
+        } else {
+          const media = m.getAttribute('media') || '';
+          m.setAttribute('content', media.includes('dark') ? '#1c1b18' : '#fafaf7');
+        }
+      });
+    }
+
     function applyChoice(choice) {
       try {
         if (choice === 'light' || choice === 'dark') {
@@ -2110,6 +2197,7 @@
           document.documentElement.removeAttribute('data-theme');
         }
       } catch (e) {}
+      syncThemeColorMeta(choice);
       syncChecked();
     }
 
