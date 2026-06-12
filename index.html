@@ -1039,7 +1039,7 @@
         <span>g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
-      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 3 L (22 cm), eller brødform 1,5 L. 🧺 Banneton 23 cm rundt (valgfritt)</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L. 🧺 Banneton 23 cm rundt (valgfritt)</p>
     </div>
 
     <div class="field">
@@ -1450,11 +1450,17 @@
     });
   }
 
+  // Grytestørrelser forankret i Lahey: originaloppskriften (~400 g mel)
+  // anbefaler 4,5–5,5 qt ≈ 4,3–5,2 L, og praktisk erfaring sier at 4 L
+  // (23 cm) er passe romslig for 500 g mel (~900 g deig). For liten gryte
+  // risikerer at toppen treffer lokket under ovnsspranget; for stor er
+  // tilgivende, så tabellen runder heller opp. Brødform: deigen fyller
+  // formen ~2/3 før etterheving.
   function equipmentForSize(g) {
-    if (g <= 600) return 'Jerngryte 3 L (22 cm), eller brødform 1,5 L';
-    if (g <= 800) return 'Jerngryte 4 L (24 cm), eller brødform 2 L';
-    if (g <= 1100) return 'Jerngryte 5 L (26 cm), eller brødform 2,5 L';
-    if (g <= 1500) return 'Jerngryte 6–7 L (28 cm), eller stor brødform';
+    if (g <= 600) return 'Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L';
+    if (g <= 800) return 'Jerngryte 5 L (26 cm), eller brødform 2,5 L';
+    if (g <= 1100) return 'Jerngryte 6 L (28 cm), eller stor brødform';
+    if (g <= 1500) return 'Jerngryte 7 L eller større (30 cm), eller stor brødform';
     return 'tilpass utstyr etter deigmengde';
   }
 
