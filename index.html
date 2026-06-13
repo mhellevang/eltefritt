@@ -539,7 +539,9 @@
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
     font-size: 1.3rem;
-    margin: 0 0 1rem;
+    margin: 1.5rem 0 1rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed var(--line);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -603,9 +605,7 @@
   }
 
   .plan {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
-    border-top: 2px dashed var(--line);
+    margin-top: 0;
   }
 
   .plan h3 {
@@ -1079,17 +1079,6 @@
 
     <div class="field">
       <div class="field-label">
-        <span>Hevemetode</span>
-      </div>
-      <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
-        <button data-mode="classic" aria-pressed="true">Klassisk</button>
-        <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
-      </div>
-      <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
-    </div>
-
-    <div class="field">
-      <div class="field-label">
         <span>Romtemperatur</span>
         <span class="field-value"><span id="temp-value">21</span>°C</span>
       </div>
@@ -1162,36 +1151,19 @@
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
-    <h2 class="recipe-title">📋 Oppskrift</h2>
-
-    <div class="ingredient">
-      <span class="name">Mel <span class="sub" id="flour-types-label"></span></span>
-      <span class="amount"><span id="flour-amount">430</span> g</span>
-    </div>
-    <div class="sub-ingredients" id="flour-breakdown"></div>
-
-    <div class="ingredient">
-      <span class="name">Vann <span class="sub" id="water-sub">romtemperert</span></span>
-      <span class="amount"><span id="water-amount">323</span> g</span>
-    </div>
-
-    <div class="ingredient">
-      <span class="name">Salt <span class="sub">2 %</span></span>
-      <span class="amount"><span id="salt-amount">8,6</span> g</span>
-    </div>
-
-    <div class="ingredient" id="yeast-row">
-      <span class="name"><span id="yeast-label">Tørrgjær</span> <span class="sub" id="yeast-fresh"></span></span>
-      <span class="amount"><span id="yeast-amount">1,0</span> g</span>
-    </div>
-
-    <div class="ingredient" id="starter-row" hidden>
-      <span class="name">Surdeig <span class="sub">aktiv, 100% hydrering</span></span>
-      <span class="amount"><span id="starter-amount">100</span> g</span>
-    </div>
-
     <div class="plan">
       <h3>Tidsplanlegger</h3>
+
+      <div class="field">
+        <div class="field-label">
+          <span>Hevemetode</span>
+        </div>
+        <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
+          <button data-mode="classic" aria-pressed="true">Klassisk</button>
+          <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
+        </div>
+        <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
+      </div>
 
       <div id="classic-controls">
         <div class="field">
@@ -1287,6 +1259,34 @@
         <input type="time" class="plan-time-input" id="ready-time" />
         <span class="plan-day" id="ready-day"></span>
       </div>
+    </div>
+
+    <h2 class="recipe-title">📋 Oppskrift</h2>
+
+    <div class="ingredient">
+      <span class="name">Mel <span class="sub" id="flour-types-label"></span></span>
+      <span class="amount"><span id="flour-amount">430</span> g</span>
+    </div>
+    <div class="sub-ingredients" id="flour-breakdown"></div>
+
+    <div class="ingredient">
+      <span class="name">Vann <span class="sub" id="water-sub">romtemperert</span></span>
+      <span class="amount"><span id="water-amount">323</span> g</span>
+    </div>
+
+    <div class="ingredient">
+      <span class="name">Salt <span class="sub">2 %</span></span>
+      <span class="amount"><span id="salt-amount">8,6</span> g</span>
+    </div>
+
+    <div class="ingredient" id="yeast-row">
+      <span class="name"><span id="yeast-label">Tørrgjær</span> <span class="sub" id="yeast-fresh"></span></span>
+      <span class="amount"><span id="yeast-amount">1,0</span> g</span>
+    </div>
+
+    <div class="ingredient" id="starter-row" hidden>
+      <span class="name">Surdeig <span class="sub">aktiv, 100% hydrering</span></span>
+      <span class="amount"><span id="starter-amount">100</span> g</span>
     </div>
 
     <details>
