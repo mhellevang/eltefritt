@@ -535,13 +535,11 @@
     border: 1px solid var(--line);
   }
 
-  .recipe-title {
+  .card-title {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
     font-size: 1.3rem;
-    margin: 1.5rem 0 1rem;
-    padding-top: 1.5rem;
-    border-top: 2px dashed var(--line);
+    margin: 0 0 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -608,17 +606,12 @@
     margin-top: 0;
   }
 
-  .plan h3 {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.15rem;
-    margin: 0 0 0.85rem;
-  }
-
-  /* Hevetid-kontrollene bor nå i planleggeren; gi dem luft ned mot Start-ankeret. */
-  .plan #classic-controls,
-  .plan #cold-controls {
-    margin-bottom: 1.25rem;
+  /* Heve- og surdeig-kontrollene står i "Heving & plan"; gi hver blokk luft
+     ned mot neste kontroll og mot tidsplanen. */
+  #classic-controls,
+  #cold-controls,
+  #sourdough-controls {
+    margin-bottom: 1.5rem;
   }
 
   .plan-step {
@@ -931,11 +924,12 @@
     h1 { font-size: 2.4rem; }
     .logo img { width: 160px; height: 160px; }
     .subtitle { font-size: 1rem; }
-    .recipe-title { font-size: 1.5rem; }
+    .card-title { font-size: 1.5rem; }
     .ingredient .amount { font-size: 1.25rem; }
   }
 
-  /* Desktop: to kolonner. Inndata til venstre, oppskrift til høyre. */
+  /* Desktop: to kolonner. Styring (Brødet + Heving) til venstre, resultat
+     (Tidsplan + Oppskrift) sticky til høyre. */
   @media (min-width: 1024px) {
     .app {
       max-width: 1080px;
@@ -950,7 +944,10 @@
     }
     header { margin-bottom: 2.5rem; }
     .card { margin-bottom: 0; }
-    .card-output {
+    /* Kort stables i hver kolonne med luft mellom; resultatkolonnen ligger sticky. */
+    .col-inputs > .card + .card,
+    .col-results > .card + .card { margin-top: 1.75rem; }
+    .col-results {
       position: sticky;
       top: 1.5rem;
     }
@@ -1014,7 +1011,10 @@
     <p class="subtitle">Kalkulator for eltefritt brød</p>
   </header>
 
-  <section class="card" aria-label="Inndata">
+  <div class="col-inputs">
+
+  <section class="card" aria-label="Brødet">
+    <h2 class="card-title">🍞 Brødet</h2>
 
     <div class="field">
       <div class="field-label">
@@ -1077,6 +1077,34 @@
       <p class="helper-text">Mer vann = åpnere krumme, men klissete deig. Anbefaling justeres med meltype.</p>
     </div>
 
+  </section>
+
+  <section class="card" aria-label="Heving">
+    <h2 class="card-title">🫧 Heving</h2>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Heveform</span>
+      </div>
+      <div class="seg" style="--cols: 3" role="group" aria-label="Heveform">
+        <button data-leaven="dry" aria-pressed="true">Tørrgjær</button>
+        <button data-leaven="fresh" aria-pressed="false">Ferskgjær</button>
+        <button data-leaven="sourdough" aria-pressed="false">Surdeig</button>
+      </div>
+      <p class="helper-text" id="leaven-detail">Standard. 0,23% gir 14 t god heving ved 21 °C.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
+        <span>Hevemetode</span>
+      </div>
+      <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
+        <button data-mode="classic" aria-pressed="true">Klassisk</button>
+        <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
+      </div>
+      <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
+    </div>
+
     <div class="field">
       <div class="field-label">
         <span>Romtemperatur</span>
@@ -1114,16 +1142,82 @@
       <p class="helper-text" id="water-temp-detail">Følger romtemp som standard. Varmt vann gir hodestart i bulkhevingen, så modellen kompenserer ved å redusere gjær. Hold under 40 °C; over det skades gjær og surdeig.</p>
     </div>
 
-    <div class="field">
-      <div class="field-label">
-        <span>Heveform</span>
+    <div id="classic-controls">
+      <div class="field">
+        <div class="field-label">
+          <span>Ønsket hevetid</span>
+          <span class="field-value"><span id="time-value">14</span> t</span>
+        </div>
+        <div class="stepper" data-stepper-for="rise-time">
+          <input type="range" id="rise-time" class="visually-hidden" min="4" max="24" value="14" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hevetid">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hevetid">+</button>
+        </div>
+        <div class="slider-marks">
+          <span>4 t</span>
+          <span>14 t</span>
+          <span>24 t</span>
+        </div>
+        <p class="helper-text">12–18 timer gir best smak og struktur. Kortere tid krever mer gjær.</p>
       </div>
-      <div class="seg" style="--cols: 3" role="group" aria-label="Heveform">
-        <button data-leaven="dry" aria-pressed="true">Tørrgjær</button>
-        <button data-leaven="fresh" aria-pressed="false">Ferskgjær</button>
-        <button data-leaven="sourdough" aria-pressed="false">Surdeig</button>
+    </div>
+
+    <div id="cold-controls" hidden>
+      <div class="field">
+        <div class="field-label">
+          <span>Bulkheving (romtemp)</span>
+          <span class="field-value"><span id="bulk-time-value">2</span> t</span>
+        </div>
+        <div class="stepper" data-stepper-for="bulk-time">
+          <input type="range" id="bulk-time" class="visually-hidden" min="1" max="6" value="2" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser bulkheving">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk bulkheving">+</button>
+        </div>
+        <div class="slider-marks">
+          <span>1 t</span>
+          <span>3 t</span>
+          <span>6 t</span>
+        </div>
       </div>
-      <p class="helper-text" id="leaven-detail">Standard. 0,23% gir 14 t god heving ved 21 °C.</p>
+
+      <div class="field">
+        <div class="field-label">
+          <span>Kald etterheving</span>
+          <span class="field-value"><span id="cold-time-value">12</span> t</span>
+        </div>
+        <div class="stepper" data-stepper-for="cold-time">
+          <input type="range" id="cold-time" class="visually-hidden" min="6" max="36" value="12" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kald etterheving">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kald etterheving">+</button>
+        </div>
+        <div class="slider-marks">
+          <span>6 t</span>
+          <span>18 t</span>
+          <span>36 t</span>
+        </div>
+        <p class="helper-text">Lengre tid i kjøleskap = dypere smak og enklere håndtering. 12–24 t er typisk.</p>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          <span>Kjøleskapstemp</span>
+          <span class="field-value"><span id="cold-temp-value">6</span>°C</span>
+        </div>
+        <div class="stepper" data-stepper-for="cold-temp">
+          <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="6" step="1" />
+          <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kjøleskapstemperatur">−</button>
+          <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+          <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
+        </div>
+        <div class="slider-marks">
+          <span>2°</span>
+          <span>6°</span>
+          <span>10°</span>
+        </div>
+      </div>
     </div>
 
     <div id="sourdough-controls" hidden>
@@ -1149,100 +1243,14 @@
     </div>
 
   </section>
+  </div>
 
-  <section class="card card-output" aria-label="Oppskrift">
+  <div class="col-results">
+
+  <section class="card card-output" aria-label="Tidsplan">
+    <h2 class="card-title">⏳ Tidsplan</h2>
+
     <div class="plan">
-      <h3>Tidsplanlegger</h3>
-
-      <div class="field">
-        <div class="field-label">
-          <span>Hevemetode</span>
-        </div>
-        <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
-          <button data-mode="classic" aria-pressed="true">Klassisk</button>
-          <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
-        </div>
-        <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
-      </div>
-
-      <div id="classic-controls">
-        <div class="field">
-          <div class="field-label">
-            <span>Ønsket hevetid</span>
-            <span class="field-value"><span id="time-value">14</span> t</span>
-          </div>
-          <div class="stepper" data-stepper-for="rise-time">
-            <input type="range" id="rise-time" class="visually-hidden" min="4" max="24" value="14" step="1" />
-            <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hevetid">−</button>
-            <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-            <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hevetid">+</button>
-          </div>
-          <div class="slider-marks">
-            <span>4 t</span>
-            <span>14 t</span>
-            <span>24 t</span>
-          </div>
-          <p class="helper-text">12–18 timer gir best smak og struktur. Kortere tid krever mer gjær.</p>
-        </div>
-      </div>
-
-      <div id="cold-controls" hidden>
-        <div class="field">
-          <div class="field-label">
-            <span>Bulkheving (romtemp)</span>
-            <span class="field-value"><span id="bulk-time-value">2</span> t</span>
-          </div>
-          <div class="stepper" data-stepper-for="bulk-time">
-            <input type="range" id="bulk-time" class="visually-hidden" min="1" max="6" value="2" step="1" />
-            <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser bulkheving">−</button>
-            <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-            <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk bulkheving">+</button>
-          </div>
-          <div class="slider-marks">
-            <span>1 t</span>
-            <span>3 t</span>
-            <span>6 t</span>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-label">
-            <span>Kald etterheving</span>
-            <span class="field-value"><span id="cold-time-value">12</span> t</span>
-          </div>
-          <div class="stepper" data-stepper-for="cold-time">
-            <input type="range" id="cold-time" class="visually-hidden" min="6" max="36" value="12" step="1" />
-            <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kald etterheving">−</button>
-            <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-            <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kald etterheving">+</button>
-          </div>
-          <div class="slider-marks">
-            <span>6 t</span>
-            <span>18 t</span>
-            <span>36 t</span>
-          </div>
-          <p class="helper-text">Lengre tid i kjøleskap = dypere smak og enklere håndtering. 12–24 t er typisk.</p>
-        </div>
-
-        <div class="field">
-          <div class="field-label">
-            <span>Kjøleskapstemp</span>
-            <span class="field-value"><span id="cold-temp-value">6</span>°C</span>
-          </div>
-          <div class="stepper" data-stepper-for="cold-temp">
-            <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="6" step="1" />
-            <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kjøleskapstemperatur">−</button>
-            <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-            <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
-          </div>
-          <div class="slider-marks">
-            <span>2°</span>
-            <span>6°</span>
-            <span>10°</span>
-          </div>
-        </div>
-      </div>
-
       <div class="plan-anchor plan-anchor-start">
         <span class="plan-icon">⏱</span>
         <span class="plan-label">Start</span>
@@ -1260,8 +1268,10 @@
         <span class="plan-day" id="ready-day"></span>
       </div>
     </div>
+  </section>
 
-    <h2 class="recipe-title">📋 Oppskrift</h2>
+  <section class="card card-output" aria-label="Oppskrift">
+    <h2 class="card-title">📋 Oppskrift</h2>
 
     <div class="ingredient">
       <span class="name">Mel <span class="sub" id="flour-types-label"></span></span>
@@ -1296,6 +1306,7 @@
       </div>
     </details>
   </section>
+  </div>
 
   <footer>
     Eltefritt-kalkulator · basert på Jim Lahey-metoden<br>
@@ -1479,7 +1490,6 @@
   }
 
   function setFlourPct(idx, newPct) {
-    // Auto-balanser: når brukeren endrer én glider, justeres resten proporsjonalt så summen blir 100.
     const n = state.flours.length;
     if (n === 1) {
       state.flours[0].pct = 100;
@@ -1487,6 +1497,14 @@
     }
     newPct = Math.max(0, Math.min(100, Math.round(newPct)));
     state.flours[idx].pct = newPct;
+    // Med 3+ meltyper auto-balanserer vi IKKE. Proporsjonal rebalansering flyttet
+    // de andre andelene vekk fra verdiene du nettopp satte, så det ble umulig å
+    // treffe f.eks. 85/10/5. Hver glider er nå uavhengig; "Sum"-indikatoren
+    // viser når du er i mål på 100 %. (Andelene brukes uansett som forhold:
+    // resten av regnestykket normaliserer mot summen.)
+    if (n >= 3) return;
+    // Med nøyaktig to meltyper er den andre fullt bestemt (komplementet), så her
+    // auto-balanserer vi fortsatt - det føles riktig og kan ikke "krangle".
     const remainder = 100 - newPct;
     const others = state.flours.map((_, i) => i).filter(i => i !== idx);
     const otherSum = others.reduce((s, i) => s + state.flours[i].pct, 0);
@@ -1504,6 +1522,22 @@
     if (total !== 100 && others.length > 0) {
       state.flours[others[others.length - 1]].pct += (100 - total);
     }
+  }
+
+  // Med 3+ frie glidere må brukeren selv treffe 100 %. Vis hvor langt unna.
+  function flourSumLabel(totalPct) {
+    if (totalPct === 100) return 'Sum: 100%';
+    const diff = 100 - totalPct;
+    return diff > 0
+      ? `Sum: ${totalPct}% · ${diff}% igjen`
+      : `Sum: ${totalPct}% · ${-diff}% for mye`;
+  }
+
+  function renderFlourSum() {
+    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
+    const warn = $('#flour-warning');
+    warn.textContent = flourSumLabel(totalPct);
+    warn.classList.toggle('error', totalPct !== 100);
   }
 
   function renderFlourList() {
@@ -1618,10 +1652,7 @@
       initStepper(slider);
     });
 
-    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
-    const warn = $('#flour-warning');
-    warn.textContent = `Sum: ${totalPct}%`;
-    warn.classList.toggle('error', totalPct !== 100);
+    renderFlourSum();
   }
 
   function renderFlourTip() {
@@ -1815,10 +1846,7 @@
           refreshStepperVisual(slider);
         }
       });
-      const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
-      const warn = $('#flour-warning');
-      warn.textContent = `Sum: ${totalPct}%`;
-      warn.classList.toggle('error', totalPct !== 100);
+      renderFlourSum();
     }
     renderFlourTip();
 

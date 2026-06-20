@@ -330,8 +330,12 @@
   }
 
   function flourTips(flours) {
-    const ryePct = flours.reduce((s, f) => s + (RYE_TYPES.has(f.type) ? f.pct : 0), 0);
-    const lowGlutenPct = flours.reduce((s, f) => s + (LOW_GLUTEN_TYPES.has(f.type) ? f.pct : 0), 0);
+    // Med 3+ meltyper redigeres andelene fritt, så summen er ikke garantert 100.
+    // Regn tipsene på faktiske andeler (normalisert mot summen).
+    const total = flours.reduce((s, f) => s + f.pct, 0) || 1;
+    const share = pred => flours.reduce((s, f) => s + (pred(f.type) ? f.pct : 0), 0) / total * 100;
+    const ryePct = share(t => RYE_TYPES.has(t));
+    const lowGlutenPct = share(t => LOW_GLUTEN_TYPES.has(t));
     const tips = [];
     if (ryePct > 50) {
       tips.push('Rene rugbrød hever dårlig med vanlig gjær. Vurder surdeig, eller bland inn mer hvete.');
