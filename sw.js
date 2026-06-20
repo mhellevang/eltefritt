@@ -1,11 +1,12 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v16';
+const CACHE_VERSION = 'eltefritt-v17';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './src/logic.js',
+  './src/i18n.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

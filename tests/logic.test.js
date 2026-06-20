@@ -303,44 +303,60 @@ test('flourTips: 100 % hvete gir ingen tips', () => {
   assert.deepEqual(L.flourTips([{ type: 'hvete', pct: 100 }]), []);
 });
 
-test('flourTips: 60 % rug utløser surdeig-tipset', () => {
+test('flourTips: 60 % rug utløser rug-tipset', () => {
   const tips = L.flourTips([
     { type: 'rug', pct: 60 },
     { type: 'hvete', pct: 40 }
   ]);
   assert.equal(tips.length, 1);
-  assert.match(tips[0], /surdeig/);
+  assert.equal(tips[0].key, 'tip.rye');
 });
 
-test('flourTips: 40 % havre utløser glutentipset', () => {
+test('flourTips: 40 % havre utløser lavgluten-tipset', () => {
   const tips = L.flourTips([
     { type: 'havre', pct: 40 },
     { type: 'hvete', pct: 60 }
   ]);
   assert.equal(tips.length, 1);
-  assert.match(tips[0], /gluten/);
+  assert.equal(tips[0].key, 'tip.lowGluten');
 });
 
 // ─── modeInstructions ──────────────────────────────────────────────────────
 
 test('modeInstructions: surdeig får "Sjekk starter" som første steg', () => {
   const steps = L.modeInstructions({ ...baseState, leaven: 'sourdough' });
-  assert.equal(steps[0][0], 'Sjekk starter');
+  assert.equal(steps[0].titleKey, 'step.starterCheck.title');
 });
 
 test('modeInstructions: tørrgjær har ikke "Sjekk starter"-steget', () => {
   const steps = L.modeInstructions({ ...baseState, leaven: 'dry' });
-  assert.notEqual(steps[0][0], 'Sjekk starter');
+  assert.notEqual(steps[0].titleKey, 'step.starterCheck.title');
 });
 
-test('modeInstructions: ferskgjær nevner "ferskgjær" i bland-steget', () => {
+test('modeInstructions: ferskgjær bruker fersk-bland-steget', () => {
   const steps = L.modeInstructions({ ...baseState, leaven: 'fresh' });
-  const bland = steps.find(s => s[0] === 'Bland');
-  assert.match(bland[1], /ferskgj[æa]r/i);
+  const bland = steps.find(s => s.titleKey === 'step.mix.title');
+  assert.ok(bland, 'forventer bland-steg');
+  assert.equal(bland.bodyKey, 'step.mix.body.fresh');
 });
 
-test('modeInstructions: kald + surdeig ender i kjøleskap', () => {
+test('modeInstructions: kald + surdeig ender i kald etterheving', () => {
   const steps = L.modeInstructions({ ...baseState, mode: 'cold', leaven: 'sourdough' });
-  const kald = steps.find(s => s[0] === 'Kald etterheving');
-  assert.ok(kald, 'forventer "Kald etterheving"-steg');
+  const kald = steps.find(s => s.titleKey === 'step.coldProof.title');
+  assert.ok(kald, 'forventer kald etterheving-steg');
+});
+
+test('modeInstructions: stekesteg bærer temp-params (celsius)', () => {
+  const steps = L.modeInstructions({ ...baseState, leaven: 'dry' });
+  const bake = steps.find(s => s.titleKey === 'step.bake.title');
+  assert.ok(bake, 'forventer stekesteg');
+  assert.equal(bake.params.hot.celsius, 245);
+  assert.equal(bake.params.low.celsius, 220);
+});
+
+test('modePlanItems: bulk-steg er deskriptor med temp/time-params', () => {
+  const items = L.modePlanItems({ mode: 'classic', riseHours: 14, temperatureC: 21 }, new Date(2020, 0, 1, 10, 0));
+  assert.equal(items[0].key, 'plan.bulk');
+  assert.equal(items[0].params.hours, 14);
+  assert.equal(items[0].params.temp.celsius, 21);
 });

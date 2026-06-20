@@ -14,8 +14,10 @@ Eltefritt er no-knead-metoden gjort kjent av Jim Lahey: lang heving erstatter el
 - To hevemetoder: klassisk lang bulk, eller kort bulk + kald etterheving i banneton
 - Tre heveformer: tørrgjær, ferskgjær eller surdeig (aktiv 100%-hydrert starter)
 - Bakplan med toveis editerbare Start- og Klar-tidspunkter
-- Tema lys, mørk eller automatisk (følger systemvalg)
-- Innstillinger lagres i nettleseren mellom besøk
+- Norsk og engelsk, gjettet fra nettleserens språk ved første besøk (kan overstyres)
+- Temperatur i °C eller °F, gjettet fra region (°F for USA m.fl., ellers °C); modellen regner alltid i Celsius, kun visningen konverterer
+- Samlet innstillingsmeny (tannhjul): språk, temperaturenhet og tema (lys/mørk/automatisk)
+- Valg av språk, enhet og tema lagres i nettleseren mellom besøk
 - Fungerer offline som PWA, installerbar via Hjem-skjerm (mobil) eller nettleserens installer-knapp (desktop)
 
 ## Bakerens formel

@@ -171,3 +171,52 @@ test('endring i meltype oppdaterer Vann-mengden', async () => {
     close();
   }
 });
+
+// ─── i18n + temperaturenhet ────────────────────────────────────────────────
+
+test('engelsk + Fahrenheit ved oppstart: lang=en, temp i °F, modell forblir Celsius', async () => {
+  const { document, close } = await loadPage({ lang: 'en', unit: 'f' });
+  try {
+    assert.equal(document.documentElement.lang, 'en');
+    // Statisk tekst er engelsk.
+    assert.equal(document.querySelector('[data-i18n="card.recipe"]').textContent, 'Recipe');
+    // Dynamisk gjær-label er engelsk.
+    assert.equal(document.getElementById('yeast-label').textContent, 'Dry yeast');
+    // Avlesning i °F (21 °C → 70 °F); men range-input forblir Celsius.
+    assert.equal(document.getElementById('temp-value').textContent, '70');
+    assert.equal(document.getElementById('temp').value, '21');
+    const unitSpan = document.querySelector('#temp-value + .temp-unit');
+    assert.equal(unitSpan.textContent, '°F');
+  } finally {
+    close();
+  }
+});
+
+test('bytte språk i menyen re-lokaliserer statisk og dynamisk tekst', async () => {
+  const { window, document, close } = await loadPage({ lang: 'nb' });
+  try {
+    assert.equal(document.querySelector('[data-i18n="card.recipe"]').textContent, 'Oppskrift');
+    const enBtn = document.querySelector('#settings-menu [data-lang-value="en"]');
+    fire(window, enBtn, 'click');
+    assert.equal(document.documentElement.lang, 'en');
+    assert.equal(document.querySelector('[data-i18n="card.recipe"]').textContent, 'Recipe');
+    assert.equal(document.getElementById('yeast-label').textContent, 'Dry yeast');
+  } finally {
+    close();
+  }
+});
+
+test('bytte enhet til °F oppdaterer avlesning, ikke modellverdien', async () => {
+  const { window, document, close } = await loadPage({ lang: 'nb', unit: 'c' });
+  try {
+    assert.equal(document.getElementById('temp-value').textContent, '21');
+    const fBtn = document.querySelector('#settings-menu [data-unit-value="f"]');
+    fire(window, fBtn, 'click');
+    assert.equal(document.getElementById('temp-value').textContent, '70');
+    assert.equal(document.querySelector('#temp-value + .temp-unit').textContent, '°F');
+    // Slider/modell forblir Celsius.
+    assert.equal(document.getElementById('temp').value, '21');
+  } finally {
+    close();
+  }
+});

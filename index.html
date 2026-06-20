@@ -33,6 +33,25 @@
   })();
 </script>
 
+<script src="src/i18n.js"></script>
+<script>
+  // Sett språk, tittel og meta-beskrivelse før første maling (unngår blink av
+  // feil språk i fanen). Kroppstekst lokaliseres når hoved-scriptet kjører.
+  (function() {
+    try {
+      var I = window.EltefrittI18n;
+      if (!I) return;
+      var stored = localStorage.getItem('eltefritt-lang');
+      var lang = (stored === 'nb' || stored === 'en') ? stored : I.detectLang();
+      var tr = I.createTranslator(lang);
+      document.documentElement.lang = lang;
+      document.title = tr.t('doc.title');
+      var md = document.querySelector('meta[name="description"]');
+      if (md) md.setAttribute('content', tr.t('doc.metaDescription'));
+    } catch (e) {}
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -830,80 +849,41 @@
     height: 18px;
   }
 
-  .theme-toggle-btn .theme-icon {
-    display: none;
-  }
-
-  :root:not([data-theme]) .theme-toggle-btn .theme-icon-auto,
-  :root[data-theme="light"] .theme-toggle-btn .theme-icon-light,
-  :root[data-theme="dark"] .theme-toggle-btn .theme-icon-dark {
-    display: block;
-  }
-
-  .theme-menu {
+  /* Innstillingsmeny: én popover som grupperer språk, enhet og tema. */
+  .settings-menu {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: var(--shadow);
-    padding: 4px;
-    min-width: 180px;
+    padding: 0.85rem;
+    width: 248px;
+    max-width: calc(100vw - 2rem);
     z-index: 10;
     display: none;
   }
 
-  .theme-menu[data-open="true"] {
+  .settings-menu[data-open="true"] {
     display: block;
   }
 
-  .theme-menu button {
-    appearance: none;
-    border: none;
-    background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 0.92rem;
-    text-align: left;
-    width: 100%;
-    padding: 0.55rem 0.7rem;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    -webkit-tap-highlight-color: transparent;
+  .settings-row + .settings-row {
+    margin-top: 0.85rem;
   }
 
-  .theme-menu button:hover {
-    background: var(--surface-2);
-  }
-
-  .theme-menu button svg {
-    width: 16px;
-    height: 16px;
-    color: var(--ink-soft);
-    flex-shrink: 0;
-  }
-
-  .theme-menu button[aria-checked="true"] {
-    color: var(--accent);
+  .settings-row-label {
+    display: block;
+    font-size: 0.78rem;
     font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 0.4rem;
   }
 
-  .theme-menu button[aria-checked="true"] svg {
-    color: var(--accent);
-  }
-
-  .theme-menu button .check {
-    margin-left: auto;
-    color: var(--accent);
-    opacity: 0;
-  }
-
-  .theme-menu button[aria-checked="true"] .check {
-    opacity: 1;
+  .seg-sm button {
+    padding: 0.45rem 0.4rem;
+    font-size: 0.85rem;
   }
 
   @media (max-width: 480px) {
@@ -958,67 +938,55 @@
 <div class="app">
   <header>
     <div class="theme-toggle">
-      <button type="button" class="theme-toggle-btn" id="theme-toggle-btn"
-              aria-haspopup="menu" aria-expanded="false" aria-label="Velg tema">
-        <svg class="theme-icon theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-        </svg>
-        <svg class="theme-icon theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-        <svg class="theme-icon theme-icon-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>
+      <button type="button" class="theme-toggle-btn" id="settings-btn"
+              aria-haspopup="dialog" aria-expanded="false"
+              aria-label="Innstillinger" data-i18n-aria-label="aria.settingsBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </button>
-      <div class="theme-menu" id="theme-menu" role="menu" aria-labelledby="theme-toggle-btn">
-        <button type="button" role="menuitemradio" data-theme-value="light">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-          <span>Lyst tema</span>
-          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12l5 5L20 7"/>
-          </svg>
-        </button>
-        <button type="button" role="menuitemradio" data-theme-value="dark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-          <span>Mørkt tema</span>
-          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12l5 5L20 7"/>
-          </svg>
-        </button>
-        <button type="button" role="menuitemradio" data-theme-value="auto">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>
-          </svg>
-          <span>Automatisk</span>
-          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12l5 5L20 7"/>
-          </svg>
-        </button>
+      <div class="settings-menu" id="settings-menu" role="dialog"
+           aria-label="Innstillinger" data-i18n-aria-label="settings.title">
+        <div class="settings-row">
+          <span class="settings-row-label" data-i18n="settings.language">Språk</span>
+          <div class="seg seg-sm" style="--cols: 2" role="group" aria-label="Språk" data-i18n-aria-label="settings.language">
+            <button type="button" data-lang-value="nb" data-i18n="lang.norwegian" aria-pressed="true">Norsk</button>
+            <button type="button" data-lang-value="en" data-i18n="lang.english" aria-pressed="false">English</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row-label" data-i18n="settings.unit">Enhet</span>
+          <div class="seg seg-sm" style="--cols: 2" role="group" aria-label="Enhet" data-i18n-aria-label="settings.unit">
+            <button type="button" data-unit-value="c" aria-pressed="true">°C</button>
+            <button type="button" data-unit-value="f" aria-pressed="false">°F</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <span class="settings-row-label" data-i18n="settings.theme">Tema</span>
+          <div class="seg seg-sm" style="--cols: 3" role="group" aria-label="Tema" data-i18n-aria-label="settings.theme">
+            <button type="button" data-theme-value="light" data-i18n="theme.light" aria-pressed="false">Lyst</button>
+            <button type="button" data-theme-value="dark" data-i18n="theme.dark" aria-pressed="false">Mørkt</button>
+            <button type="button" data-theme-value="auto" data-i18n="theme.auto" aria-pressed="true">Auto</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="logo">
       <img src="icons/icon-192.png" alt="" width="192" height="192" />
     </div>
     <h1>Eltefritt</h1>
-    <p class="subtitle">Kalkulator for eltefritt brød</p>
+    <p class="subtitle" data-i18n="app.subtitle">Kalkulator for eltefritt brød</p>
   </header>
 
   <div class="col-inputs">
 
   <section class="card" aria-label="Brødet">
-    <h2 class="card-title">🍞 Brødet</h2>
+    <h2 class="card-title">🍞 <span data-i18n="card.bread">Brødet</span></h2>
 
     <div class="field">
       <div class="field-label">
-        <span>Antall brød</span>
+        <span data-i18n="field.loaves">Antall brød</span>
         <span class="field-value" id="loaves-value">1</span>
       </div>
       <div class="seg" style="--cols: 4" role="group" aria-label="Antall brød">
@@ -1031,18 +999,18 @@
 
     <div class="field">
       <div class="field-label">
-        <span>Brødstørrelse</span>
+        <span data-i18n="field.size">Brødstørrelse</span>
         <span class="field-value" id="size-value">Lite</span>
       </div>
-      <div class="seg" style="--cols: 3" role="group" aria-label="Brødstørrelse">
-        <button data-size="400" aria-pressed="false">Lite</button>
-        <button data-size="500" aria-pressed="true">Medium</button>
-        <button data-size="700" aria-pressed="false">Stort</button>
+      <div class="seg" style="--cols: 3" role="group" aria-label="Brødstørrelse" data-i18n-aria-label="field.size">
+        <button data-size="400" aria-pressed="false" data-i18n="size.small">Lite</button>
+        <button data-size="500" aria-pressed="true" data-i18n="size.medium">Medium</button>
+        <button data-size="700" aria-pressed="false" data-i18n="size.large">Stort</button>
       </div>
       <div class="size-custom">
-        <label for="size-custom-input">eller egen vekt</label>
+        <label for="size-custom-input" data-i18n="field.sizeCustomLabel">eller egen vekt</label>
         <input type="number" id="size-custom-input" class="size-custom-input" min="100" max="3000" step="10" inputmode="numeric" value="500" />
-        <span>g mel</span>
+        <span data-i18n="field.sizeUnit">g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
       <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L. 🧺 Banneton 23 cm rundt (valgfritt)</p>
@@ -1050,18 +1018,18 @@
 
     <div class="field">
       <div class="field-label">
-        <span>Meltype</span>
+        <span data-i18n="field.flourType">Meltype</span>
         <span class="field-value" id="hydration-suggestion">75%</span>
       </div>
       <div id="flour-list"></div>
-      <button type="button" class="add-flour" id="add-flour-btn">+ Legg til meltype</button>
+      <button type="button" class="add-flour" id="add-flour-btn" data-i18n="flour.addBtn">+ Legg til meltype</button>
       <div class="flour-warning" id="flour-warning">Sum: 100%</div>
       <div class="flour-tip" id="flour-tip" hidden></div>
     </div>
 
     <div class="field">
       <div class="field-label">
-        <span>Hydrering</span>
+        <span data-i18n="field.hydration">Hydrering</span>
         <span class="field-value"><span id="hydration-value">75</span>%</span>
       </div>
       <div class="stepper" data-stepper-for="hydration">
@@ -1071,44 +1039,44 @@
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hydrering">+</button>
       </div>
       <div class="slider-marks">
-        <span>tørrere</span>
-        <span>våtere</span>
+        <span data-i18n="mark.drier">tørrere</span>
+        <span data-i18n="mark.wetter">våtere</span>
       </div>
-      <p class="helper-text">Mer vann = åpnere krumme, men klissete deig. Anbefaling justeres med meltype.</p>
+      <p class="helper-text" data-i18n="helper.hydration">Mer vann = åpnere krumme, men klissete deig. Anbefaling justeres med meltype.</p>
     </div>
 
   </section>
 
   <section class="card" aria-label="Heving">
-    <h2 class="card-title">🫧 Heving</h2>
+    <h2 class="card-title">🫧 <span data-i18n="card.rise">Heving</span></h2>
 
     <div class="field">
       <div class="field-label">
-        <span>Heveform</span>
+        <span data-i18n="field.riseMethod">Heveform</span>
       </div>
-      <div class="seg" style="--cols: 3" role="group" aria-label="Heveform">
-        <button data-leaven="dry" aria-pressed="true">Tørrgjær</button>
-        <button data-leaven="fresh" aria-pressed="false">Ferskgjær</button>
-        <button data-leaven="sourdough" aria-pressed="false">Surdeig</button>
+      <div class="seg" style="--cols: 3" role="group" aria-label="Heveform" data-i18n-aria-label="field.riseMethod">
+        <button data-leaven="dry" aria-pressed="true" data-i18n="leaven.dry">Tørrgjær</button>
+        <button data-leaven="fresh" aria-pressed="false" data-i18n="leaven.fresh">Ferskgjær</button>
+        <button data-leaven="sourdough" aria-pressed="false" data-i18n="leaven.sourdough">Surdeig</button>
       </div>
       <p class="helper-text" id="leaven-detail">Standard. 0,23% gir 14 t god heving ved 21 °C.</p>
     </div>
 
     <div class="field">
       <div class="field-label">
-        <span>Hevemetode</span>
+        <span data-i18n="field.riseMode">Hevemetode</span>
       </div>
-      <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode">
-        <button data-mode="classic" aria-pressed="true">Klassisk</button>
-        <button data-mode="cold" aria-pressed="false">Kald etterheving</button>
+      <div class="seg" style="--cols: 2" role="group" aria-label="Hevemetode" data-i18n-aria-label="field.riseMode">
+        <button data-mode="classic" aria-pressed="true" data-i18n="mode.classic.label">Klassisk</button>
+        <button data-mode="cold" aria-pressed="false" data-i18n="mode.cold.label">Kald etterheving</button>
       </div>
       <p class="helper-text" id="mode-detail">Lang bulkheving + kort etterheving før steking.</p>
     </div>
 
     <div class="field">
       <div class="field-label">
-        <span>Romtemperatur</span>
-        <span class="field-value"><span id="temp-value">21</span>°C</span>
+        <span data-i18n="field.roomTemp">Romtemperatur</span>
+        <span class="field-value"><span id="temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="temp">
         <input type="range" id="temp" class="visually-hidden" min="15" max="28" value="21" step="1" />
@@ -1117,16 +1085,16 @@
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk romtemperatur">+</button>
       </div>
       <div class="slider-marks">
-        <span>15°</span>
-        <span>21°</span>
-        <span>28°</span>
+        <span data-temp-mark="15">15°</span>
+        <span data-temp-mark="21">21°</span>
+        <span data-temp-mark="28">28°</span>
       </div>
     </div>
 
     <div class="field">
       <div class="field-label">
-        <span>Vanntemperatur</span>
-        <span class="field-value"><span id="water-temp-value">21</span>°C</span>
+        <span data-i18n="field.waterTemp">Vanntemperatur</span>
+        <span class="field-value"><span id="water-temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="water-temp">
         <input type="range" id="water-temp" class="visually-hidden" min="5" max="40" value="21" step="1" />
@@ -1135,9 +1103,9 @@
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk vanntemperatur">+</button>
       </div>
       <div class="slider-marks">
-        <span>5°</span>
-        <span>21°</span>
-        <span>40°</span>
+        <span data-temp-mark="5">5°</span>
+        <span data-temp-mark="21">21°</span>
+        <span data-temp-mark="40">40°</span>
       </div>
       <p class="helper-text" id="water-temp-detail">Følger romtemp som standard. Varmt vann gir hodestart i bulkhevingen, så modellen kompenserer ved å redusere gjær. Hold under 40 °C; over det skades gjær og surdeig.</p>
     </div>
@@ -1145,8 +1113,8 @@
     <div id="classic-controls">
       <div class="field">
         <div class="field-label">
-          <span>Ønsket hevetid</span>
-          <span class="field-value"><span id="time-value">14</span> t</span>
+          <span data-i18n="field.desiredRise">Ønsket hevetid</span>
+          <span class="field-value"><span id="time-value">14</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="rise-time">
           <input type="range" id="rise-time" class="visually-hidden" min="4" max="24" value="14" step="1" />
@@ -1155,19 +1123,19 @@
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hevetid">+</button>
         </div>
         <div class="slider-marks">
-          <span>4 t</span>
-          <span>14 t</span>
-          <span>24 t</span>
+          <span data-time-mark="4">4 t</span>
+          <span data-time-mark="14">14 t</span>
+          <span data-time-mark="24">24 t</span>
         </div>
-        <p class="helper-text">12–18 timer gir best smak og struktur. Kortere tid krever mer gjær.</p>
+        <p class="helper-text" data-i18n="helper.riseTime">12–18 timer gir best smak og struktur. Kortere tid krever mer gjær.</p>
       </div>
     </div>
 
     <div id="cold-controls" hidden>
       <div class="field">
         <div class="field-label">
-          <span>Bulkheving (romtemp)</span>
-          <span class="field-value"><span id="bulk-time-value">2</span> t</span>
+          <span data-i18n="field.bulkRoom">Bulkheving (romtemp)</span>
+          <span class="field-value"><span id="bulk-time-value">2</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="bulk-time">
           <input type="range" id="bulk-time" class="visually-hidden" min="1" max="6" value="2" step="1" />
@@ -1176,16 +1144,16 @@
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk bulkheving">+</button>
         </div>
         <div class="slider-marks">
-          <span>1 t</span>
-          <span>3 t</span>
-          <span>6 t</span>
+          <span data-time-mark="1">1 t</span>
+          <span data-time-mark="3">3 t</span>
+          <span data-time-mark="6">6 t</span>
         </div>
       </div>
 
       <div class="field">
         <div class="field-label">
-          <span>Kald etterheving</span>
-          <span class="field-value"><span id="cold-time-value">12</span> t</span>
+          <span data-i18n="field.coldProof">Kald etterheving</span>
+          <span class="field-value"><span id="cold-time-value">12</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="cold-time">
           <input type="range" id="cold-time" class="visually-hidden" min="6" max="36" value="12" step="1" />
@@ -1194,17 +1162,17 @@
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kald etterheving">+</button>
         </div>
         <div class="slider-marks">
-          <span>6 t</span>
-          <span>18 t</span>
-          <span>36 t</span>
+          <span data-time-mark="6">6 t</span>
+          <span data-time-mark="18">18 t</span>
+          <span data-time-mark="36">36 t</span>
         </div>
-        <p class="helper-text">Lengre tid i kjøleskap = dypere smak og enklere håndtering. 12–24 t er typisk.</p>
+        <p class="helper-text" data-i18n="helper.coldTime">Lengre tid i kjøleskap = dypere smak og enklere håndtering. 12–24 t er typisk.</p>
       </div>
 
       <div class="field">
         <div class="field-label">
-          <span>Kjøleskapstemp</span>
-          <span class="field-value"><span id="cold-temp-value">6</span>°C</span>
+          <span data-i18n="field.coldTemp">Kjøleskapstemp</span>
+          <span class="field-value"><span id="cold-temp-value">6</span><span class="temp-unit">°C</span></span>
         </div>
         <div class="stepper" data-stepper-for="cold-temp">
           <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="6" step="1" />
@@ -1213,9 +1181,9 @@
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
         </div>
         <div class="slider-marks">
-          <span>2°</span>
-          <span>6°</span>
-          <span>10°</span>
+          <span data-temp-mark="2">2°</span>
+          <span data-temp-mark="6">6°</span>
+          <span data-temp-mark="10">10°</span>
         </div>
       </div>
     </div>
@@ -1223,7 +1191,7 @@
     <div id="sourdough-controls" hidden>
       <div class="field">
         <div class="field-label">
-          <span>Surdeig-mengde</span>
+          <span data-i18n="field.sourAmount">Surdeig-mengde</span>
           <span class="field-value"><span id="sour-inoculation-value">20</span>%</span>
         </div>
         <div class="stepper" data-stepper-for="sour-inoculation">
@@ -1237,7 +1205,7 @@
           <span>25%</span>
           <span>40%</span>
         </div>
-        <p class="helper-text">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~11 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
+        <p class="helper-text" id="sour-amount-detail">% av total mel. Forutsetter aktiv, 100%-hydrert starter (peak ~4–8 t etter mating). Anbefalt bulk-tid (~11 t ved 20% / 21°C) er et utgangspunkt; faktisk tid varierer ±25% med starter-styrke.</p>
         <p class="helper-text" id="sour-clamp-note" hidden></p>
       </div>
     </div>
@@ -1248,22 +1216,22 @@
   <div class="col-results">
 
   <section class="card card-output" aria-label="Tidsplan">
-    <h2 class="card-title">⏳ Tidsplan</h2>
+    <h2 class="card-title">⏳ <span data-i18n="card.timeline">Tidsplan</span></h2>
 
     <div class="plan">
       <div class="plan-anchor plan-anchor-start">
         <span class="plan-icon">⏱</span>
-        <span class="plan-label">Start</span>
+        <span class="plan-label" data-i18n="plan.start">Start</span>
         <input type="time" class="plan-time-input" id="start-time" />
         <span class="plan-day" id="start-day"></span>
-        <button type="button" class="plan-now-btn" id="now-btn" title="Sett start til nå">↻ nå</button>
+        <button type="button" class="plan-now-btn" id="now-btn" title="Sett start til nå" data-i18n="plan.nowBtn" data-i18n-title="plan.nowBtn.title">↻ nå</button>
       </div>
 
       <div id="plan-steps"></div>
 
       <div class="plan-anchor plan-anchor-ready">
         <span class="plan-icon">🍞</span>
-        <span class="plan-label">Klar</span>
+        <span class="plan-label" data-i18n="plan.ready">Klar</span>
         <input type="time" class="plan-time-input" id="ready-time" />
         <span class="plan-day" id="ready-day"></span>
       </div>
@@ -1271,21 +1239,21 @@
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
-    <h2 class="card-title">📋 Oppskrift</h2>
+    <h2 class="card-title">📋 <span data-i18n="card.recipe">Oppskrift</span></h2>
 
     <div class="ingredient">
-      <span class="name">Mel <span class="sub" id="flour-types-label"></span></span>
+      <span class="name"><span data-i18n="ingredient.flour">Mel</span> <span class="sub" id="flour-types-label"></span></span>
       <span class="amount"><span id="flour-amount">430</span> g</span>
     </div>
     <div class="sub-ingredients" id="flour-breakdown"></div>
 
     <div class="ingredient">
-      <span class="name">Vann <span class="sub" id="water-sub">romtemperert</span></span>
+      <span class="name"><span data-i18n="ingredient.water">Vann</span> <span class="sub" id="water-sub">romtemperert</span></span>
       <span class="amount"><span id="water-amount">323</span> g</span>
     </div>
 
     <div class="ingredient">
-      <span class="name">Salt <span class="sub">2 %</span></span>
+      <span class="name"><span data-i18n="ingredient.salt">Salt</span> <span class="sub" data-i18n="ingredient.salt.sub">2 %</span></span>
       <span class="amount"><span id="salt-amount">8,6</span> g</span>
     </div>
 
@@ -1295,12 +1263,12 @@
     </div>
 
     <div class="ingredient" id="starter-row" hidden>
-      <span class="name">Surdeig <span class="sub">aktiv, 100% hydrering</span></span>
+      <span class="name"><span data-i18n="ingredient.starter">Surdeig</span> <span class="sub" data-i18n="ingredient.starter.sub">aktiv, 100% hydrering</span></span>
       <span class="amount"><span id="starter-amount">100</span> g</span>
     </div>
 
     <details>
-      <summary>Slik gjør du det</summary>
+      <summary data-i18n="method.summary">Slik gjør du det</summary>
       <div class="method">
         <ol id="method-list"></ol>
       </div>
@@ -1309,8 +1277,8 @@
   </div>
 
   <footer>
-    Eltefritt-kalkulator · basert på Jim Lahey-metoden<br>
-    Mengder er per brød × antall brød. Tilpass etter erfaring og bakebehov.
+    <span data-i18n="footer.line1">Eltefritt-kalkulator · basert på Jim Lahey-metoden</span><br>
+    <span data-i18n="footer.line2">Mengder er per brød × antall brød. Tilpass etter erfaring og bakebehov.</span>
   </footer>
 </div>
 
@@ -1326,6 +1294,21 @@
     recommendedSourBulkHours, recommendedSourInoculation,
     effectiveColdHours
   } = window.EltefrittLogic;
+
+  const I18n = window.EltefrittI18n;
+
+  // ---- Språk + temperaturenhet (presentasjonsvalg, separat fra recipe-state,
+  // speiler tema sin egen localStorage-nøkkel). Fravær ⇒ gjett fra nettleseren. ----
+  const LANG_KEY = 'eltefritt-lang';
+  const UNIT_KEY = 'eltefritt-unit';
+  function readPref(key, valid, fallback) {
+    try { const v = localStorage.getItem(key); if (valid(v)) return v; } catch (e) {}
+    return fallback();
+  }
+  let lang = readPref(LANG_KEY, v => v === 'nb' || v === 'en', () => I18n.detectLang());
+  let unit = readPref(UNIT_KEY, v => v === 'c' || v === 'f', () => I18n.detectUnit());
+  let t = I18n.createTranslator(lang).t;
+  const localeTag = () => I18n.localeTag(lang);
 
   // ---- State ----
   const state = {
@@ -1355,16 +1338,40 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => document.querySelectorAll(sel);
 
-  const formatGrams = (g) => {
-    if (g >= 100) return Math.round(g).toString();
-    return (Math.round(g * 10) / 10).toString().replace('.', ',');
-  };
+  // Locale-bevisst tallformatering (erstatter manuell desimal-komma).
+  const formatNumber = (n, opts) => I18n.formatNumber(n, localeTag(), opts);
+  const formatGrams = (g) => g >= 100
+    ? formatNumber(Math.round(g))
+    : formatNumber(Math.round(g * 10) / 10, { maximumFractionDigits: 1 });
+  const formatTimeHM = (date) => I18n.formatTimeHM(date);
 
-  const formatTimeHM = (date) => {
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${h}:${m}`;
-  };
+  // Temperatur: modellen er Celsius, visningen konverterer til valgt enhet.
+  const fmtTemp = (celsius) => I18n.formatTemp(celsius, unit, localeTag());
+
+  // Deskriptor-params → ferdig-formaterte verdier:
+  //   { celsius: N } → temperaturstreng i valgt enhet
+  //   number        → locale-formatert tall
+  //   ellers        → uendret
+  function resolveParams(params) {
+    if (!params) return undefined;
+    const out = {};
+    for (const k in params) {
+      const v = params[k];
+      if (v && typeof v === 'object' && typeof v.celsius === 'number') out[k] = fmtTemp(v.celsius);
+      else if (typeof v === 'number') out[k] = formatNumber(v);
+      else out[k] = v;
+    }
+    return out;
+  }
+  // Oversett en deskriptor (nøkkel + evt. temp/tall-params).
+  const td = (key, params) => t(key, resolveParams(params));
+
+  // Dag-etikett (i dag / i morgen / ukedag) med isToday-flagg.
+  function dayLabelInfo(date) {
+    const info = I18n.dayLabelKey(date, new Date());
+    const label = info.idx != null ? t('day.weekdaysShort')[info.idx] : t(info.key);
+    return { label, isToday: info.isToday };
+  }
 
   // ---- Stepper ----
   // Stepper-knapper (− [bar] +) erstatter slidere så vertikal scrolling på mobil
@@ -1474,19 +1481,19 @@
   // tilgivende, så tabellen runder heller opp. Brødform: deigen fyller
   // formen ~2/3 før etterheving.
   function equipmentForSize(g) {
-    if (g <= 600) return 'Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L';
-    if (g <= 800) return 'Jerngryte 5 L (26 cm), eller brødform 2,5 L';
-    if (g <= 1100) return 'Jerngryte 6 L (28 cm), eller stor brødform';
-    if (g <= 1500) return 'Jerngryte 7 L eller større (30 cm), eller stor brødform';
-    return 'tilpass utstyr etter deigmengde';
+    if (g <= 600) return t('equipment.pot.s');
+    if (g <= 800) return t('equipment.pot.m');
+    if (g <= 1100) return t('equipment.pot.l');
+    if (g <= 1500) return t('equipment.pot.xl');
+    return t('equipment.pot.xxl');
   }
 
   function bannetonForSize(g) {
-    if (g <= 600) return '23 cm rundt';
-    if (g <= 800) return '25 cm rundt';
-    if (g <= 1100) return '28 cm rundt';
-    if (g <= 1500) return '30 cm rundt (eller oval)';
-    return 'stor banneton';
+    if (g <= 600) return t('banneton.s');
+    if (g <= 800) return t('banneton.m');
+    if (g <= 1100) return t('banneton.l');
+    if (g <= 1500) return t('banneton.xl');
+    return t('banneton.xxl');
   }
 
   function setFlourPct(idx, newPct) {
@@ -1526,11 +1533,11 @@
 
   // Med 3+ frie glidere må brukeren selv treffe 100 %. Vis hvor langt unna.
   function flourSumLabel(totalPct) {
-    if (totalPct === 100) return 'Sum: 100%';
+    if (totalPct === 100) return t('flourSum.exact');
     const diff = 100 - totalPct;
     return diff > 0
-      ? `Sum: ${totalPct}% · ${diff}% igjen`
-      : `Sum: ${totalPct}% · ${-diff}% for mye`;
+      ? t('flourSum.remaining', { total: totalPct, diff })
+      : t('flourSum.over', { total: totalPct, diff: -diff });
   }
 
   function renderFlourSum() {
@@ -1552,10 +1559,10 @@
 
       const select = document.createElement('select');
       select.className = 'flour-type-select';
-      Object.entries(FLOUR_TYPES).forEach(([key, val]) => {
+      Object.keys(FLOUR_TYPES).forEach((key) => {
         const opt = document.createElement('option');
         opt.value = key;
-        opt.textContent = val.name;
+        opt.textContent = t('flour.' + key);
         if (key === f.type) opt.selected = true;
         select.appendChild(opt);
       });
@@ -1572,7 +1579,7 @@
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'remove-btn';
-      removeBtn.setAttribute('aria-label', 'Fjern meltype');
+      removeBtn.setAttribute('aria-label', t('aria.removeFlour'));
       removeBtn.innerHTML = '×';
       if (state.flours.length === 1) {
         removeBtn.style.visibility = 'hidden';
@@ -1604,13 +1611,13 @@
       slider.max = '100';
       slider.step = '5';
       slider.value = f.pct;
-      slider.setAttribute('aria-label', `Andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+      slider.setAttribute('aria-label', t('aria.flourShare', { name: t('flour.' + f.type) }));
 
       const minusBtn = document.createElement('button');
       minusBtn.type = 'button';
       minusBtn.className = 'step-btn';
       minusBtn.setAttribute('data-step-dir', '-1');
-      minusBtn.setAttribute('aria-label', `Reduser andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+      minusBtn.setAttribute('aria-label', t('aria.decrease', { field: t('aria.flourShareField', { name: t('flour.' + f.type) }) }));
       minusBtn.textContent = '−';
 
       const track = document.createElement('div');
@@ -1624,7 +1631,7 @@
       plusBtn.type = 'button';
       plusBtn.className = 'step-btn';
       plusBtn.setAttribute('data-step-dir', '1');
-      plusBtn.setAttribute('aria-label', `Øk andel ${FLOUR_TYPES[f.type]?.name || 'mel'}`);
+      plusBtn.setAttribute('aria-label', t('aria.increase', { field: t('aria.flourShareField', { name: t('flour.' + f.type) }) }));
       plusBtn.textContent = '+';
 
       stepper.appendChild(slider);
@@ -1663,7 +1670,7 @@
       el.innerHTML = '';
     } else {
       el.hidden = false;
-      el.innerHTML = tips.map(t => `<p>💡 ${t}</p>`).join('');
+      el.innerHTML = tips.map(tip => `<p>💡 ${t(tip.key)}</p>`).join('');
     }
   }
 
@@ -1672,18 +1679,17 @@
     wrap.innerHTML = '';
     const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
     if (state.flours.length === 1) {
-      $('#flour-types-label').textContent = FLOUR_TYPES[state.flours[0].type]?.name.toLowerCase() || '';
+      $('#flour-types-label').textContent = t('flour.' + state.flours[0].type).toLowerCase();
       return;
     }
-    $('#flour-types-label').textContent = `(${state.flours.length} typer)`;
+    $('#flour-types-label').textContent = t('flour.typesLabelOther', { count: state.flours.length });
     state.flours.forEach(f => {
       if (f.pct === 0) return;
-      const ft = FLOUR_TYPES[f.type];
       const grams = (f.pct / Math.max(totalPct, 1)) * flourTotal;
       const row = document.createElement('div');
       row.className = 'ingredient';
       row.innerHTML = `
-        <span class="name">${ft.name} <span class="sub">${f.pct}%</span></span>
+        <span class="name">${t('flour.' + f.type)} <span class="sub">${f.pct}%</span></span>
         <span class="amount">${formatGrams(grams)} g</span>
       `;
       wrap.appendChild(row);
@@ -1702,18 +1708,7 @@
     return d;
   }
 
-  function formatDayLabel(date) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-    const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
-    const dDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    if (dDate.getTime() === today.getTime()) return 'i dag';
-    if (dDate.getTime() === tomorrow.getTime()) return 'i morgen';
-    if (dDate.getTime() === dayAfter.getTime()) return 'overimorgen';
-    const days = ['søn','man','tir','ons','tor','fre','lør'];
-    return days[date.getDay()];
-  }
+  // Dag-etiketter håndteres av dayLabelInfo() (i18n) lenger oppe i scriptet.
 
   function getStartAndReady() {
     const total = modeTotalMinutes(state);
@@ -1736,12 +1731,12 @@
   function renderInstructions(instructions) {
     const ol = $('#method-list');
     ol.innerHTML = '';
-    instructions.forEach(([title, body]) => {
+    instructions.forEach(step => {
       const li = document.createElement('li');
       const strong = document.createElement('strong');
-      strong.textContent = title + ':';
+      strong.textContent = t(step.titleKey) + ':';
       li.appendChild(strong);
-      li.appendChild(document.createTextNode(' ' + body));
+      li.appendChild(document.createTextNode(' ' + td(step.bodyKey, step.params)));
       ol.appendChild(li);
     });
   }
@@ -1752,8 +1747,8 @@
     const readyInput = $('#ready-time');
     if (document.activeElement !== startInput) startInput.value = formatTimeHM(start);
     if (document.activeElement !== readyInput) readyInput.value = formatTimeHM(ready);
-    $('#start-day').textContent = formatDayLabel(start);
-    $('#ready-day').textContent = formatDayLabel(ready);
+    $('#start-day').textContent = dayLabelInfo(start).label;
+    $('#ready-day').textContent = dayLabelInfo(ready).label;
 
     const stepsEl = $('#plan-steps');
     stepsEl.innerHTML = '';
@@ -1761,16 +1756,16 @@
       if (item.kind === 'duration') {
         const d = document.createElement('div');
         d.className = 'plan-duration';
-        d.textContent = item.text;
+        d.textContent = td(item.key, item.params);
         stepsEl.appendChild(d);
       } else {
         const s = document.createElement('div');
         s.className = 'plan-step';
-        const dayLabel = formatDayLabel(item.time);
-        const dayHtml = dayLabel && dayLabel !== 'i dag' ? ` <span class="plan-day">${dayLabel}</span>` : '';
+        const day = dayLabelInfo(item.time);
+        const dayHtml = day.isToday ? '' : ` <span class="plan-day">${day.label}</span>`;
         s.innerHTML = `
           <span class="plan-icon">·</span>
-          <span class="plan-label">${item.label}</span>
+          <span class="plan-label">${t(item.labelKey)}</span>
           <span class="plan-time">${formatTimeHM(item.time)}${dayHtml}</span>
         `;
         stepsEl.appendChild(s);
@@ -1778,19 +1773,91 @@
     });
   }
 
+  // Temperatur-avlesning: tall i valgt enhet + enhets-suffiks (°C/°F). Modellen
+  // forblir Celsius; bare visningen konverteres.
+  function renderTempReadout(id, celsius) {
+    const el = $('#' + id);
+    if (!el) return;
+    el.textContent = I18n.convertTemp(celsius, unit);
+    const u = el.nextElementSibling;
+    if (u && u.classList.contains('temp-unit')) u.textContent = unit === 'f' ? '°F' : '°C';
+  }
+
+  // Slider-markører: temp-markører konverteres til enhet, tid-markører får
+  // locale-tall + lokalisert time-enhet.
+  function renderMarks() {
+    $$('[data-temp-mark]').forEach(el => {
+      el.textContent = I18n.convertTemp(parseFloat(el.getAttribute('data-temp-mark')), unit) + '°';
+    });
+    $$('[data-time-mark]').forEach(el => {
+      el.textContent = formatNumber(parseFloat(el.getAttribute('data-time-mark'))) + ' ' + t('unit.hours');
+    });
+  }
+
+  // Statiske stepper-knapper: bygg "Reduser/Øk <felt>"-aria fra feltnøkkel.
+  const STEPPER_FIELD = {
+    'hydration': 'aria.field.hydration',
+    'temp': 'aria.field.roomTemp',
+    'water-temp': 'aria.field.waterTemp',
+    'rise-time': 'aria.field.riseTime',
+    'bulk-time': 'aria.field.bulk',
+    'cold-time': 'aria.field.coldProof',
+    'cold-temp': 'aria.field.coldTemp',
+    'sour-inoculation': 'aria.field.sourAmount'
+  };
+  function localizeStaticSteppers() {
+    $$('.stepper[data-stepper-for]').forEach(st => {
+      const fieldKey = STEPPER_FIELD[st.getAttribute('data-stepper-for')];
+      if (!fieldKey) return;
+      const field = t(fieldKey);
+      const minus = st.querySelector('[data-step-dir="-1"]');
+      const plus = st.querySelector('[data-step-dir="1"]');
+      if (minus) minus.setAttribute('aria-label', t('aria.decrease', { field }));
+      if (plus) plus.setAttribute('aria-label', t('aria.increase', { field }));
+    });
+  }
+
+  // Lokaliser all statisk tekst (data-i18n*), dokument-metadata, hjelpetekster
+  // med temp-params, og stepper-aria. Kjøres ved oppstart og språk/enhet-bytte.
+  function applyStaticI18n() {
+    document.documentElement.lang = lang;
+    document.title = t('doc.title');
+    const md = document.querySelector('meta[name="description"]');
+    if (md) md.setAttribute('content', t('doc.metaDescription'));
+    $$('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+    $$('[data-i18n-aria-label]').forEach(el => { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria-label'))); });
+    $$('[data-i18n-title]').forEach(el => { el.setAttribute('title', t(el.getAttribute('data-i18n-title'))); });
+    // Hjelpetekster med temperatur-param (avhenger av enhet).
+    const wt = $('#water-temp-detail');
+    if (wt) wt.textContent = t('helper.waterTemp', { maxTemp: fmtTemp(40) });
+    const sa = $('#sour-amount-detail');
+    if (sa) sa.textContent = t('helper.sourAmount', { temp: fmtTemp(21) });
+    localizeStaticSteppers();
+  }
+
+  // Bygg oversetter på nytt og re-rendre alt ved språk/enhet-bytte.
+  function rerenderAll() {
+    t = I18n.createTranslator(lang).t;
+    applyStaticI18n();
+    update();
+  }
+
   function update(opts = {}) {
     const result = computeRecipe(state);
 
     // Brødstørrelse-detalj
-    const sizeNames = { 400: 'Lite', 500: 'Medium', 700: 'Stort' };
-    $('#size-value').textContent = sizeNames[state.sizePerLoaf] || `${state.sizePerLoaf} g`;
+    const sizeNameKey = { 400: 'size.small', 500: 'size.medium', 700: 'size.large' }[state.sizePerLoaf];
+    $('#size-value').textContent = sizeNameKey ? t(sizeNameKey) : t('size.custom', { g: formatNumber(state.sizePerLoaf) });
     // Deig = mel × (1 + hydrering + 2 % salt); ferdig brød ≈ deig × 0.88
     // (litt vekttap fra stekning), avrundet til nærmeste 50 g.
     const doughFactor = 1 + result.hydration / 100 + 0.02;
     const finished = Math.round((state.sizePerLoaf * doughFactor * 0.88) / 50) * 50;
-    $('#size-detail').textContent = `≈ ${state.sizePerLoaf} g mel · ~${finished} g ferdig brød`;
-    let equipmentText = `🥘 ${equipmentForSize(state.sizePerLoaf)}. 🧺 Banneton ${bannetonForSize(state.sizePerLoaf)} (valgfritt)`;
-    if (state.loaves > 1) equipmentText += ' (per brød)';
+    $('#size-detail').textContent = t('size.detail', { flour: formatGrams(state.sizePerLoaf), finished: formatGrams(finished) });
+    let equipmentText = t('equipment.line', {
+      pot: equipmentForSize(state.sizePerLoaf),
+      banneton: bannetonForSize(state.sizePerLoaf)
+    });
+    if (state.loaves > 1) equipmentText += t('equipment.perLoaf');
     $('#equipment-detail').textContent = equipmentText;
 
     // Antall brød
@@ -1801,8 +1868,8 @@
     const recMin = Math.round(recommended.min);
     const recMax = Math.round(recommended.max);
     $('#hydration-suggestion').textContent = recMin === recMax
-      ? `~${recMin}% vann`
-      : `${recMin}–${recMax}% vann`;
+      ? t('hydration.suggestion.single', { n: recMin })
+      : t('hydration.suggestion.range', { min: recMin, max: recMax });
     refreshHydrationRecommend(recommended.min, recommended.max);
 
     // Hvis ikke manuelt overstyrt, sett hydrering til midtpunkt av anbefalt område
@@ -1813,21 +1880,23 @@
     }
     $('#hydration-value').textContent = state.hydration;
 
-    $('#temp-value').textContent = state.temperatureC;
-    $('#water-temp-value').textContent = state.waterTempC;
+    renderTempReadout('temp-value', state.temperatureC);
+    renderTempReadout('water-temp-value', state.waterTempC);
     $('#time-value').textContent = state.riseHours;
     $('#bulk-time-value').textContent = state.bulkHours;
     $('#cold-time-value').textContent = state.coldHours;
-    $('#cold-temp-value').textContent = state.coldTempC;
+    renderTempReadout('cold-temp-value', state.coldTempC);
     $('#sour-inoculation-value').textContent = state.sourInoculation;
+    renderMarks();
 
     // Vis riktig kontrollsett basert på modus og heveform.
     Object.entries(MODE_META).forEach(([key, meta]) => {
       $(`#${meta.controlsId}`).hidden = state.mode !== key;
     });
     $('#sourdough-controls').hidden = state.leaven !== 'sourdough';
-    $('#mode-detail').textContent = currentModeMeta().detail;
-    $('#leaven-detail').textContent = LEAVEN_DETAILS[state.leaven] || '';
+    $('#mode-detail').textContent = t(currentModeMeta().detailKey);
+    const ld = LEAVEN_DETAILS[state.leaven];
+    $('#leaven-detail').textContent = ld ? td(ld.key, ld.params) : '';
     renderInstructions(modeInstructions(state));
 
     if (!opts.skipFlourList) {
@@ -1853,8 +1922,8 @@
     $('#flour-amount').textContent = formatGrams(result.flourAdded);
     $('#water-amount').textContent = formatGrams(result.water);
     $('#water-sub').textContent = state.waterTempC === state.temperatureC
-      ? 'romtemperert'
-      : `${state.waterTempC} °C`;
+      ? t('water.sub.roomTemp')
+      : fmtTemp(state.waterTempC);
     $('#salt-amount').textContent = formatGrams(result.salt);
 
     if (result.leaven === 'sourdough') {
@@ -1864,15 +1933,15 @@
     } else {
       $('#yeast-row').hidden = false;
       $('#starter-row').hidden = true;
-      const pctStr = result.yeastPct.toFixed(2).replace('.', ',') + ' %';
+      const pctVal = formatNumber(result.yeastPct, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       if (result.leaven === 'fresh') {
-        $('#yeast-label').textContent = 'Ferskgjær';
+        $('#yeast-label').textContent = t('yeast.fresh');
         $('#yeast-amount').textContent = formatGrams(result.yeast * 3);
-        $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(result.yeast)} g tørr`;
+        $('#yeast-fresh').textContent = t('yeast.detail.fresh', { pct: pctVal, grams: formatGrams(result.yeast) });
       } else {
-        $('#yeast-label').textContent = 'Tørrgjær';
+        $('#yeast-label').textContent = t('yeast.dry');
         $('#yeast-amount').textContent = formatGrams(result.yeast);
-        $('#yeast-fresh').textContent = `${pctStr} · ${formatGrams(result.yeast * 3)} g fersk`;
+        $('#yeast-fresh').textContent = t('yeast.detail.dry', { pct: pctVal, grams: formatGrams(result.yeast * 3) });
       }
     }
 
@@ -1919,11 +1988,15 @@
     state[bulkFieldForMode()] = clamped;
     slider.value = clamped;
     refreshStepperVisual(slider);
-    const recText = recommended < 1 ? 'under 1' : `~${Math.round(recommended)}`;
+    const recText = recommended < 1 ? t('sour.recUnder1') : '~' + formatNumber(Math.round(recommended));
     if (recommended - clamped > 0.5) {
-      setSourClampNote(`⚠️ Anbefalt bulk er ${recText} t, mer enn slideren tillater (${slider.max} t). Øk surdeigsmengden${state.mode === 'cold' ? ', eller forleng kald etterheving' : ''}.`);
+      setSourClampNote(t('sour.bulkOverMax', {
+        recText,
+        max: slider.max,
+        extra: state.mode === 'cold' ? t('sour.bulkOverMax.extraCold') : ''
+      }));
     } else if (clamped - recommended > 0.5) {
-      setSourClampNote(`⚠️ Anbefalt bulk er bare ${recText} t. Reduser surdeigsmengden for å unngå overheving.`);
+      setSourClampNote(t('sour.bulkUnder', { recText }));
     } else {
       setSourClampNote(null);
     }
@@ -1937,9 +2010,9 @@
     slider.value = clamped;
     refreshStepperVisual(slider);
     if (recommended - clamped > 0.5) {
-      setSourClampNote(`⚠️ Så kort heving trenger ~${Math.round(recommended)} % surdeig; slideren stopper på ${slider.max} %. Forleng hevingen, eller regn med tettere brød.`);
+      setSourClampNote(t('sour.inocOverMax', { rec: Math.round(recommended), max: slider.max }));
     } else if (clamped - recommended > 0.5) {
-      setSourClampNote(`⚠️ Så lang heving trenger bare ~${Math.round(recommended)} % surdeig; slideren stopper på ${slider.min} %. Kort ned hevingen for å unngå overheving.`);
+      setSourClampNote(t('sour.inocUnder', { rec: Math.round(recommended), min: slider.min }));
     } else {
       setSourClampNote(null);
     }
@@ -2096,6 +2169,72 @@
     update();
   });
 
+  // ---- Innstillingsmeny: språk + temperaturenhet + tema ----
+  // Tema beholder samme localStorage-nøkkel og pre-paint-boot som før; her
+  // flyttes bare kontrollen inn i den samlede menyen.
+  const THEME_KEY = 'eltefritt-theme';
+  function currentTheme() {
+    try { const v = localStorage.getItem(THEME_KEY); return (v === 'light' || v === 'dark') ? v : 'auto'; }
+    catch (e) { return 'auto'; }
+  }
+  function syncThemeColorMeta(choice) {
+    document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
+      if (choice === 'light' || choice === 'dark') {
+        m.setAttribute('content', choice === 'dark' ? '#1c1b18' : '#fafaf7');
+      } else {
+        const media = m.getAttribute('media') || '';
+        m.setAttribute('content', media.includes('dark') ? '#1c1b18' : '#fafaf7');
+      }
+    });
+  }
+  function applyTheme(choice) {
+    try {
+      if (choice === 'light' || choice === 'dark') {
+        localStorage.setItem(THEME_KEY, choice);
+        document.documentElement.setAttribute('data-theme', choice);
+      } else {
+        localStorage.removeItem(THEME_KEY);
+        document.documentElement.removeAttribute('data-theme');
+      }
+    } catch (e) {}
+    syncThemeColorMeta(choice);
+  }
+  function syncSettingsSelected() {
+    renderSegment($$('#settings-menu [data-lang-value]'), lang, 'langValue');
+    renderSegment($$('#settings-menu [data-unit-value]'), unit, 'unitValue');
+    renderSegment($$('#settings-menu [data-theme-value]'), currentTheme(), 'themeValue');
+  }
+
+  const settingsBtn = $('#settings-btn');
+  const settingsMenu = $('#settings-menu');
+  const settingsOpen = () => settingsMenu.getAttribute('data-open') === 'true';
+  const openSettings = () => { settingsMenu.setAttribute('data-open', 'true'); settingsBtn.setAttribute('aria-expanded', 'true'); };
+  const closeSettings = () => { settingsMenu.removeAttribute('data-open'); settingsBtn.setAttribute('aria-expanded', 'false'); };
+  settingsBtn.addEventListener('click', e => { e.stopPropagation(); settingsOpen() ? closeSettings() : openSettings(); });
+  document.addEventListener('click', e => {
+    if (settingsOpen() && !settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) closeSettings();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && settingsOpen()) { closeSettings(); settingsBtn.focus(); }
+  });
+
+  $$('#settings-menu [data-lang-value]').forEach(b => b.addEventListener('click', () => {
+    lang = b.dataset.langValue;
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+    rerenderAll();
+    syncSettingsSelected();
+  }));
+  $$('#settings-menu [data-unit-value]').forEach(b => b.addEventListener('click', () => {
+    unit = b.dataset.unitValue;
+    try { localStorage.setItem(UNIT_KEY, unit); } catch (e) {}
+    rerenderAll();
+    syncSettingsSelected();
+  }));
+  $$('#settings-menu [data-theme-value]').forEach(b => b.addEventListener('click', () => {
+    applyTheme(b.dataset.themeValue);
+    syncSettingsSelected();
+  }));
+
   // ---- Restore state ----
   // Feltvis validering i stedet for Object.assign: lagret state kan komme fra
   // en eldre versjon av appen (andre felter, fjernede meltype-nøkler) eller
@@ -2183,106 +2322,12 @@
   // resync så følgeren (og evt. klampe-hint) stemmer med dagens modell.
   resyncSourFromLead();
 
+  // Lokaliser statisk tekst og marker valgt språk/enhet/tema, før første render.
+  applyStaticI18n();
+  syncSettingsSelected();
+
   update();
 })();
-</script>
-
-<script>
-  // Tema-meny
-  (function() {
-    const STORAGE_KEY = 'eltefritt-theme';
-    const btn = document.getElementById('theme-toggle-btn');
-    const menu = document.getElementById('theme-menu');
-    if (!btn || !menu) return;
-
-    const items = menu.querySelectorAll('button[data-theme-value]');
-
-    function currentChoice() {
-      try {
-        const t = localStorage.getItem(STORAGE_KEY);
-        return (t === 'light' || t === 'dark') ? t : 'auto';
-      } catch (e) {
-        return 'auto';
-      }
-    }
-
-    function syncChecked() {
-      const choice = currentChoice();
-      items.forEach(it => {
-        it.setAttribute('aria-checked', it.dataset.themeValue === choice ? 'true' : 'false');
-      });
-    }
-
-    function syncThemeColorMeta(choice) {
-      const metas = document.querySelectorAll('meta[name="theme-color"]');
-      metas.forEach(m => {
-        if (choice === 'light' || choice === 'dark') {
-          // Manuelt valg overstyrer media-attributtene: begge metaene får
-          // samme farge som det valgte temaet.
-          m.setAttribute('content', choice === 'dark' ? '#1c1b18' : '#fafaf7');
-        } else {
-          const media = m.getAttribute('media') || '';
-          m.setAttribute('content', media.includes('dark') ? '#1c1b18' : '#fafaf7');
-        }
-      });
-    }
-
-    function applyChoice(choice) {
-      try {
-        if (choice === 'light' || choice === 'dark') {
-          localStorage.setItem(STORAGE_KEY, choice);
-          document.documentElement.setAttribute('data-theme', choice);
-        } else {
-          localStorage.removeItem(STORAGE_KEY);
-          document.documentElement.removeAttribute('data-theme');
-        }
-      } catch (e) {}
-      syncThemeColorMeta(choice);
-      syncChecked();
-    }
-
-    function openMenu() {
-      menu.setAttribute('data-open', 'true');
-      btn.setAttribute('aria-expanded', 'true');
-    }
-
-    function closeMenu() {
-      menu.removeAttribute('data-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-
-    function isOpen() {
-      return menu.getAttribute('data-open') === 'true';
-    }
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      isOpen() ? closeMenu() : openMenu();
-    });
-
-    items.forEach(it => {
-      it.addEventListener('click', () => {
-        applyChoice(it.dataset.themeValue);
-        closeMenu();
-        btn.focus();
-      });
-    });
-
-    document.addEventListener('click', (e) => {
-      if (isOpen() && !menu.contains(e.target) && e.target !== btn) {
-        closeMenu();
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isOpen()) {
-        closeMenu();
-        btn.focus();
-      }
-    });
-
-    syncChecked();
-  })();
 </script>
 
 <script>

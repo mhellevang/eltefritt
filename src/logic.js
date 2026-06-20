@@ -55,40 +55,50 @@
   //    prinsippet (kli suger vann) snarere enn en egen sitert kilde.
   //
   // Kilder: se README og src/logic.js-kommentarer.
+  //
+  // Visningsnavn ligger i src/i18n.js (nøkkel 'flour.<type>'); her bare tall.
   const FLOUR_TYPES = {
-    hvete:      { name: 'Hvetemel',          hydrationMin: 70, hydrationMax: 75 },
-    sammalt:    { name: 'Sammalt hvete',     hydrationMin: 75, hydrationMax: 82 },
-    sammaltfin: { name: 'Sammalt hvete, fin',hydrationMin: 73, hydrationMax: 78 },
-    rug:        { name: 'Rugmel',            hydrationMin: 80, hydrationMax: 88 },
-    sammaltrug: { name: 'Sammalt rug',       hydrationMin: 85, hydrationMax: 92 },
-    spelt:      { name: 'Speltmel',          hydrationMin: 65, hydrationMax: 72 },
-    durum:      { name: 'Durumhvete',        hydrationMin: 65, hydrationMax: 72 },
-    havre:      { name: 'Havremel',          hydrationMin: 72, hydrationMax: 78 },
-    bygg:       { name: 'Byggmel',           hydrationMin: 72, hydrationMax: 78 }
+    hvete:      { hydrationMin: 70, hydrationMax: 75 },
+    sammalt:    { hydrationMin: 75, hydrationMax: 82 },
+    sammaltfin: { hydrationMin: 73, hydrationMax: 78 },
+    rug:        { hydrationMin: 80, hydrationMax: 88 },
+    sammaltrug: { hydrationMin: 85, hydrationMax: 92 },
+    spelt:      { hydrationMin: 65, hydrationMax: 72 },
+    durum:      { hydrationMin: 65, hydrationMax: 72 },
+    havre:      { hydrationMin: 72, hydrationMax: 78 },
+    bygg:       { hydrationMin: 72, hydrationMax: 78 }
   };
 
   // Meltyper som hever dårlig uten surdeig / mangler gluten.
   const RYE_TYPES = new Set(['rug', 'sammaltrug']);
   const LOW_GLUTEN_TYPES = new Set(['havre', 'bygg']);
 
+  // Heveform- og hevemetode-detaljer er nå deskriptorer (i18n-nøkler); render-
+  // laget slår opp og fyller inn evt. params. Celsius-verdier markeres som
+  // { celsius: N } slik at visningen kan konvertere til valgt enhet.
   const LEAVEN_DETAILS = {
-    dry: 'Standard. 0,23% gir 14 t god heving ved 21 °C.',
-    fresh: '≈ 3× tørrgjær, smuldres direkte i vannet.',
-    sourdough: 'Aktiv 100%-hydrert starter. Krever erfaring med starter-styrke; tider er omtrentlige.'
+    dry:       { key: 'leaven.detail.dry', params: { temp: { celsius: REF_TEMP } } },
+    fresh:     { key: 'leaven.detail.fresh' },
+    sourdough: { key: 'leaven.detail.sourdough' }
   };
 
   const MODE_META = {
     classic: {
-      label: 'Klassisk',
-      detail: 'Lang bulkheving + kort etterheving før steking.',
+      labelKey: 'mode.classic.label',
+      detailKey: 'mode.classic.detail',
       controlsId: 'classic-controls'
     },
     cold: {
-      label: 'Kald etterheving',
-      detail: 'Kort bulk + lang etterheving i kjøleskap (banneton-vennlig).',
+      labelKey: 'mode.cold.label',
+      detailKey: 'mode.cold.detail',
       controlsId: 'cold-controls'
     }
   };
+
+  // Stekekonstanter (recipe-faste; visningen konverterer til °F ved behov).
+  const BAKE_POT_TEMP_C = 245;
+  const BAKE_LID_OFF_TEMP_C = 220;
+  const BAKE_PAN_TEMP_C = 220;
 
   // ---- Date-helpers (rene) ----
   const addMinutes = (d, m) => new Date(d.getTime() + m * 60 * 1000);
@@ -217,42 +227,52 @@
     return 0;
   }
 
+  // Returnerer deskriptorer; render-laget formaterer tall/temp/locale.
+  // duration: { kind, key, params? }; step: { kind, labelKey, time }.
   function modePlanItems(state, start) {
     if (state.mode === 'classic') {
       const shape = addHours(start, state.riseHours);
       const bake = addHours(shape, SECOND_PROOF_HOURS);
       return [
-        { kind: 'duration', text: `Bulkheving · ${state.riseHours} t ved ${state.temperatureC}°C` },
-        { kind: 'step', label: 'Form og etterhev', time: shape },
-        { kind: 'duration', text: `Etterheving · ~${String(SECOND_PROOF_HOURS).replace('.', ',')} t` },
-        { kind: 'step', label: 'Inn i ovnen', time: bake },
-        { kind: 'duration', text: 'Steking · ~45 min' }
+        { kind: 'duration', key: 'plan.bulk', params: { hours: state.riseHours, temp: { celsius: state.temperatureC } } },
+        { kind: 'step', labelKey: 'plan.shapeClassic', time: shape },
+        { kind: 'duration', key: 'plan.secondProof', params: { hours: SECOND_PROOF_HOURS } },
+        { kind: 'step', labelKey: 'plan.intoOven', time: bake },
+        { kind: 'duration', key: 'plan.bake' }
       ];
     }
     // cold
     const shape = addHours(start, state.bulkHours);
     const bake = addHours(shape, state.coldHours);
     return [
-      { kind: 'duration', text: `Bulkheving · ${state.bulkHours} t ved ${state.temperatureC}°C` },
-      { kind: 'step', label: 'Form og legg i banneton', time: shape },
-      { kind: 'duration', text: `I kjøleskap · ${state.coldHours} t ved ${state.coldTempC}°C` },
-      { kind: 'step', label: 'Inn i ovnen (rett fra kjøleskap)', time: bake },
-      { kind: 'duration', text: 'Steking · ~45 min' }
+      { kind: 'duration', key: 'plan.bulk', params: { hours: state.bulkHours, temp: { celsius: state.temperatureC } } },
+      { kind: 'step', labelKey: 'plan.shapeCold', time: shape },
+      { kind: 'duration', key: 'plan.cold', params: { hours: state.coldHours, temp: { celsius: state.coldTempC } } },
+      { kind: 'step', labelKey: 'plan.intoOvenCold', time: bake },
+      { kind: 'duration', key: 'plan.bake' }
     ];
   }
 
   // Bland-steget varierer med heveform; resten av instruksjonene er mode-spesifikke.
+  // Hvert steg er en deskriptor { titleKey, bodyKey, params? }; render-laget slår
+  // opp tekst og fyller inn temperatur-params (markert som { celsius: N }).
   function blandStep(leaven) {
     if (leaven === 'sourdough') {
-      return ['Bland', 'Løs opp surdeigen i vannet med fingrene. Tilsett mel og salt, og rør til en grov, klissete deig.'];
+      return { titleKey: 'step.mix.title', bodyKey: 'step.mix.body.sourdough' };
     }
     if (leaven === 'fresh') {
-      return ['Bland', 'Visp sammen mel og salt i en stor bolle. Smuldre ferskgjæren i vannet og rør raskt sammen, og hell over melet. Rør til en klissete, uregelmessig deig. Ikke elt.'];
+      return { titleKey: 'step.mix.title', bodyKey: 'step.mix.body.fresh' };
     }
-    return ['Bland tørt', 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig. Ikke elt.'];
+    return { titleKey: 'step.mix.dryTitle', bodyKey: 'step.mix.body.dry' };
   }
 
-  const SOURDOUGH_CHECK = ['Sjekk starter', 'Bruk en aktiv, 100%-hydrert starter (peak ca. 4–8 t etter mating ved romtemp). Float-test: en liten klatt skal flyte i et glass vann.'];
+  const SOURDOUGH_CHECK = { titleKey: 'step.starterCheck.title', bodyKey: 'step.starterCheck.body' };
+
+  const BAKE_PARAMS = {
+    hot: { celsius: BAKE_POT_TEMP_C },
+    low: { celsius: BAKE_LID_OFF_TEMP_C },
+    pan: { celsius: BAKE_PAN_TEMP_C }
+  };
 
   function modeInstructions(state) {
     const leaven = state.leaven;
@@ -261,27 +281,30 @@
     steps.push(blandStep(leaven));
 
     if (state.mode === 'classic') {
-      const bulkText = leaven === 'sourdough'
-        ? 'Dekk bollen. La heve ved romtemperatur. Gjør 3–4 stretch & fold første 1,5–2 t for struktur. Deigen skal være luftig og pille med bobler, 50–75% større når den er klar.'
-        : 'Dekk bollen med plastfolie eller lokk. La heve ved romtemperatur til deigen er ca. dobbelt så stor og full av bobler på overflaten.';
-      steps.push(['Bulkheving', bulkText]);
-      steps.push(['Form', 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle eller i banneton i 1–2 t, til deigen er synlig luftigere og rundt 50 % større. Snarvei: hopp over forming og plopp deigen rett i den varme gryta etter bulk, det blir litt rustikkere men funker fint.']);
-      steps.push(['Stek', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til 220 °C og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
-      steps.push(['Avkjøl', leaven === 'sourdough'
-        ? 'La avkjøle på rist i minst 1 t før du skjærer. Surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.'
-        : 'La brødet avkjøle på rist i minst 30 min før du skjærer.']);
+      steps.push({
+        titleKey: 'step.bulk.title',
+        bodyKey: leaven === 'sourdough' ? 'step.bulk.body.classic.sourdough' : 'step.bulk.body.classic.yeast'
+      });
+      steps.push({ titleKey: 'step.shape.title', bodyKey: 'step.shape.body' });
+      steps.push({ titleKey: 'step.bake.title', bodyKey: 'step.bake.body', params: BAKE_PARAMS });
+      steps.push({
+        titleKey: 'step.cool.title',
+        bodyKey: leaven === 'sourdough' ? 'step.cool.body.sourdough' : 'step.cool.body.short'
+      });
       return steps;
     }
     // cold
-    steps.push(['Bulkheving', 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.']);
-    steps.push(['Form og legg i banneton', 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.']);
-    steps.push(['Kald etterheving', leaven === 'sourdough'
-      ? 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. 12–18 t gir god smak og enklere skåring.'
-      : 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.']);
-    steps.push(['Stek direkte fra kjøleskap', 'I jerngryte: forvarm gryte med lokk til 245 °C. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til 220 °C og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på 220 °C i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.']);
-    steps.push(['Avkjøl', leaven === 'sourdough'
-      ? 'La avkjøle på rist i minst 1 t før du skjærer.'
-      : 'La avkjøle på rist i minst 30 min før du skjærer.']);
+    steps.push({ titleKey: 'step.bulk.title', bodyKey: 'step.bulk.body.cold' });
+    steps.push({ titleKey: 'step.shapeCold.title', bodyKey: 'step.shapeCold.body' });
+    steps.push({
+      titleKey: 'step.coldProof.title',
+      bodyKey: leaven === 'sourdough' ? 'step.coldProof.body.sourdough' : 'step.coldProof.body.yeast'
+    });
+    steps.push({ titleKey: 'step.bakeCold.title', bodyKey: 'step.bakeCold.body', params: BAKE_PARAMS });
+    steps.push({
+      titleKey: 'step.cool.title',
+      bodyKey: leaven === 'sourdough' ? 'step.cool.body.sourdoughShort' : 'step.cool.body.short'
+    });
     return steps;
   }
 
@@ -338,10 +361,10 @@
     const lowGlutenPct = share(t => LOW_GLUTEN_TYPES.has(t));
     const tips = [];
     if (ryePct > 50) {
-      tips.push('Rene rugbrød hever dårlig med vanlig gjær. Vurder surdeig, eller bland inn mer hvete.');
+      tips.push({ key: 'tip.rye' });
     }
     if (lowGlutenPct > 30) {
-      tips.push('Havre og bygg har lite gluten. Hold andelen under 30 % for en deig som hever godt.');
+      tips.push({ key: 'tip.lowGluten' });
     }
     return tips;
   }

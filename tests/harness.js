@@ -18,20 +18,33 @@ const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
 
-async function loadPage() {
+async function loadPage(opts = {}) {
+  // Frø språk/enhet deterministisk: jsdom sin navigator.language er en-US, så
+  // uten frø ville auto-deteksjon vippe hele DOM-suiten til engelsk/Fahrenheit.
+  const lang = opts.lang || 'nb';
+  const unit = opts.unit || 'c';
+
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const i18n = fs.readFileSync(path.join(ROOT, 'src/i18n.js'), 'utf8');
   const logic = fs.readFileSync(path.join(ROOT, 'src/logic.js'), 'utf8');
 
-  // Inline logic.js så vi slipper at jsdom prøver å hente den over HTTP.
-  const inlinedHtml = html.replace(
-    /<script src="src\/logic\.js"><\/script>/,
-    `<script>${logic}</script>`
-  );
+  // Inline i18n.js og logic.js (i18n først, som i nettleseren) så jsdom slipper
+  // å hente dem over HTTP.
+  const inlinedHtml = html
+    .replace(/<script src="src\/i18n\.js"><\/script>/, `<script>${i18n}</script>`)
+    .replace(/<script src="src\/logic\.js"><\/script>/, `<script>${logic}</script>`);
 
   const dom = new JSDOM(inlinedHtml, {
     url: 'http://localhost:8765/',
     runScripts: 'dangerously',
-    pretendToBeVisual: true
+    pretendToBeVisual: true,
+    // Frø språk/enhet før noen scripts kjører (head-boot leser localStorage).
+    beforeParse(window) {
+      try {
+        window.localStorage.setItem('eltefritt-lang', lang);
+        window.localStorage.setItem('eltefritt-unit', unit);
+      } catch (e) {}
+    }
     // Default `resources` setting laster ikke nett-ressurser, så CSS,
     // fonter, bilder og manifest blir bare hoppet over uten feil.
   });
