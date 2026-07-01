@@ -220,3 +220,43 @@ test('bytte enhet til °F oppdaterer avlesning, ikke modellverdien', async () =>
     close();
   }
 });
+
+test('alarm: av som standard, viser hjelpetekst', async () => {
+  const { document, close } = await loadPage();
+  try {
+    const off = document.querySelector('button[data-alarm="off"]');
+    const on = document.querySelector('button[data-alarm="on"]');
+    assert.equal(off.getAttribute('aria-pressed'), 'true');
+    assert.equal(on.getAttribute('aria-pressed'), 'false');
+    const detail = document.getElementById('alarm-detail');
+    assert.match(detail.textContent, /varsel/i);
+    assert.equal(detail.classList.contains('is-active'), false);
+  } finally {
+    close();
+  }
+});
+
+test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const on = document.querySelector('button[data-alarm="on"]');
+    fire(window, on, 'click');
+    assert.equal(on.getAttribute('aria-pressed'), 'true');
+    const detail = document.getElementById('alarm-detail');
+    // Standard klassisk 14 t heving fra start om ~1 t ⇒ nedtelling med timer.
+    assert.match(detail.textContent, /⏰/);
+    assert.match(detail.textContent, /hevingen er ferdig/i);
+    assert.match(detail.textContent, /\d+\s+t/);
+    // Sekund-oppløsning: nedtellingen viser "... SS sek".
+    assert.match(detail.textContent, /\d{2}\s+sek/);
+    assert.equal(detail.classList.contains('is-active'), true);
+
+    // Skru av igjen ⇒ tilbake til hjelpetekst, ingen nedtelling.
+    const off = document.querySelector('button[data-alarm="off"]');
+    fire(window, off, 'click');
+    assert.equal(off.getAttribute('aria-pressed'), 'true');
+    assert.equal(document.getElementById('alarm-detail').classList.contains('is-active'), false);
+  } finally {
+    close();
+  }
+});

@@ -360,3 +360,24 @@ test('modePlanItems: bulk-steg er deskriptor med temp/time-params', () => {
   assert.equal(items[0].params.hours, 14);
   assert.equal(items[0].params.temp.celsius, 21);
 });
+
+// ─── riseDoneMinutes ───────────────────────────────────────────────────────
+
+test('riseDoneMinutes: klassisk = bulkhevingen (uten etterheving/steking)', () => {
+  assert.equal(L.riseDoneMinutes({ mode: 'classic', riseHours: 14 }), 14 * 60);
+});
+
+test('riseDoneMinutes: kald = bulk + kald etterheving (uten steking)', () => {
+  assert.equal(L.riseDoneMinutes({ mode: 'cold', bulkHours: 2, coldHours: 12 }), (2 + 12) * 60);
+});
+
+test('riseDoneMinutes: alltid kortere enn total tid (steking ekskludert)', () => {
+  const classic = { mode: 'classic', riseHours: 14, temperatureC: 21 };
+  const cold = { mode: 'cold', bulkHours: 2, coldHours: 12, temperatureC: 21, coldTempC: 6 };
+  assert.ok(L.riseDoneMinutes(classic) < L.modeTotalMinutes(classic));
+  assert.ok(L.riseDoneMinutes(cold) < L.modeTotalMinutes(cold));
+});
+
+test('riseDoneMinutes: ukjent modus gir 0', () => {
+  assert.equal(L.riseDoneMinutes({ mode: 'ukjent' }), 0);
+});

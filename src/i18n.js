@@ -56,9 +56,22 @@
       'field.coldProof': 'Kald etterheving',
       'field.coldTemp': 'Kjøleskapstemp',
       'field.sourAmount': 'Surdeig-mengde',
+      'field.alarm': 'Alarm når hevingen er ferdig',
+
+      // ── Alarm / nedtelling ──
+      'alarm.off': 'Av',
+      'alarm.on': 'På',
+      'alarm.help': 'Få et varsel når hevetiden er ute. Fanen må stå åpen (også i bakgrunnen).',
+      'alarm.countdown': '⏰ {dur} til hevingen er ferdig',
+      'alarm.done': '⏰ Hevingen er ferdig – på tide med neste steg!',
+      'alarm.blocked': 'Varsler er blokkert i nettleseren, men appen piper når tiden er ute (så lenge fanen er åpen).',
+      'alarm.notify.title': 'Hevingen er ferdig 🍞',
+      'alarm.notify.body': 'Klar for neste steg i oppskriften.',
 
       // ── Enheter ──
       'unit.hours': 't',
+      'unit.min': 'min',
+      'unit.sec': 'sek',
 
       // ── Knapper ──
       'flour.addBtn': '+ Legg til meltype',
@@ -266,9 +279,22 @@
       'field.coldProof': 'Cold proof',
       'field.coldTemp': 'Fridge temp',
       'field.sourAmount': 'Sourdough amount',
+      'field.alarm': 'Alarm when the rise is done',
+
+      // ── Alarm / countdown ──
+      'alarm.off': 'Off',
+      'alarm.on': 'On',
+      'alarm.help': 'Get a notification when the rise time is up. Keep this tab open (background is fine).',
+      'alarm.countdown': '⏰ {dur} until the rise is done',
+      'alarm.done': '⏰ The rise is done – time for the next step!',
+      'alarm.blocked': 'Notifications are blocked in your browser, but the app will beep when time is up (as long as this tab is open).',
+      'alarm.notify.title': 'The rise is done 🍞',
+      'alarm.notify.body': 'Ready for the next step in the recipe.',
 
       // ── Units ──
       'unit.hours': 'h',
+      'unit.min': 'min',
+      'unit.sec': 's',
 
       // ── Buttons ──
       'flour.addBtn': '+ Add flour type',

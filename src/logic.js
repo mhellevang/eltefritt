@@ -227,6 +227,16 @@
     return 0;
   }
 
+  // Minutter fra start til selve hevingen er ferdig og deigen er klar for
+  // neste aktive steg (grunnlaget for nedtelling/alarm). Klassisk: slutten av
+  // bulkhevingen (da former du deigen). Kald: slutten av kald etterheving (da
+  // skal brødet i ovnen). Ekskluderer alltid steketiden.
+  function riseDoneMinutes(state) {
+    if (state.mode === 'classic') return state.riseHours * 60;
+    if (state.mode === 'cold') return (state.bulkHours + state.coldHours) * 60;
+    return 0;
+  }
+
   // Returnerer deskriptorer; render-laget formaterer tall/temp/locale.
   // duration: { kind, key, params? }; step: { kind, labelKey, time }.
   function modePlanItems(state, start) {
@@ -379,7 +389,7 @@
     weightedHydration, calculateYeast,
     initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
     recommendedSourBulkHours, recommendedSourInoculation,
-    modeEffectiveHours, modeTotalMinutes,
+    modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,
     blandStep,
     computeRecipe, flourTips

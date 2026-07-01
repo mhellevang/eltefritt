@@ -766,6 +766,31 @@
     line-height: 1.45;
   }
 
+  /* Alarm bor nederst i Tidsplan-kortet; skill den fra planen med en tynn strek. */
+  .alarm-field {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Alarm-nedtelling: framhev tid-igjen og ferdig-tilstand. */
+  .alarm-detail.is-active {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .alarm-detail.is-done {
+    color: var(--accent);
+    font-weight: 600;
+    animation: alarm-pulse 1s ease-in-out infinite;
+  }
+  @keyframes alarm-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .alarm-detail.is-done { animation: none; }
+  }
+
   details {
     margin-top: 1rem;
   }
@@ -1249,6 +1274,17 @@
         <span class="plan-day" id="ready-day"></span>
       </div>
     </div>
+
+    <div class="field alarm-field">
+      <div class="field-label">
+        <span data-i18n="field.alarm">Alarm når hevingen er ferdig</span>
+      </div>
+      <div class="seg" style="--cols: 2" role="group" aria-label="Alarm" data-i18n-aria-label="field.alarm">
+        <button data-alarm="off" aria-pressed="true" data-i18n="alarm.off">Av</button>
+        <button data-alarm="on" aria-pressed="false" data-i18n="alarm.on">På</button>
+      </div>
+      <p class="helper-text alarm-detail" id="alarm-detail"></p>
+    </div>
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
@@ -1301,7 +1337,7 @@
   const {
     FLOUR_TYPES, LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
-    weightedHydration, modeEffectiveHours, modeTotalMinutes,
+    weightedHydration, modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,
     computeRecipe, flourTips,
     recommendedSourBulkHours, recommendedSourInoculation,
@@ -1344,7 +1380,8 @@
     sourInoculation: 20,       // brukes når leaven === 'sourdough'. % av total mel.
     sourLead: 'inoculation',   // 'inoculation' | 'time'. Hvilken slider som leder koblingen.
     timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.
-    anchorTime: '10:00'        // HH:MM
+    anchorTime: '10:00',       // HH:MM
+    alarm: false               // Nedtelling + varsel når hevingen er ferdig.
   };
 
   // ---- Helpers ----
@@ -1786,6 +1823,164 @@
     });
   }
 
+  // ---- Alarm / nedtelling ----
+  // En ren web-app kan ikke pålitelig fyre en alarm hvis fanen er lukket i
+  // timevis (Notification Triggers er Chrome-only og eksperimentelt). Derfor:
+  // live nedtelling + varsel/lyd/vibrasjon når hevingen er ferdig, så lenge
+  // fanen er åpen (også i bakgrunnen).
+  let alarmTargetMs = null;   // absolutt tidspunkt (ms) hevingen er ferdig; fryst mellom update()
+  let alarmFired = false;     // har vi allerede varslet for gjeldende mål
+  let audioCtx = null;        // opprettes ved brukergest (toggle på) for å omgå autoplay-sperre
+  let titleFlashTimer = null; // blinker fane-tittel til brukeren ser den
+  const baseTitle = () => t('doc.title');
+
+  function alarmSupported() { return typeof Notification !== 'undefined'; }
+  function alarmPermission() { return alarmSupported() ? Notification.permission : 'unsupported'; }
+
+  // "12 t 34 min 05 sek" / "45 min 05 sek" / "5 sek" i valgt locale. Sekunder
+  // (og minutter under en time) nullpolstres til to siffer så bredden ikke
+  // hopper mens den tikker. Math.ceil så den teller ned til null uten å henge
+  // på "0 sek" før alarmen faktisk går.
+  function formatDuration(ms) {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = n => String(n).padStart(2, '0');
+    if (h > 0) return `${formatNumber(h)} ${t('unit.hours')} ${pad(m)} ${t('unit.min')} ${pad(s)} ${t('unit.sec')}`;
+    if (m > 0) return `${formatNumber(m)} ${t('unit.min')} ${pad(s)} ${t('unit.sec')}`;
+    return `${formatNumber(s)} ${t('unit.sec')}`;
+  }
+
+  function alarmTargetDate() {
+    const { start } = getStartAndReady();
+    return addMinutes(start, riseDoneMinutes(state));
+  }
+
+  function stopTitleFlash() {
+    if (titleFlashTimer) { clearInterval(titleFlashTimer); titleFlashTimer = null; }
+    document.title = baseTitle();
+  }
+  function startTitleFlash() {
+    if (titleFlashTimer) return;
+    let on = false;
+    titleFlashTimer = setInterval(() => {
+      on = !on;
+      document.title = on ? '⏰ ' + t('alarm.done') : baseTitle();
+    }, 1000);
+  }
+
+  function playBeeps() {
+    if (!audioCtx) return;
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      // Tre korte pip.
+      [0, 0.4, 0.8].forEach(offset => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.3);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.32);
+      });
+    } catch (e) {}
+  }
+
+  function fireAlarm() {
+    if (alarmPermission() === 'granted') {
+      try {
+        new Notification(t('alarm.notify.title'), {
+          body: t('alarm.notify.body'),
+          icon: 'icons/icon-192.png',
+          tag: 'eltefritt-rise',
+          renotify: true
+        });
+      } catch (e) {}
+    }
+    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {} }
+    playBeeps();
+    startTitleFlash();
+  }
+
+  // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
+  function refreshCountdown(remainingMs) {
+    const el = $('#alarm-detail');
+    el.classList.remove('is-active', 'is-done');
+    if (alarmFired) {
+      el.textContent = t('alarm.done');
+      el.classList.add('is-done');
+      return;
+    }
+    if (alarmPermission() === 'denied') {
+      el.textContent = t('alarm.countdown', { dur: formatDuration(remainingMs) }) + ' · ' + t('alarm.blocked');
+    } else {
+      el.textContent = t('alarm.countdown', { dur: formatDuration(remainingMs) });
+    }
+    el.classList.add('is-active');
+  }
+
+  // Kalles fra update(): synk toggle-knapper og (re)arm målet ut fra planen.
+  function renderAlarm() {
+    renderSegment($$('.seg button[data-alarm]'), state.alarm ? 'on' : 'off', 'alarm');
+    const el = $('#alarm-detail');
+    if (!state.alarm) {
+      alarmTargetMs = null;
+      alarmFired = false;
+      stopTitleFlash();
+      el.classList.remove('is-active', 'is-done');
+      el.textContent = t('alarm.help');
+      return;
+    }
+    const ms = alarmTargetDate().getTime();
+    if (ms !== alarmTargetMs) {
+      // Planen endret seg: arm på nytt. Ikke fyr etterskuddsvis for et mål
+      // som allerede er passert (f.eks. ved gjenoppretting).
+      alarmTargetMs = ms;
+      alarmFired = Date.now() >= ms;
+      if (!alarmFired) stopTitleFlash();
+    }
+    refreshCountdown(alarmTargetMs - Date.now());
+  }
+
+  // 1 Hz-tikk: oppdater nedtelling og fyr alarmen når tiden er ute.
+  function alarmTick() {
+    if (!state.alarm || alarmTargetMs == null) return;
+    const remaining = alarmTargetMs - Date.now();
+    if (remaining <= 0 && !alarmFired) {
+      alarmFired = true;
+      fireAlarm();
+    }
+    refreshCountdown(remaining);
+  }
+  setInterval(alarmTick, 1000);
+
+  // Stopp blinking når brukeren kommer tilbake til fanen.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && alarmFired) stopTitleFlash();
+  });
+
+  function setAlarm(on) {
+    if (on && !state.alarm) {
+      // Brukergest: opprett/vekk audio-context nå, så pip er tillatt senere.
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) { if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+      } catch (e) {}
+      // Be om varselstillatelse (ufarlig om den allerede er avgjort).
+      if (alarmSupported() && Notification.permission === 'default') {
+        try { Notification.requestPermission().then(() => update({ skipFlourList: true })); } catch (e) {}
+      }
+    }
+    if (!on) stopTitleFlash();
+    state.alarm = on;
+    update({ skipFlourList: true });
+  }
+
   // Temperatur-avlesning: tall i valgt enhet + enhets-suffiks (°C/°F). Modellen
   // forblir Celsius; bare visningen konverteres.
   function renderTempReadout(id, celsius) {
@@ -1960,6 +2155,7 @@
 
     renderFlourBreakdown(result.flourAdded);
     renderPlan();
+    renderAlarm();
 
     // Lagre state
     try {
@@ -2144,6 +2340,10 @@
       resyncSourFromLead();
       update();
     });
+  });
+
+  $$('.seg button[data-alarm]').forEach(btn => {
+    btn.addEventListener('click', () => setAlarm(btn.dataset.alarm === 'on'));
   });
 
   $('#start-time').addEventListener('input', e => {
