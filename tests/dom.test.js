@@ -292,6 +292,78 @@ test('vannrad: inline temp-stepper endrer vanntemp, gjær og Heving-slideren', a
   }
 });
 
+// HH:MM-regning for tidsplan-testene (mod 24 t, så midnattskryssing er ufarlig).
+function hmToMin(str) { const [h, m] = str.split(':').map(Number); return h * 60 + m; }
+function minToHM(min) {
+  const norm = ((min % 1440) + 1440) % 1440;
+  return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
+}
+
+test('tidsplan: senere klar-tid strekker hevetiden i stedet for å flytte starten', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const startBefore = document.getElementById('start-time').value;
+    const readyBefore = document.getElementById('ready-time').value;
+    assert.equal(document.getElementById('time-value').textContent, '14');
+
+    const readyInput = document.getElementById('ready-time');
+    readyInput.value = minToHM(hmToMin(readyBefore) + 60);
+    fire(window, readyInput, 'input');
+
+    assert.equal(document.getElementById('time-value').textContent, '15',
+      'hevetiden skal øke med én time');
+    assert.equal(document.getElementById('start-time').value, startBefore,
+      'starten skal stå fast');
+    assert.equal(document.getElementById('rise-time').value, '15',
+      'slideren skal følge med');
+  } finally {
+    close();
+  }
+});
+
+test('tidsplan: klar-tid utenfor sliderens grenser flytter starten som før', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const startBefore = document.getElementById('start-time').value;
+    // +27 t 15 min krever 25 t bulk (maks er 24) ⇒ fall tilbake til å ankre
+    // på klar-tiden og flytte starten, med hevetiden uendret.
+    const readyInput = document.getElementById('ready-time');
+    readyInput.value = minToHM(hmToMin(startBefore) + 27 * 60 + 15);
+    fire(window, readyInput, 'input');
+
+    assert.equal(document.getElementById('time-value').textContent, '14',
+      'hevetiden skal være uendret');
+    assert.equal(document.getElementById('start-time').value,
+      minToHM(hmToMin(startBefore) + 11 * 60),
+      'starten skal flyttes så totaltiden (16 t 15 min) treffer ny klar-tid');
+  } finally {
+    close();
+  }
+});
+
+test('tidsplan: i kald modus er det kjøleskapsfasen som strekkes', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+    const startBefore = document.getElementById('start-time').value;
+    const readyBefore = document.getElementById('ready-time').value;
+    assert.equal(document.getElementById('cold-time-value').textContent, '12');
+
+    const readyInput = document.getElementById('ready-time');
+    readyInput.value = minToHM(hmToMin(readyBefore) + 2 * 60);
+    fire(window, readyInput, 'input');
+
+    assert.equal(document.getElementById('cold-time-value').textContent, '14',
+      'kald etterheving skal øke med to timer');
+    assert.equal(document.getElementById('bulk-time-value').textContent, '2',
+      'bulkhevingen skal være uendret');
+    assert.equal(document.getElementById('start-time').value, startBefore,
+      'starten skal stå fast');
+  } finally {
+    close();
+  }
+});
+
 test('vannrad: gram-hintet ved vanntemp-slideren følger oppskriftens vannmengde', async () => {
   const { document, close } = await loadPage();
   try {

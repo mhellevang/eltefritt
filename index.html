@@ -2418,10 +2418,50 @@
     update({ skipFlourList: true });
   });
 
+  // Ny klar-tid betyr "jeg vil ha brødet klart da", ikke "flytt hele planen":
+  // starten står fast og hevetiden strekkes/krympes i stedet (klassisk: bulk,
+  // kald: kjøleskapsfasen). Først når ønsket tid krever en hevetid utenfor
+  // sliderens grenser, ankres planen på klar-tiden og starten flyttes (som før).
   $('#ready-time').addEventListener('input', e => {
     if (!e.target.value) return;
-    state.timeAnchor = 'ready';
-    state.anchorTime = e.target.value;
+    const { start } = getStartAndReady();
+    const total = modeTotalMinutes(state);
+    const [hh, mm] = e.target.value.split(':').map(Number);
+    const sameDay = new Date(start);
+    sameDay.setHours(hh, mm, 0, 0);
+    // HH:MM er tvetydig over døgngrenser (kald modus kan passere 24 t):
+    // velg døgn-kandidaten som ligger nærmest dagens totaltid.
+    const diffMin = Math.round((sameDay - start) / 60000);
+    let gap = null;
+    for (let k = 0; k <= 2; k++) {
+      const cand = diffMin + k * 24 * 60;
+      if (cand <= 0) continue;
+      if (gap === null || Math.abs(cand - total) < Math.abs(gap - total)) gap = cand;
+    }
+    const slider = state.mode === 'cold' ? $('#cold-time') : $('#rise-time');
+    const curHours = state.mode === 'cold' ? state.coldHours : state.riseHours;
+    const fixedMin = total - curHours * 60;
+    const newHours = Math.round((gap - fixedMin) / 60);
+
+    if (newHours >= parseInt(slider.min, 10) && newHours <= parseInt(slider.max, 10)) {
+      slider.value = newHours;
+      refreshStepperVisual(slider);
+      if (state.mode === 'cold') {
+        state.coldHours = newHours;
+        resyncSourFromLead();
+      } else {
+        state.riseHours = newHours;
+        if (state.leaven === 'sourdough') {
+          state.sourLead = 'time';
+          syncSourInoculationFromBulk();
+        }
+      }
+      state.timeAnchor = 'start';
+      state.anchorTime = formatTimeHM(start);
+    } else {
+      state.timeAnchor = 'ready';
+      state.anchorTime = e.target.value;
+    }
     update({ skipFlourList: true });
   });
 
