@@ -260,3 +260,45 @@ test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => 
     close();
   }
 });
+
+test('vannrad: inline temp-stepper endrer vanntemp, gjær og Heving-slideren', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const plus = document.querySelector('.water-temp-inline [data-step-dir="1"]');
+    const yeastBefore = document.getElementById('yeast-amount').textContent;
+
+    fire(window, plus, 'click');
+    fire(window, plus, 'click');
+    fire(window, plus, 'click');
+
+    // Inline-visning og slideren i Heving skal følge med.
+    assert.equal(document.getElementById('water-temp-inline-value').textContent, '24');
+    assert.equal(document.getElementById('water-temp-value').textContent, '24');
+    assert.equal(document.getElementById('water-temp').value, '24');
+
+    // Effekten på gjær er dempet (vektet blandetemp + avkjøling mot romtemp),
+    // så gå helt til maks 40 °C for en avrundings-synlig endring.
+    for (let i = 0; i < 16; i++) fire(window, plus, 'click');
+    assert.equal(document.getElementById('water-temp').value, '40');
+    assert.notEqual(
+      document.getElementById('yeast-amount').textContent, yeastBefore,
+      'gjærmengden skal endres når vanntemp settes opp'
+    );
+
+    // Manuelt satt temp ⇒ sub-teksten "romtemperert" forsvinner.
+    assert.equal(document.getElementById('water-sub').textContent, '');
+  } finally {
+    close();
+  }
+});
+
+test('vannrad: gram-hintet ved vanntemp-slideren følger oppskriftens vannmengde', async () => {
+  const { document, close } = await loadPage();
+  try {
+    const grams = document.getElementById('water-temp-grams').textContent;
+    const water = document.getElementById('water-amount').textContent;
+    assert.equal(grams, `til ${water} g vann`);
+  } finally {
+    close();
+  }
+});

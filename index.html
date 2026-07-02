@@ -205,6 +205,12 @@
     font-size: 0.95rem;
   }
 
+  .field-label-sub {
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--ink-mute);
+  }
+
   .field-value {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
@@ -609,6 +615,40 @@
     color: var(--ink-mute);
     font-weight: 400;
     margin-left: 0.5rem;
+  }
+
+  /* Vannraden har en inline temp-stepper mellom navn og mengde, så brukeren kan
+     sette målt vanntemp der oppskriften leses (styrer samme input som slideren
+     i Heving). */
+  .ingredient-water {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .ingredient-water .name {
+    flex: 1 1 auto;
+  }
+
+  .water-temp-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .water-temp-inline .step-btn {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    font-size: 1.1rem;
+  }
+
+  .water-temp-inline-value {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    min-width: 3em;
+    text-align: center;
   }
 
   .sub-ingredients {
@@ -1131,7 +1171,7 @@
 
     <div class="field">
       <div class="field-label">
-        <span data-i18n="field.waterTemp">Vanntemperatur</span>
+        <span><span data-i18n="field.waterTemp">Vanntemperatur</span> <span class="field-label-sub" id="water-temp-grams">til 323 g vann</span></span>
         <span class="field-value"><span id="water-temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="water-temp">
@@ -1296,8 +1336,13 @@
     </div>
     <div class="sub-ingredients" id="flour-breakdown"></div>
 
-    <div class="ingredient">
+    <div class="ingredient ingredient-water">
       <span class="name"><span data-i18n="ingredient.water">Vann</span> <span class="sub" id="water-sub">romtemperert</span></span>
+      <span class="water-temp-inline" data-stepper-for="water-temp">
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser vanntemperatur">−</button>
+        <span class="water-temp-inline-value"><span id="water-temp-inline-value">21</span><span class="temp-unit">°C</span></span>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk vanntemperatur">+</button>
+      </span>
       <span class="amount"><span id="water-amount">323</span> g</span>
     </div>
 
@@ -2014,7 +2059,7 @@
     'sour-inoculation': 'aria.field.sourAmount'
   };
   function localizeStaticSteppers() {
-    $$('.stepper[data-stepper-for]').forEach(st => {
+    $$('[data-stepper-for]').forEach(st => {
       const fieldKey = STEPPER_FIELD[st.getAttribute('data-stepper-for')];
       if (!fieldKey) return;
       const field = t(fieldKey);
@@ -2090,6 +2135,7 @@
 
     renderTempReadout('temp-value', state.temperatureC);
     renderTempReadout('water-temp-value', state.waterTempC);
+    renderTempReadout('water-temp-inline-value', state.waterTempC);
     $('#time-value').textContent = state.riseHours;
     $('#bulk-time-value').textContent = state.bulkHours;
     $('#cold-time-value').textContent = state.coldHours;
@@ -2129,9 +2175,12 @@
 
     $('#flour-amount').textContent = formatGrams(result.flourAdded);
     $('#water-amount').textContent = formatGrams(result.water);
+    $('#water-temp-grams').textContent = t('field.waterTemp.grams', { grams: formatGrams(result.water) });
+    // Temp-tallet vises alltid i inline-stepperen; sub-teksten sier bare fra
+    // når vannet fortsatt følger romtemp.
     $('#water-sub').textContent = state.waterTempC === state.temperatureC
       ? t('water.sub.roomTemp')
-      : fmtTemp(state.waterTempC);
+      : '';
     $('#salt-amount').textContent = formatGrams(result.salt);
 
     if (result.leaven === 'sourdough') {
@@ -2283,6 +2332,22 @@
     state.waterTempManual = state.waterTempC !== state.temperatureC;
     update({ skipFlourList: true });
   });
+
+  // Inline-stepperen i oppskriftens vannrad driver samme #water-temp-input,
+  // så clamp (5–40) og manuell-flagget gjenbrukes via input-eventet.
+  {
+    const input = $('#water-temp');
+    const inline = $('.water-temp-inline');
+    const step = (dir) => {
+      const before = input.value;
+      if (dir > 0) input.stepUp(); else input.stepDown();
+      if (input.value !== before) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    };
+    attachHoldButton(inline.querySelector('[data-step-dir="-1"]'), () => step(-1));
+    attachHoldButton(inline.querySelector('[data-step-dir="1"]'), () => step(1));
+  }
 
   $('#rise-time').addEventListener('input', e => {
     state.riseHours = parseInt(e.target.value, 10);
