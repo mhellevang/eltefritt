@@ -155,7 +155,7 @@
       'hydration.suggestion.range': '{min}–{max}% vann',
 
       // ── Utstyr ──
-      'equipment.line': '🥘 {pot}. 🧺 Banneton {banneton} (valgfritt)',
+      'equipment.line': '{pot}. Banneton {banneton} (valgfritt)',
       'equipment.perLoaf': ' (per brød)',
       'equipment.pot.s': 'Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L',
       'equipment.pot.m': 'Jerngryte 5 L (26 cm), eller brødform 2,5 L',
@@ -379,7 +379,7 @@
       'hydration.suggestion.range': '{min}–{max}% water',
 
       // ── Equipment ──
-      'equipment.line': '🥘 {pot}. 🧺 Banneton {banneton} (optional)',
+      'equipment.line': '{pot}. Banneton {banneton} (optional)',
       'equipment.perLoaf': ' (per loaf)',
       'equipment.pot.s': 'Dutch oven 4–4.5 L (23–24 cm), or loaf pan 2 L',
       'equipment.pot.m': 'Dutch oven 5 L (26 cm), or loaf pan 2.5 L',

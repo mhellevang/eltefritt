@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#f1efe9" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#191713" media="(prefers-color-scheme: dark)" />
 <meta name="description" content="Kalkulator og bakplan for eltefritt brød. Jim Lahey-metoden, med støtte for kald etterheving." />
 <title>Eltefritt: kalkulator for eltefritt brød</title>
 
@@ -38,7 +38,7 @@
       if (t === 'light' || t === 'dark') {
         document.documentElement.setAttribute('data-theme', t);
         // Manuelt tema overstyrer media-attributtene på theme-color-metaene.
-        var color = t === 'dark' ? '#1c1b18' : '#fafaf7';
+        var color = t === 'dark' ? '#191713' : '#f1efe9';
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', color);
       }
@@ -67,56 +67,63 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* Palett "mel og jern": melgrå grunn, krummehvite kort, jernsvart tekst,
+     skorpe-brun aksent. Mørkt tema er støpejern med glo-aksent. */
   :root {
-    --bg: #fafaf7;
-    --surface: #ffffff;
-    --surface-2: #f3f2ed;
-    --ink: #2a2826;
-    --ink-soft: #6e6a64;
-    --ink-mute: #aaa6a0;
-    --accent: #d97757;
-    --accent-soft: #f0b896;
-    --line: #ecebe6;
-    --good: #6e8f53;
+    --bg: #f1efe9;
+    --surface: #fdfcfa;
+    --surface-2: #eae7df;
+    --ink: #221c15;
+    --ink-soft: #6b655c;
+    --ink-mute: #a49d92;
+    --accent: #a35412;
+    --accent-soft: #dfa565;
+    --line: #e2ded4;
+    --good: #5c7d4a;
     --shadow: 0 1px 2px rgba(40, 30, 20, 0.04),
                0 6px 20px rgba(40, 30, 20, 0.05);
   }
 
   :root[data-theme="dark"] {
-    --bg: #1c1b18;
-    --surface: #26241f;
-    --surface-2: #2f2d28;
-    --ink: #f5f2ec;
-    --ink-soft: #b8b3a8;
-    --ink-mute: #807b73;
-    --accent: #e89977;
-    --accent-soft: #b86d3e;
-    --line: #3a3732;
-    --good: #9bc170;
+    --bg: #191713;
+    --surface: #23201a;
+    --surface-2: #2c2820;
+    --ink: #f1ece2;
+    --ink-soft: #b5aea1;
+    --ink-mute: #7d766a;
+    --accent: #d98e4d;
+    --accent-soft: #8a5a28;
+    --line: #38332a;
+    --good: #93b56e;
     --shadow: 0 1px 2px rgba(0,0,0,0.25),
                0 6px 20px rgba(0,0,0,0.3);
   }
 
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #1c1b18;
-      --surface: #26241f;
-      --surface-2: #2f2d28;
-      --ink: #f5f2ec;
-      --ink-soft: #b8b3a8;
-      --ink-mute: #807b73;
-      --accent: #e89977;
-      --accent-soft: #b86d3e;
-      --line: #3a3732;
-      --good: #9bc170;
+      --bg: #191713;
+      --surface: #23201a;
+      --surface-2: #2c2820;
+      --ink: #f1ece2;
+      --ink-soft: #b5aea1;
+      --ink-mute: #7d766a;
+      --accent: #d98e4d;
+      --accent-soft: #8a5a28;
+      --line: #38332a;
+      --good: #93b56e;
       --shadow: 0 1px 2px rgba(0,0,0,0.25),
                  0 6px 20px rgba(0,0,0,0.3);
     }
   }
 
   * { box-sizing: border-box; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
   html {
     scrollbar-width: none;
@@ -131,7 +138,7 @@
     padding: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: 'Schibsted Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -163,10 +170,10 @@
   }
 
   h1 {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Bricolage Grotesque', 'Schibsted Grotesk', system-ui, sans-serif;
     font-weight: 800;
     font-size: 2rem;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     margin: 0 0 0.25rem;
   }
 
@@ -212,9 +219,8 @@
   }
 
   .field-value {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 1.05rem;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
@@ -376,9 +382,8 @@
   }
 
   .flour-row .flour-pct {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 1.05rem;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     min-width: 3.2rem;
@@ -574,13 +579,25 @@
   }
 
   .card-title {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.3rem;
+    font-family: 'Bricolage Grotesque', 'Schibsted Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
     margin: 0 0 1.25rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
+  }
+
+  /* Snittmerket: bakerens skrå snitt i deigen, som gjennomgående seksjonsmerke. */
+  .card-title::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 4px;
+    height: 1.05em;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: rotate(24deg);
   }
 
   .ingredient {
@@ -604,9 +621,8 @@
   }
 
   .ingredient .amount {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.15rem;
+    font-weight: 700;
+    font-size: 1.1rem;
     font-variant-numeric: tabular-nums;
   }
 
@@ -686,18 +702,53 @@
     margin-bottom: 1.5rem;
   }
 
+  /* Døgnskinnen: en vertikal skinne bak stegene der fargen følger klokka —
+     kveldsgul ved start, dyp natt gjennom hevingen, morgenlys ved steking.
+     Gradienten regnes ut fra faktiske klokkeslett i renderPlan(). */
+  #plan-steps {
+    position: relative;
+    margin: 0.15rem 0 0.15rem 1.05rem;
+    padding: 0.5rem 0 0.5rem 1.45rem;
+  }
+
+  #plan-steps::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    border-radius: 2px;
+    background: var(--rail, var(--line));
+  }
+
   .plan-step {
+    position: relative;
     display: grid;
-    grid-template-columns: 1.5rem 1fr auto;
+    grid-template-columns: 1fr auto;
     gap: 0.6rem;
     align-items: center;
     padding: 0.4rem 0;
   }
 
-  .plan-step .plan-icon {
-    font-size: 1rem;
-    text-align: center;
-    color: var(--ink-mute);
+  .plan-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--dot, var(--ink-mute));
+    box-shadow: 0 0 0 3px var(--surface);
+    flex: 0 0 auto;
+  }
+
+  .plan-step .plan-dot {
+    position: absolute;
+    left: calc(-1.45rem - 3px);
+    top: 50%;
+    transform: translate(0, -50%);
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 0 0 2.5px var(--surface);
   }
 
   .plan-step .plan-label {
@@ -706,8 +757,7 @@
   }
 
   .plan-step .plan-time {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1rem;
     font-variant-numeric: tabular-nums;
     color: var(--ink);
@@ -717,7 +767,6 @@
   }
 
   .plan-step .plan-time .plan-day {
-    font-family: 'Inter', sans-serif;
     font-size: 0.75rem;
     color: var(--ink-mute);
     font-weight: 400;
@@ -733,8 +782,8 @@
     margin: 0.35rem 0;
   }
 
-  .plan-anchor .plan-icon {
-    font-size: 1.3rem;
+  .plan-anchor .plan-dot {
+    margin: 0 0.15rem 0 0.2rem;
   }
 
   .plan-anchor .plan-label {
@@ -749,12 +798,12 @@
     background: var(--surface);
     border-radius: 8px;
     padding: 0.45rem 0.55rem;
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
+    font-family: inherit;
+    font-weight: 700;
     font-size: 1.05rem;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
-    width: 6rem;
+    width: 6.75rem;
   }
 
   .plan-anchor .plan-day {
@@ -791,9 +840,7 @@
   }
 
   .plan-duration {
-    margin-left: 0.7rem;
-    padding: 0.4rem 0 0.4rem 1.4rem;
-    border-left: 2px dashed var(--line);
+    padding: 0.35rem 0;
     color: var(--ink-mute);
     font-size: 0.85rem;
     font-style: italic;
@@ -966,6 +1013,11 @@
 
   @media (max-width: 480px) {
     .app { padding: 1rem 0.875rem 3rem; }
+    .plan-anchor { gap: 0.5rem; }
+    .plan-anchor .plan-time-input { width: 6.4rem; font-size: 0.95rem; }
+    .plan-anchor .plan-day { white-space: nowrap; }
+    .plan-now-btn { padding: 0.4rem 0.5rem; }
+    .plan-anchor .plan-dot { margin: 0 0 0 0.1rem; }
     .card { padding: 1rem; border-radius: 16px; }
     h1 { font-size: 1.7rem; }
     .logo img { width: 112px; height: 112px; }
@@ -1060,7 +1112,7 @@
   <div class="col-inputs">
 
   <section class="card" aria-label="Brødet">
-    <h2 class="card-title">🍞 <span data-i18n="card.bread">Brødet</span></h2>
+    <h2 class="card-title"><span data-i18n="card.bread">Brødet</span></h2>
 
     <div class="field">
       <div class="field-label">
@@ -1091,7 +1143,7 @@
         <span data-i18n="field.sizeUnit">g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
-      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">🥘 Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L. 🧺 Banneton 23 cm rundt (valgfritt)</p>
+      <p class="helper-text" id="equipment-detail" style="margin-top: 0.25rem;">Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L. Banneton 23 cm rundt (valgfritt)</p>
     </div>
 
     <div class="field">
@@ -1126,7 +1178,7 @@
   </section>
 
   <section class="card" aria-label="Heving">
-    <h2 class="card-title">🫧 <span data-i18n="card.rise">Heving</span></h2>
+    <h2 class="card-title"><span data-i18n="card.rise">Heving</span></h2>
 
     <div class="field">
       <div class="field-label">
@@ -1294,11 +1346,11 @@
   <div class="col-results">
 
   <section class="card card-output" aria-label="Tidsplan">
-    <h2 class="card-title">⏳ <span data-i18n="card.timeline">Tidsplan</span></h2>
+    <h2 class="card-title"><span data-i18n="card.timeline">Tidsplan</span></h2>
 
     <div class="plan">
       <div class="plan-anchor plan-anchor-start">
-        <span class="plan-icon">⏱</span>
+        <span class="plan-dot" id="start-dot" aria-hidden="true"></span>
         <span class="plan-label" data-i18n="plan.start">Start</span>
         <input type="time" class="plan-time-input" id="start-time" />
         <span class="plan-day" id="start-day"></span>
@@ -1308,7 +1360,7 @@
       <div id="plan-steps"></div>
 
       <div class="plan-anchor plan-anchor-ready">
-        <span class="plan-icon">🍞</span>
+        <span class="plan-dot" id="ready-dot" aria-hidden="true"></span>
         <span class="plan-label" data-i18n="plan.ready">Klar</span>
         <input type="time" class="plan-time-input" id="ready-time" />
         <span class="plan-day" id="ready-day"></span>
@@ -1328,7 +1380,7 @@
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
-    <h2 class="card-title">📋 <span data-i18n="card.recipe">Oppskrift</span></h2>
+    <h2 class="card-title"><span data-i18n="card.recipe">Oppskrift</span></h2>
 
     <div class="ingredient">
       <span class="name"><span data-i18n="ingredient.flour">Mel</span> <span class="sub" id="flour-types-label"></span></span>
@@ -1765,7 +1817,7 @@
       el.innerHTML = '';
     } else {
       el.hidden = false;
-      el.innerHTML = tips.map(tip => `<p>💡 ${t(tip.key)}</p>`).join('');
+      el.innerHTML = tips.map(tip => `<p>${t(tip.key)}</p>`).join('');
     }
   }
 
@@ -1836,6 +1888,30 @@
     });
   }
 
+  // Døgnskinnen: skinnefargen følger klokka, så planen viser natta deigen
+  // hever gjennom. Knekkpunkter (time, rgb) med lineær blanding mellom dem.
+  const RAIL_KEYS = [
+    [0,    [56, 63, 105]],   // natt
+    [4.5,  [56, 63, 105]],
+    [7.5,  [222, 158, 92]],  // morgen
+    [10,   [235, 200, 122]], // dag
+    [16.5, [235, 200, 122]],
+    [19.5, [200, 116, 60]],  // kveld
+    [23,   [56, 63, 105]],
+    [24,   [56, 63, 105]]
+  ];
+
+  function railColor(date) {
+    const h = date.getHours() + date.getMinutes() / 60;
+    let i = 1;
+    while (RAIL_KEYS[i][0] < h) i++;
+    const [h0, c0] = RAIL_KEYS[i - 1];
+    const [h1, c1] = RAIL_KEYS[i];
+    const f = (h - h0) / (h1 - h0);
+    const c = c0.map((v, j) => Math.round(v + (c1[j] - v) * f));
+    return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  }
+
   function renderPlan() {
     const { start, ready } = getStartAndReady();
     const startInput = $('#start-time');
@@ -1844,9 +1920,12 @@
     if (document.activeElement !== readyInput) readyInput.value = formatTimeHM(ready);
     $('#start-day').textContent = dayLabelInfo(start).label;
     $('#ready-day').textContent = dayLabelInfo(ready).label;
+    $('#start-dot').style.background = railColor(start);
+    $('#ready-dot').style.background = railColor(ready);
 
     const stepsEl = $('#plan-steps');
     stepsEl.innerHTML = '';
+    const stepEls = [];
     modePlanItems(state, start).forEach(item => {
       if (item.kind === 'duration') {
         const d = document.createElement('div');
@@ -1859,13 +1938,39 @@
         const day = dayLabelInfo(item.time);
         const dayHtml = day.isToday ? '' : ` <span class="plan-day">${day.label}</span>`;
         s.innerHTML = `
-          <span class="plan-icon">·</span>
+          <span class="plan-dot" aria-hidden="true" style="background: ${railColor(item.time)}"></span>
           <span class="plan-label">${t(item.labelKey)}</span>
           <span class="plan-time">${formatTimeHM(item.time)}${dayHtml}</span>
         `;
         stepsEl.appendChild(s);
+        stepEls.push([s, item.time]);
       }
     });
+
+    // Gradienten forankres i start (topp), hvert steg og klar (bunn); mellom
+    // ankrene samples fargen omtrent time for time, så natta blir synlig midt
+    // i lange hevestrekk selv uten steg der.
+    const totalH = stepsEl.offsetHeight;
+    if (!totalH) return;
+    const anchors = [[0, start]];
+    stepEls.forEach(([el, time]) => {
+      anchors.push([(el.offsetTop + el.offsetHeight / 2) / totalH, time]);
+    });
+    anchors.push([1, ready]);
+    const stops = [];
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const [p0, t0] = anchors[i];
+      const [p1, t1] = anchors[i + 1];
+      const spanMs = t1 - t0;
+      const n = Math.max(1, Math.min(24, Math.round(spanMs / 3600000)));
+      for (let k = 0; k < n; k++) {
+        const f = k / n;
+        const at = new Date(t0.getTime() + spanMs * f);
+        stops.push(`${railColor(at)} ${((p0 + (p1 - p0) * f) * 100).toFixed(1)}%`);
+      }
+    }
+    stops.push(`${railColor(ready)} 100%`);
+    stepsEl.style.setProperty('--rail', `linear-gradient(to bottom, ${stops.join(', ')})`);
   }
 
   // ---- Alarm / nedtelling ----
@@ -2498,10 +2603,10 @@
   function syncThemeColorMeta(choice) {
     document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
       if (choice === 'light' || choice === 'dark') {
-        m.setAttribute('content', choice === 'dark' ? '#1c1b18' : '#fafaf7');
+        m.setAttribute('content', choice === 'dark' ? '#191713' : '#f1efe9');
       } else {
         const media = m.getAttribute('media') || '';
-        m.setAttribute('content', media.includes('dark') ? '#1c1b18' : '#fafaf7');
+        m.setAttribute('content', media.includes('dark') ? '#191713' : '#f1efe9');
       }
     });
   }
