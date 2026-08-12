@@ -28,16 +28,18 @@ Salt    = mel × 2 %
 Gjær    = 0,23 % × (14 t / effektive timer)   ← tørrgjær eller ferskgjær
 Surdeig = mel × inokulering %                 ← surdeig
 
-Effektive timer = Σ fase_time × 2^((T - 21°C) / 10)
+Effektive timer = Σ fase_time × 2^((T - 21°C) / 10)   ← over ~10 °C
 ```
 
 Referansepunktet er 0,23 % tørrgjær for 14 timers heving ved 21 °C. Ferskgjær ≈ tørrgjær × 3. Med surdeig antas 100%-hydrert starter; halvparten av starter-vekten regnes som mel og halvparten som vann, og trekkes fra de mengdene du blander inn.
 
-Effektive timer er litt mer nyansert enn formelen over antyder: når vannet er varmere eller kjøligere enn rommet integreres Q10-faktoren mens deigtemperaturen glir mot romtemp via Newtons avkjøling (vektet etter mel/vann sin varmekapasitet). I kald modus modelleres på samme måte at en romtemperert deig fortsetter å gjære mens den kjøler ned i kjøleskapet. Klassisk modus regner med en andreheving på ~1,5 t i tillegg til bulken.
+Effektive timer er litt mer nyansert enn formelen over antyder: når vannet er varmere eller kjøligere enn rommet integreres temperaturfaktoren mens deigtemperaturen glir mot romtemp via Newtons avkjøling (vektet etter mel/vann sin varmekapasitet). I kald modus modelleres på samme måte at en romtemperert deig fortsetter å gjære mens den kjøler ned i kjøleskapet. Klassisk modus regner med en andreheving på ~1,5 t i tillegg til bulken.
+
+Under ~10 °C faller gjæraktiviteten brattere enn Q10 ≈ 2 tilsier: der brukes Ratkowsky-formen rate ∝ (T − 1 °C)², skjøtt kontinuerlig mot Q10-kurven ved 10 °C, slik at gjæren er nær dvale ved kjøleskapstemp. Dette matcher [The Sourdough Journeys](https://thesourdoughjourney.com/) observasjon om at nesten all kjøleskapsgjæring skjer i nedkjølingsfasen.
 
 ### Surdeig-anker
 
-20 % levain ved 21 °C ≈ 11 t bulk til ~70–75 % heving, basert på [The Sourdough Journey](https://thesourdoughjourney.com/the-mystery-of-percentage-rise-in-bulk-fermentation/) sine bulk-tabeller. Inokulering × bulk-tid er omvendt proporsjonalt, og skalerer med Q10 ≈ 2 etter temperatur. Starter-styrke varierer ±25 %, så dette er veiledende.
+20 % levain ved 21 °C ≈ 11 t bulk til ~70–75 % heving, basert på [The Sourdough Journey](https://thesourdoughjourney.com/the-mystery-of-percentage-rise-in-bulk-fermentation/) sine bulk-tabeller. Inokulering × bulk-tid er omvendt proporsjonalt, og skalerer med samme temperaturfaktor som gjærberegningen. Starter-styrke varierer ±25 %, så dette er veiledende.
 
 I kald modus teller også kjøleskapsfasen med: dens 21°-ekvivalente timer (fra samme Newtons avkjøling-modell som gjærberegningen) trekkes fra bulk-målet, slik at anbefalt bulk + kald etterheving til sammen treffer ankeret. Kan ikke slideren nå anbefalingen, vises et hint i stedet for at verdien klampes stille.
 

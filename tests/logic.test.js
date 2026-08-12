@@ -59,6 +59,45 @@ test('calculateYeast: veldig kort effHours clampes for å unngå deling på null
   assert.ok(r.pct > 0);
 });
 
+// ─── fermentationFactor ────────────────────────────────────────────────────
+
+test('fermentationFactor: følger Q10 ≈ 2 over kneet', () => {
+  assert.equal(L.fermentationFactor(21), 1);
+  assert.equal(L.fermentationFactor(31), 2);
+  assert.equal(L.fermentationFactor(11), Math.pow(2, -1));
+});
+
+test('fermentationFactor: kontinuerlig i kneet ved 10°C', () => {
+  const above = L.fermentationFactor(10);
+  const below = L.fermentationFactor(10 - 1e-9);
+  assert.ok(Math.abs(above - below) < 1e-6);
+});
+
+test('fermentationFactor: faller brattere enn Q10 under kneet', () => {
+  // Ved 4°C sier ren Q10 ~0,31; Ratkowsky-delen skal ligge klart under.
+  const q10 = Math.pow(2, (4 - 21) / 10);
+  assert.ok(L.fermentationFactor(4) < q10 / 3);
+});
+
+test('fermentationFactor: null ved og under Tmin', () => {
+  assert.equal(L.fermentationFactor(L.FERMENT_MIN_TEMP_C), 0);
+  assert.equal(L.fermentationFactor(-5), 0);
+});
+
+test('fermentationFactor: strengt økende i kjøleskapsområdet 2–10°C', () => {
+  for (let t = 2; t < 10; t++) {
+    assert.ok(L.fermentationFactor(t) < L.fermentationFactor(t + 1));
+  }
+});
+
+test('effectiveColdHours: kald fase domineres av nedkjølingen, ikke steady-state', () => {
+  // 12 t ved 4°C fra romtemp: mesteparten av de effektive timene skal komme
+  // fra de første timene (varm deig), ikke fra tiden etter equilibrering.
+  const first6 = L.effectiveColdHours(6, 4, 21);
+  const full12 = L.effectiveColdHours(12, 4, 21);
+  assert.ok(first6 > (full12 - first6) * 3);
+});
+
 // ─── recommendedSourBulkHours / recommendedSourInoculation ────────────────
 
 test('recommendedSourBulkHours: 20% @ 21°C = referanse 11 t', () => {
@@ -202,7 +241,7 @@ test('modeEffectiveHours: kald summerer bulk + nedkjølt kjøleskapsfase', () =>
 test('effectiveColdHours: nedkjøling gir flere effektive timer enn konstant kjøleskapsfaktor', () => {
   // En varm deig gjærer mer mens den kjøler ned enn om den var 4°C hele tiden.
   const withCooldown = L.effectiveColdHours(12, 4, 21);
-  const constant = 12 * Math.pow(2, (4 - 21) / 10);
+  const constant = 12 * L.fermentationFactor(4);
   assert.ok(withCooldown > constant,
     `forventet at nedkjøling gir mer gjæring (nedkjøl=${withCooldown}, konstant=${constant})`);
 });

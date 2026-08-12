@@ -104,6 +104,27 @@
   const addMinutes = (d, m) => new Date(d.getTime() + m * 60 * 1000);
   const addHours = (d, h) => addMinutes(d, h * 60);
 
+  // ---- Fermenteringshastighet vs. temperatur ----
+  // Over ~10 °C følger gjæraktiviteten Q10 ≈ 2 (dobling per 10 °C), som alle
+  // referansepunktene i appen er kalibrert mot (21 °C og oppover). Under
+  // ~10 °C faller aktiviteten brattere enn Q10 tilsier, og gjæren er nær
+  // dvale ved kjøleskapstemp: The Sourdough Journey finner at det skjer lite
+  // gjæring etter at deigen har nådd ~4 °C — nesten alt skjer i nedkjølings-
+  // fasen. Lavtemp-delen modelleres derfor med Ratkowsky-formen
+  // rate ∝ (T − Tmin)² (standard i næringsmiddelmikrobiologi; Tmin for
+  // S. cerevisiae ligger rundt 0–3 °C, vi bruker 1 °C), skjøtt kontinuerlig
+  // mot Q10-kurven i kneet ved 10 °C.
+  const LOW_TEMP_KNEE_C = 10;
+  const FERMENT_MIN_TEMP_C = 1;
+
+  function fermentationFactor(tempC) {
+    if (tempC >= LOW_TEMP_KNEE_C) return Math.pow(2, (tempC - REF_TEMP) / 10);
+    if (tempC <= FERMENT_MIN_TEMP_C) return 0;
+    const kneeFactor = Math.pow(2, (LOW_TEMP_KNEE_C - REF_TEMP) / 10);
+    const x = (tempC - FERMENT_MIN_TEMP_C) / (LOW_TEMP_KNEE_C - FERMENT_MIN_TEMP_C);
+    return kneeFactor * x * x;
+  }
+
   // ---- Calculations ----
   function weightedHydration(flours) {
     let sumMin = 0, sumMax = 0, total = 0;
@@ -132,7 +153,7 @@
   // 11–12 t med en sunn starter på 15–20 %). Tidligere brukte vi 6 t, som var
   // for kort for romtemp. Starter-styrke varierer fortsatt ±25 %, så dette er
   // veiledende. Inokulering × bulk-tid er omvendt proporsjonalt, og produktet
-  // skalerer med Q10 ≈ 2.
+  // skalerer med fermentationFactor (Q10 ≈ 2 over 10 °C, brattere fall under).
   //
   // I kald modus bidrar også kjøleskapsfasen med gjæring (deigen er varm en
   // stund mens den kjøler ned). Begge funksjonene tar derfor en valgfri
@@ -144,14 +165,13 @@
 
   function recommendedSourBulkHours(inoculation, temperatureC, coldEffectiveHours = 0) {
     if (inoculation <= 0) return SOUR_BASE_BULK;
-    const tempFactor = Math.pow(2, (REF_TEMP - temperatureC) / 10);
     const targetEffective = SOUR_BASE_BULK * (SOUR_BASE_INOC / inoculation);
     const remainingEffective = Math.max(0, targetEffective - coldEffectiveHours);
-    return remainingEffective * tempFactor;
+    return remainingEffective / fermentationFactor(temperatureC);
   }
 
   function recommendedSourInoculation(bulkHours, temperatureC, coldEffectiveHours = 0) {
-    const bulkEffective = Math.max(0, bulkHours) * Math.pow(2, (temperatureC - REF_TEMP) / 10);
+    const bulkEffective = Math.max(0, bulkHours) * fermentationFactor(temperatureC);
     const totalEffective = bulkEffective + coldEffectiveHours;
     if (totalEffective <= 0) return SOUR_BASE_INOC;
     return SOUR_BASE_INOC * (SOUR_BASE_BULK / totalEffective);
@@ -167,11 +187,12 @@
 
   // 21°C-ekvivalente timer for en fase der deigen starter ved en annen temp
   // enn omgivelsene og konvergerer mot dem via Newtons avkjøling. Vi integrerer
-  // Q10≈2-faktoren numerisk mens deigtemperaturen glir fra startTempC mot
-  // ambientC med tidskonstant tau. Brukes både for romtemp-bulk (vann varmere/
-  // kjøligere enn rommet) og for kald etterheving (varm deig som kjøler ned).
+  // fermenteringsfaktoren numerisk mens deigtemperaturen glir fra startTempC
+  // mot ambientC med tidskonstant tau. Brukes både for romtemp-bulk (vann
+  // varmere/kjøligere enn rommet) og for kald etterheving (varm deig som
+  // kjøler ned).
   function effectivePhaseHours(hours, ambientC, startTempC, tau) {
-    const baseFactor = Math.pow(2, (ambientC - REF_TEMP) / 10);
+    const baseFactor = fermentationFactor(ambientC);
     const dT = startTempC - ambientC;
     if (Math.abs(dT) < 0.05 || hours <= 0) {
       return hours * baseFactor;
@@ -183,7 +204,7 @@
     for (let i = 0; i < N; i++) {
       const t = (i + 0.5) * dt;
       const T = ambientC + dT * Math.exp(-t / tau);
-      sum += Math.pow(2, (T - REF_TEMP) / 10);
+      sum += fermentationFactor(T);
     }
     return sum * dt;
   }
@@ -207,7 +228,7 @@
     const hydration = state.hydration != null ? state.hydration : 75;
     // Andrehevingen skjer ved romtemp etter at deigen har equilibrert, så den
     // bidrar med SECOND_PROOF_HOURS skalert med romtempfaktoren.
-    const secondProofFactor = Math.pow(2, (state.temperatureC - REF_TEMP) / 10);
+    const secondProofFactor = fermentationFactor(state.temperatureC);
     if (state.mode === 'classic') {
       const bulk = effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
       return bulk + SECOND_PROOF_HOURS * secondProofFactor;
@@ -383,6 +404,7 @@
     REF_TEMP, BAKE_MIN, SECOND_PROOF_HOURS,
     COOLING_TAU_HOURS, COLD_COOLING_TAU_HOURS,
     FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
+    LOW_TEMP_KNEE_C, FERMENT_MIN_TEMP_C, fermentationFactor,
     FLOUR_TYPES, RYE_TYPES, LOW_GLUTEN_TYPES,
     LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
