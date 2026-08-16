@@ -2077,20 +2077,38 @@
     try {
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const now = audioCtx.currentTime;
-      // Tre korte pip.
-      [0, 0.4, 0.8].forEach(offset => {
+      // To grupper: pip-pip-pip … pip-pip. Triangelbølge bærer bedre enn
+      // sinus, og siste tone i hver gruppe ligger en kvart opp for å skjære
+      // gjennom bakgrunnsstøy.
+      [[0, 880], [0.35, 880], [0.7, 1109], [1.3, 880], [1.65, 1109]].forEach(([offset, freq]) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = 880;
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.0001, now + offset);
-        gain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.45, now + offset + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.28);
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(now + offset);
-        osc.stop(now + offset + 0.32);
+        osc.stop(now + offset + 0.3);
       });
     } catch (e) {}
+  }
+
+  // Alarmen gjentas til den kvitteres, så et enkelt pip ikke går tapt.
+  // Kvittering = klikk/tastetrykk i appen, tilbake til fanen, eller alarm av.
+  // En forlatt fane skal ikke pipe evig: gi opp etter ALARM_GIVE_UP_MS.
+  const ALARM_REPEAT_MS = 12 * 1000;
+  const ALARM_GIVE_UP_MS = 5 * 60 * 1000;
+  let alarmRepeatTimer = null;
+
+  function stopAlarmRepeat() {
+    if (alarmRepeatTimer) { clearInterval(alarmRepeatTimer); alarmRepeatTimer = null; }
+  }
+
+  function alarmBurst() {
+    if (navigator.vibrate) { try { navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
+    playBeeps();
   }
 
   function fireAlarm() {
@@ -2100,14 +2118,26 @@
           body: t('alarm.notify.body'),
           icon: 'icons/icon-192.png',
           tag: 'eltefritt-rise',
-          renotify: true
+          renotify: true,
+          // Bli stående til brukeren lukker varselet (der nettleseren støtter det).
+          requireInteraction: true
         });
       } catch (e) {}
     }
-    if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200, 100, 200]); } catch (e) {} }
-    playBeeps();
+    alarmBurst();
+    stopAlarmRepeat();
+    const giveUpAt = Date.now() + ALARM_GIVE_UP_MS;
+    alarmRepeatTimer = setInterval(() => {
+      if (Date.now() > giveUpAt) { stopAlarmRepeat(); return; }
+      alarmBurst();
+    }, ALARM_REPEAT_MS);
     startTitleFlash();
   }
+
+  // Kvitter alarmen ved første interaksjon (fanger også Av-knappen og
+  // juster-stepperen; å røre appen er å ha fått den med seg).
+  ['pointerdown', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, stopAlarmRepeat, { capture: true }));
 
   // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
   function refreshCountdown(remainingMs) {
@@ -2134,6 +2164,7 @@
       alarmTargetMs = null;
       alarmFired = false;
       stopTitleFlash();
+      stopAlarmRepeat();
       el.classList.remove('is-active', 'is-done');
       el.textContent = t('alarm.help');
       return;
@@ -2144,7 +2175,7 @@
       // som allerede er passert (f.eks. ved gjenoppretting).
       alarmTargetMs = ms;
       alarmFired = Date.now() >= ms;
-      if (!alarmFired) stopTitleFlash();
+      if (!alarmFired) { stopTitleFlash(); stopAlarmRepeat(); }
     }
     refreshCountdown(alarmTargetMs - Date.now());
   }
@@ -2161,9 +2192,9 @@
   }
   setInterval(alarmTick, 1000);
 
-  // Stopp blinking når brukeren kommer tilbake til fanen.
+  // Stopp blinking og gjentatt piping når brukeren kommer tilbake til fanen.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && alarmFired) stopTitleFlash();
+    if (!document.hidden && alarmFired) { stopTitleFlash(); stopAlarmRepeat(); }
   });
 
   function setAlarm(on) {

@@ -62,7 +62,7 @@
       // ── Alarm / nedtelling ──
       'alarm.off': 'Av',
       'alarm.on': 'På',
-      'alarm.help': 'Få et varsel når hevetiden er ute. Fanen må stå åpen (også i bakgrunnen).',
+      'alarm.help': 'Få et varsel når hevetiden er ute – appen piper til du kvitterer. Fanen må stå åpen (også i bakgrunnen).',
       'alarm.countdown': '⏰ {dur} til hevingen er ferdig',
       'alarm.done': '⏰ Hevingen er ferdig – på tide med neste steg!',
       'alarm.blocked': 'Varsler er blokkert i nettleseren, men appen piper når tiden er ute (så lenge fanen er åpen).',
@@ -293,7 +293,7 @@
       // ── Alarm / countdown ──
       'alarm.off': 'Off',
       'alarm.on': 'On',
-      'alarm.help': 'Get a notification when the rise time is up. Keep this tab open (background is fine).',
+      'alarm.help': 'Get a notification when the rise time is up – the app keeps beeping until you acknowledge it. Keep this tab open (background is fine).',
       'alarm.countdown': '⏰ {dur} until the rise is done',
       'alarm.done': '⏰ The rise is done – time for the next step!',
       'alarm.blocked': 'Notifications are blocked in your browser, but the app will beep when time is up (as long as this tab is open).',
