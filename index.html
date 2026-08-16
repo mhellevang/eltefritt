@@ -2111,10 +2111,27 @@
     playBeeps();
   }
 
+  // App-badge på ikonet (dock/oppgavelinje/hjemskjerm) når alarmen har gått.
+  // Erstatter tittel-blinkingen i installert PWA-modus, der det ikke finnes
+  // noen fanetittel å blinke i. No-op der API-et ikke støttes.
+  function setBadge(on) {
+    try {
+      if (!('setAppBadge' in navigator)) return;
+      if (on) navigator.setAppBadge(); else navigator.clearAppBadge();
+    } catch (e) {}
+  }
+
+  // Kvittering: brukeren har fått med seg alarmen. Stopper gjentatt piping
+  // og fjerner badgen; tittel-blinkingen styres separat av fane-synlighet.
+  function acknowledgeAlarm() {
+    stopAlarmRepeat();
+    setBadge(false);
+  }
+
   function fireAlarm() {
     if (alarmPermission() === 'granted') {
       try {
-        new Notification(t('alarm.notify.title'), {
+        const n = new Notification(t('alarm.notify.title'), {
           body: t('alarm.notify.body'),
           icon: 'icons/icon-192.png',
           tag: 'eltefritt-rise',
@@ -2122,10 +2139,13 @@
           // Bli stående til brukeren lukker varselet (der nettleseren støtter det).
           requireInteraction: true
         });
+        // Klikk på varselet skal hente frem appen igjen.
+        n.onclick = () => { try { window.focus(); } catch (e) {} n.close(); };
       } catch (e) {}
     }
     alarmBurst();
     stopAlarmRepeat();
+    setBadge(true);
     const giveUpAt = Date.now() + ALARM_GIVE_UP_MS;
     alarmRepeatTimer = setInterval(() => {
       if (Date.now() > giveUpAt) { stopAlarmRepeat(); return; }
@@ -2137,7 +2157,7 @@
   // Kvitter alarmen ved første interaksjon (fanger også Av-knappen og
   // juster-stepperen; å røre appen er å ha fått den med seg).
   ['pointerdown', 'keydown'].forEach(ev =>
-    document.addEventListener(ev, stopAlarmRepeat, { capture: true }));
+    document.addEventListener(ev, acknowledgeAlarm, { capture: true }));
 
   // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
   function refreshCountdown(remainingMs) {
@@ -2164,7 +2184,7 @@
       alarmTargetMs = null;
       alarmFired = false;
       stopTitleFlash();
-      stopAlarmRepeat();
+      acknowledgeAlarm();
       el.classList.remove('is-active', 'is-done');
       el.textContent = t('alarm.help');
       return;
@@ -2175,7 +2195,7 @@
       // som allerede er passert (f.eks. ved gjenoppretting).
       alarmTargetMs = ms;
       alarmFired = Date.now() >= ms;
-      if (!alarmFired) { stopTitleFlash(); stopAlarmRepeat(); }
+      if (!alarmFired) { stopTitleFlash(); acknowledgeAlarm(); }
     }
     refreshCountdown(alarmTargetMs - Date.now());
   }
@@ -2194,16 +2214,23 @@
 
   // Stopp blinking og gjentatt piping når brukeren kommer tilbake til fanen.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && alarmFired) { stopTitleFlash(); stopAlarmRepeat(); }
+    if (!document.hidden && alarmFired) { stopTitleFlash(); acknowledgeAlarm(); }
   });
+
+  // Opprett/vekk audio-context. Må skje i en brukergest for at pip skal være
+  // tillatt (autoplay-sperre); kalles fra alarm-toggle og, for gjenopptatte
+  // nedtellinger, fra første interaksjon etter oppstart.
+  function warmAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    } catch (e) {}
+  }
+  document.addEventListener('pointerdown', () => { if (state.alarm) warmAudio(); }, { capture: true });
 
   function setAlarm(on) {
     if (on && !state.alarm) {
-      // Brukergest: opprett/vekk audio-context nå, så pip er tillatt senere.
-      try {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) { if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-      } catch (e) {}
+      warmAudio();
       // Be om varselstillatelse (ufarlig om den allerede er avgjort).
       if (alarmSupported() && Notification.permission === 'default') {
         try { Notification.requestPermission().then(() => update({ skipFlourList: true })); } catch (e) {}
@@ -2828,8 +2855,12 @@
     state.waterTempManual = typeof parsed.waterTempManual === 'boolean'
       ? parsed.waterTempManual
       : state.waterTempC !== state.temperatureC;
-    // anchorTime/timeAnchor/anchorDateMs/actualTempC kopieres bevisst ikke;
-    // bakplanen (og en evt. pågående nedtelling) nullstilles ved oppstart.
+    // anchorTime/timeAnchor kopieres ikke; de settes i oppstartsblokken under,
+    // som enten gjenopptar en pågående nedtelling eller nullstiller bakplanen.
+    state.alarm = parsed.alarm === true;
+    state.anchorDateMs = (typeof parsed.anchorDateMs === 'number' && Number.isFinite(parsed.anchorDateMs))
+      ? parsed.anchorDateMs : null;
+    state.actualTempC = num(parsed.actualTempC, 15, 32, null);
   }
 
   try {
@@ -2853,13 +2884,28 @@
     }
   } catch (e) {}
 
-  // Nullstill bakplan-tid ved hver oppstart, så man ikke arver starttid
-  // fra en tidligere økt (f.eks. fra en bake for to dager siden).
+  // Gjenoppta en pågående nedtelling hvis planen fortsatt er aktuell (frem
+  // til planlagt ferdigtid, inkl. steking); ellers nullstill bakplan-tid som
+  // før, så man ikke arver starttid fra en bake for to dager siden.
+  // NB: lyd krever brukergest, så en gjenopptatt alarm piper først etter at
+  // brukeren har rørt appen (warmAudio); varsel/vibrasjon/badge går uansett.
   {
-    const d = nowDate();
-    d.setHours(d.getHours() + 1, 0, 0, 0);
-    state.anchorTime = formatTimeHM(d);
-    state.timeAnchor = 'start';
+    const total = modeTotalMinutes(state);
+    const resumable = state.alarm && state.anchorDateMs != null &&
+      state.anchorDateMs < Date.now() + 48 * 3600 * 1000 &&
+      Date.now() < state.anchorDateMs + total * 60000;
+    if (resumable) {
+      state.timeAnchor = 'start';
+      state.anchorTime = formatTimeHM(new Date(state.anchorDateMs));
+    } else {
+      state.alarm = false;
+      state.anchorDateMs = null;
+      state.actualTempC = null;
+      const d = nowDate();
+      d.setHours(d.getHours() + 1, 0, 0, 0);
+      state.anchorTime = formatTimeHM(d);
+      state.timeAnchor = 'start';
+    }
   }
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)

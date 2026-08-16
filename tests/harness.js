@@ -43,6 +43,11 @@ async function loadPage(opts = {}) {
       try {
         window.localStorage.setItem('eltefritt-lang', lang);
         window.localStorage.setItem('eltefritt-unit', unit);
+        // Simuler lagret state fra en tidligere økt (f.eks. gjenopptak av
+        // pågående nedtelling): opts.seedState merges ikke, lagres som-er.
+        if (opts.seedState) {
+          window.localStorage.setItem('eltefritt-state', JSON.stringify(opts.seedState));
+        }
       } catch (e) {}
     }
     // Default `resources` setting laster ikke nett-ressurser, så CSS,

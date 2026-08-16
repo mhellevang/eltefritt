@@ -261,6 +261,51 @@ test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => 
   }
 });
 
+// Minimal lagret state for gjenopptak-testene: klassisk 14 t bulk.
+function savedBakeState(overrides) {
+  return {
+    loaves: 1, sizePerLoaf: 500, flours: [{ type: 'hvete', pct: 100 }],
+    hydration: 75, hydrationManual: false, temperatureC: 21, waterTempC: 21,
+    waterTempManual: false, mode: 'classic', leaven: 'dry', riseHours: 14,
+    bulkHours: 2, coldHours: 12, coldTempC: 6, sourInoculation: 20,
+    sourLead: 'inoculation', ...overrides
+  };
+}
+
+test('gjenopptak: pågående nedtelling overlever omstart', async () => {
+  // Startet for 4 t siden med alarm på ⇒ 14 t bulk pågår fortsatt.
+  const startedAt = Date.now() - 4 * 3600 * 1000;
+  const { document, close } = await loadPage({
+    seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt })
+  });
+  try {
+    const on = document.querySelector('button[data-alarm="on"]');
+    assert.equal(on.getAttribute('aria-pressed'), 'true', 'alarmen skal være på etter omstart');
+    const detail = document.getElementById('alarm-detail');
+    assert.match(detail.textContent, /til hevingen er ferdig/i);
+    // ~10 t igjen av bulken (14 − 4), ikke re-ankret frem i tid.
+    assert.match(detail.textContent, /\b(9|10)\s+t/);
+    assert.equal(document.getElementById('adjust-field').hidden, false, 'juster-feltet skal være aktivt');
+  } finally {
+    close();
+  }
+});
+
+test('gjenopptak: utgått bake nullstilles i stedet for å gjenopptas', async () => {
+  // Startet for to døgn siden ⇒ planlagt ferdigtid er passert for lengst.
+  const startedAt = Date.now() - 48 * 3600 * 1000;
+  const { document, close } = await loadPage({
+    seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt })
+  });
+  try {
+    const off = document.querySelector('button[data-alarm="off"]');
+    assert.equal(off.getAttribute('aria-pressed'), 'true', 'alarmen skal være av');
+    assert.equal(document.getElementById('adjust-field').hidden, true);
+  } finally {
+    close();
+  }
+});
+
 test('juster underveis: synlig med alarm på i klassisk, skjult ellers', async () => {
   const { window, document, close } = await loadPage();
   try {
