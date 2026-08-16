@@ -2159,6 +2159,56 @@
   ['pointerdown', 'keydown'].forEach(ev =>
     document.addEventListener(ev, acknowledgeAlarm, { capture: true }));
 
+  // ---- Web Push (valgfritt) ----
+  // Det lokale varselet krever åpen fane/app; Web Push vekker service
+  // workeren selv når appen er lukket. Krever en deployet push-server
+  // (se push-server/README.md). Tomme konstanter = hele funksjonen av,
+  // og alarmen virker som før.
+  const PUSH_SERVER = '';       // f.eks. 'https://eltefritt-push.<konto>.workers.dev'
+  const VAPID_PUBLIC_KEY = '';  // offentlig nøkkel fra nøkkelgenereringen i README
+
+  let pushSyncedMs = null; // sist synkede mål; null = ingenting planlagt hos serveren
+
+  function pushEnabled() {
+    return PUSH_SERVER && VAPID_PUBLIC_KEY &&
+      'serviceWorker' in navigator && 'PushManager' in window;
+  }
+
+  function vapidKeyBytes() {
+    const s = VAPID_PUBLIC_KEY;
+    const pad = '='.repeat((4 - s.length % 4) % 4);
+    const raw = atob((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from(raw, c => c.charCodeAt(0));
+  }
+
+  // Hold serverens fyringstidspunkt i synk med alarm-målet. Best effort:
+  // pushen er backup for lukket app, den lokale alarmen er primær, så feil
+  // svelges. targetMs = null avbestiller.
+  async function syncPush(targetMs) {
+    if (!pushEnabled() || targetMs === pushSyncedMs) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (targetMs == null) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await fetch(PUSH_SERVER + '/cancel', {
+            method: 'POST',
+            body: JSON.stringify({ endpoint: sub.endpoint })
+          });
+        }
+      } else {
+        if (alarmPermission() !== 'granted') return;
+        const sub = await reg.pushManager.getSubscription() ||
+          await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes() });
+        await fetch(PUSH_SERVER + '/schedule', {
+          method: 'POST',
+          body: JSON.stringify({ subscription: sub.toJSON(), fireAtMs: targetMs })
+        });
+      }
+      pushSyncedMs = targetMs;
+    } catch (e) {}
+  }
+
   // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
   function refreshCountdown(remainingMs) {
     const el = $('#alarm-detail');
@@ -2187,6 +2237,7 @@
       acknowledgeAlarm();
       el.classList.remove('is-active', 'is-done');
       el.textContent = t('alarm.help');
+      syncPush(null);
       return;
     }
     const ms = alarmTargetDate().getTime();
@@ -2198,6 +2249,9 @@
       if (!alarmFired) { stopTitleFlash(); acknowledgeAlarm(); }
     }
     refreshCountdown(alarmTargetMs - Date.now());
+    // Utenfor ms-endrings-sjekken: tillatelsen kan bli gitt etter armering,
+    // og syncPush deduper selv mot pushSyncedMs.
+    syncPush(alarmFired ? null : alarmTargetMs);
   }
 
   // 1 Hz-tikk: oppdater nedtelling og fyr alarmen når tiden er ute.

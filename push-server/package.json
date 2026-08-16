@@ -1,0 +1,6 @@
+{
+  "name": "eltefritt-push",
+  "private": true,
+  "type": "module",
+  "description": "Web Push-server for eltefritt (Cloudflare Worker + Durable Object-alarmer). Ingen avhengigheter."
+}

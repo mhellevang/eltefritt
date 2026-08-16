@@ -1,6 +1,6 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v19';
+const CACHE_VERSION = 'eltefritt-v20';
 
 const CORE_ASSETS = [
   './',
@@ -62,4 +62,34 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
+});
+
+// ---- Web Push ----
+// Pushen fra push-serveren er tom (ingen payload); teksten er statisk og
+// vises herfra. Norsk uansett app-språk: service workeren kjenner ikke
+// brukerens språkvalg, og nb er appens standard.
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('Hevingen er ferdig 🍞', {
+      body: 'Klar for neste steg i oppskriften.',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      tag: 'eltefritt-rise',
+      renotify: true,
+      requireInteraction: true
+    })
+  );
+});
+
+// Klikk på varselet henter frem appen (eller åpner den på nytt).
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) return client.focus();
+      }
+      return self.clients.openWindow('./');
+    })
+  );
 });

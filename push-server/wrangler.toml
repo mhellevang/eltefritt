@@ -1,0 +1,22 @@
+# Eltefritt push-server. Deploy: `wrangler deploy` fra denne mappen.
+# Se README.md for nøkkelgenerering og secrets.
+name = "eltefritt-push"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+# Offentlig VAPID-nøkkel (base64url, fra nøkkelgenereringen i README).
+VAPID_PUBLIC_KEY = ""
+# Kontaktpunkt push-tjenestene kan bruke ved problemer (mailto: eller https:).
+VAPID_SUBJECT = "https://eltefritt.helledb.dev"
+# Origin som får kalle API-et (appens adresse).
+ALLOWED_ORIGIN = "https://eltefritt.helledb.dev"
+
+[[durable_objects.bindings]]
+name = "PUSH_ALARM"
+class_name = "PushAlarm"
+
+# SQLite-backed DO (kreves på gratisplanen, og er riktig valg uansett).
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PushAlarm"]
