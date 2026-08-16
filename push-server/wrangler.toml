@@ -6,7 +6,7 @@ compatibility_date = "2026-08-01"
 
 [vars]
 # Offentlig VAPID-nøkkel (base64url, fra nøkkelgenereringen i README).
-VAPID_PUBLIC_KEY = ""
+VAPID_PUBLIC_KEY = "BC5ZLEJHjx7LG_km01geRtEK0h-YdMgyWJP4IF0RuM-KIU_jH0Xil6SL--bBs-m0S1WWBHJlH5X_rgk7L7CNDII"
 # Kontaktpunkt push-tjenestene kan bruke ved problemer (mailto: eller https:).
 VAPID_SUBJECT = "https://eltefritt.helledb.dev"
 # Origin som får kalle API-et (appens adresse).
