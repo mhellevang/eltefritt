@@ -1501,6 +1501,11 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => document.querySelectorAll(sel);
 
+  // "Nå" går alltid via Date.now(), aldri bare new Date(). Da kan klokka
+  // overstyres fra konsoll/test (Date.now = () => ekte + 10 t) og hele
+  // appen – plan, dag-etiketter, nedtelling og justering – følger med.
+  const nowDate = () => new Date(Date.now());
+
   // Locale-bevisst tallformatering (erstatter manuell desimal-komma).
   const formatNumber = (n, opts) => I18n.formatNumber(n, localeTag(), opts);
   const formatGrams = (g) => g >= 100
@@ -1531,7 +1536,7 @@
 
   // Dag-etikett (i dag / i morgen / ukedag) med isToday-flagg.
   function dayLabelInfo(date) {
-    const info = I18n.dayLabelKey(date, new Date());
+    const info = I18n.dayLabelKey(date, nowDate());
     const label = info.idx != null ? t('day.weekdaysShort')[info.idx] : t(info.key);
     return { label, isToday: info.isToday };
   }
@@ -1861,7 +1866,7 @@
 
   function resolveAnchorDate(timeStr) {
     const [hh, mm] = timeStr.split(':').map(Number);
-    const now = new Date();
+    const now = nowDate();
     const nowMinute = new Date(now);
     nowMinute.setSeconds(0, 0);
     const d = new Date(now);
@@ -1886,7 +1891,7 @@
       let ready = resolveAnchorDate(state.anchorTime);
       let start = addMinutes(ready, -total);
       // Hvis Start havner før nå, flytt Ready én dag fram (cap for sikkerhet)
-      const now = new Date();
+      const now = nowDate();
       let safety = 5;
       while (start < now && safety-- > 0) {
         ready = addMinutes(ready, 24 * 60);
@@ -2660,7 +2665,7 @@
   });
 
   $('#now-btn').addEventListener('click', () => {
-    const now = new Date();
+    const now = nowDate();
     state.timeAnchor = 'start';
     state.anchorTime = formatTimeHM(now);
     refreezeAnchor();
@@ -2820,7 +2825,7 @@
   // Nullstill bakplan-tid ved hver oppstart, så man ikke arver starttid
   // fra en tidligere økt (f.eks. fra en bake for to dager siden).
   {
-    const d = new Date();
+    const d = nowDate();
     d.setHours(d.getHours() + 1, 0, 0, 0);
     state.anchorTime = formatTimeHM(d);
     state.timeAnchor = 'start';
