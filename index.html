@@ -1478,7 +1478,8 @@
     sourLead: 'inoculation',   // 'inoculation' | 'time'. Hvilken slider som leder koblingen.
     timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.
     anchorTime: '10:00',       // HH:MM
-    alarm: false               // Nedtelling + varsel når hevingen er ferdig.
+    alarm: false,              // Nedtelling + varsel når hevingen er ferdig.
+    anchorDateMs: null         // Absolutt starttidspunkt, fryst mens alarmen er på (HH:MM er tvetydig over døgngrenser).
   };
 
   // ---- Helpers ----
@@ -1859,6 +1860,13 @@
 
   function getStartAndReady() {
     const total = modeTotalMinutes(state);
+    // Med alarmen på er starten fryst som absolutt tidspunkt, så en heving
+    // som pågår ikke re-ankres til neste dag når start-klokkeslettet
+    // passeres igjen (resolveAnchorDate dytter passerte HH:MM fremover).
+    if (state.alarm && state.anchorDateMs != null) {
+      const start = new Date(state.anchorDateMs);
+      return { start, ready: addMinutes(start, total) };
+    }
     if (state.timeAnchor === 'ready') {
       let ready = resolveAnchorDate(state.anchorTime);
       let start = addMinutes(ready, -total);
@@ -2002,6 +2010,13 @@
     return `${formatNumber(s)} ${t('unit.sec')}`;
   }
 
+  // Frys/re-frys starten som absolutt tidspunkt. Kalles når alarmen slås på
+  // og når brukeren flytter ankeret mens den er på.
+  function refreezeAnchor() {
+    state.anchorDateMs = null;
+    if (state.alarm) state.anchorDateMs = getStartAndReady().start.getTime();
+  }
+
   function alarmTargetDate() {
     const { start } = getStartAndReady();
     return addMinutes(start, riseDoneMinutes(state));
@@ -2128,6 +2143,7 @@
     }
     if (!on) stopTitleFlash();
     state.alarm = on;
+    refreezeAnchor();
     update({ skipFlourList: true });
   }
 
@@ -2520,6 +2536,7 @@
     if (!e.target.value) return;
     state.timeAnchor = 'start';
     state.anchorTime = e.target.value;
+    refreezeAnchor();
     update({ skipFlourList: true });
   });
 
@@ -2566,6 +2583,8 @@
     } else {
       state.timeAnchor = 'ready';
       state.anchorTime = e.target.value;
+      // Starten flyttes; det frosne ankeret må følge med.
+      refreezeAnchor();
     }
     update({ skipFlourList: true });
   });
@@ -2574,6 +2593,7 @@
     const now = new Date();
     state.timeAnchor = 'start';
     state.anchorTime = formatTimeHM(now);
+    refreezeAnchor();
     update({ skipFlourList: true });
   });
 
@@ -2702,7 +2722,8 @@
     state.waterTempManual = typeof parsed.waterTempManual === 'boolean'
       ? parsed.waterTempManual
       : state.waterTempC !== state.temperatureC;
-    // anchorTime/timeAnchor kopieres bevisst ikke; de nullstilles ved oppstart.
+    // anchorTime/timeAnchor/anchorDateMs kopieres bevisst ikke; bakplanen
+    // (og en evt. pågående nedtelling) nullstilles ved oppstart.
   }
 
   try {
