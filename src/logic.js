@@ -222,6 +222,20 @@
     return effectivePhaseHours(coldHours, coldTempC, startTempC, COLD_COOLING_TAU_HOURS);
   }
 
+  // ---- Juster underveis ----
+  // Planen "riseHours ved temperatureC" er egentlig et budsjett av 21°-
+  // ekvivalente timer (samme budsjett gjærmengden ble regnet fra). Har deigen
+  // i stedet stått elapsedHours ved actualTempC, er forbruket et annet.
+  // Returnerer gjenstående klokketimer ved actualTempC; negativ verdi betyr
+  // at deigen er over budsjett. Gjelder klassisk modus (riseHours).
+  function adjustedBulkRemainingHours(state, elapsedHours, actualTempC) {
+    const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
+    const hydration = state.hydration != null ? state.hydration : 75;
+    const budget = effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
+    const consumed = effectiveBulkHours(Math.max(0, elapsedHours), actualTempC, waterTempC, hydration);
+    return (budget - consumed) / fermentationFactor(actualTempC);
+  }
+
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
   function modeEffectiveHours(state) {
     const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
@@ -410,6 +424,7 @@
     addMinutes, addHours,
     weightedHydration, calculateYeast,
     initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
+    adjustedBulkRemainingHours,
     recommendedSourBulkHours, recommendedSourInoculation,
     modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,

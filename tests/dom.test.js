@@ -261,6 +261,28 @@ test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => 
   }
 });
 
+test('juster underveis: synlig med alarm på i klassisk, skjult ellers', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const field = document.getElementById('adjust-field');
+    assert.equal(field.hidden, true, 'skjult uten alarm');
+
+    fire(window, document.querySelector('button[data-alarm="on"]'), 'click');
+    assert.equal(field.hidden, false, 'synlig med alarm på i klassisk modus');
+    assert.match(document.getElementById('adjust-detail').textContent, /varmere eller kaldere/i);
+
+    // Kald modus har ingen justering (gjelder kun klassisk bulk).
+    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+    assert.equal(field.hidden, true, 'skjult i kald modus');
+
+    fire(window, document.querySelector('button[data-mode="classic"]'), 'click');
+    fire(window, document.querySelector('button[data-alarm="off"]'), 'click');
+    assert.equal(field.hidden, true, 'skjult når alarmen skrus av');
+  } finally {
+    close();
+  }
+});
+
 test('vannrad: inline temp-stepper endrer vanntemp, gjær og Heving-slideren', async () => {
   const { window, document, close } = await loadPage();
   try {

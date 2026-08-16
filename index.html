@@ -1377,6 +1377,20 @@
       </div>
       <p class="helper-text alarm-detail" id="alarm-detail"></p>
     </div>
+
+    <div class="field" id="adjust-field" hidden>
+      <div class="field-label">
+        <span data-i18n="field.adjust">Juster underveis</span>
+        <span class="field-value"><span id="adjust-temp-value">21</span><span class="temp-unit">°C</span></span>
+      </div>
+      <div class="stepper" data-stepper-for="adjust-temp">
+        <input type="range" id="adjust-temp" class="visually-hidden" min="15" max="32" value="21" step="1" />
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser faktisk temperatur">−</button>
+        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk faktisk temperatur">+</button>
+      </div>
+      <p class="helper-text" id="adjust-detail"></p>
+    </div>
   </section>
 
   <section class="card card-output" aria-label="Oppskrift">
@@ -1438,7 +1452,7 @@
     modePlanItems, modeInstructions,
     computeRecipe, flourTips,
     recommendedSourBulkHours, recommendedSourInoculation,
-    effectiveColdHours
+    effectiveColdHours, adjustedBulkRemainingHours
   } = window.EltefrittLogic;
 
   const I18n = window.EltefrittI18n;
@@ -1479,7 +1493,8 @@
     timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.
     anchorTime: '10:00',       // HH:MM
     alarm: false,              // Nedtelling + varsel når hevingen er ferdig.
-    anchorDateMs: null         // Absolutt starttidspunkt, fryst mens alarmen er på (HH:MM er tvetydig over døgngrenser).
+    anchorDateMs: null,        // Absolutt starttidspunkt, fryst mens alarmen er på (HH:MM er tvetydig over døgngrenser).
+    actualTempC: null          // "Juster underveis": faktisk temp så langt. null = ingen justering.
   };
 
   // ---- Helpers ----
@@ -2017,7 +2032,24 @@
     if (state.alarm) state.anchorDateMs = getStartAndReady().start.getTime();
   }
 
+  // Justert bulk-slutt når "faktisk temp så langt" er satt (kun klassisk
+  // modus, mens hevingen pågår). null = ingen justering aktiv. Målet regnes
+  // fra nå + gjenstående budsjett; ved konstant temp er det stabilt mellom
+  // oppdateringer (avrundet til hele minutter mot smådrift). Kan ligge i
+  // fortid når deigen er over budsjett; da settes alarmen som allerede utløst.
+  function adjustedRiseDoneDate() {
+    if (state.mode !== 'classic' || state.actualTempC == null) return null;
+    if (!state.alarm || state.anchorDateMs == null) return null;
+    const now = Date.now();
+    const elapsedH = (now - state.anchorDateMs) / 3600000;
+    if (elapsedH <= 0) return null;
+    const remainingH = adjustedBulkRemainingHours(state, elapsedH, state.actualTempC);
+    return new Date(Math.round((now + remainingH * 3600000) / 60000) * 60000);
+  }
+
   function alarmTargetDate() {
+    const adjusted = adjustedRiseDoneDate();
+    if (adjusted) return adjusted;
     const { start } = getStartAndReady();
     return addMinutes(start, riseDoneMinutes(state));
   }
@@ -2143,8 +2175,37 @@
     }
     if (!on) stopTitleFlash();
     state.alarm = on;
+    if (!on) state.actualTempC = null;
     refreezeAnchor();
     update({ skipFlourList: true });
+  }
+
+  // "Juster underveis": synlig mens en klassisk bulk pågår med alarmen på.
+  // Stepperen viser faktisk temp så langt; avviker den fra planlagt temp,
+  // regnes gjenstående tid om og alarmen re-armeres (via alarmTargetDate).
+  function renderAdjust() {
+    const field = $('#adjust-field');
+    const active = state.alarm && state.mode === 'classic' && state.anchorDateMs != null;
+    field.hidden = !active;
+    if (!active) return;
+    const input = $('#adjust-temp');
+    const shownTemp = state.actualTempC != null ? state.actualTempC : state.temperatureC;
+    if (document.activeElement !== input) {
+      input.value = shownTemp;
+      refreshStepperVisual(input);
+    }
+    renderTempReadout('adjust-temp-value', shownTemp);
+    const el = $('#adjust-detail');
+    const adjusted = adjustedRiseDoneDate();
+    if (!adjusted) {
+      el.textContent = t('adjust.help');
+    } else if (adjusted.getTime() <= Date.now()) {
+      el.textContent = t('adjust.overdue');
+    } else {
+      const day = dayLabelInfo(adjusted);
+      const time = formatTimeHM(adjusted) + (day.isToday ? '' : ' ' + day.label);
+      el.textContent = t('adjust.readyAt', { time });
+    }
   }
 
   // Temperatur-avlesning: tall i valgt enhet + enhets-suffiks (°C/°F). Modellen
@@ -2177,7 +2238,8 @@
     'bulk-time': 'aria.field.bulk',
     'cold-time': 'aria.field.coldProof',
     'cold-temp': 'aria.field.coldTemp',
-    'sour-inoculation': 'aria.field.sourAmount'
+    'sour-inoculation': 'aria.field.sourAmount',
+    'adjust-temp': 'aria.field.adjustTemp'
   };
   function localizeStaticSteppers() {
     $$('[data-stepper-for]').forEach(st => {
@@ -2326,6 +2388,7 @@
     renderFlourBreakdown(result.flourAdded);
     renderPlan();
     renderAlarm();
+    renderAdjust();
 
     // Lagre state
     try {
@@ -2532,6 +2595,13 @@
     btn.addEventListener('click', () => setAlarm(btn.dataset.alarm === 'on'));
   });
 
+  $('#adjust-temp').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    // Tilbake på planlagt temp = ingen justering.
+    state.actualTempC = v === state.temperatureC ? null : v;
+    update({ skipFlourList: true });
+  });
+
   $('#start-time').addEventListener('input', e => {
     if (!e.target.value) return;
     state.timeAnchor = 'start';
@@ -2722,8 +2792,8 @@
     state.waterTempManual = typeof parsed.waterTempManual === 'boolean'
       ? parsed.waterTempManual
       : state.waterTempC !== state.temperatureC;
-    // anchorTime/timeAnchor/anchorDateMs kopieres bevisst ikke; bakplanen
-    // (og en evt. pågående nedtelling) nullstilles ved oppstart.
+    // anchorTime/timeAnchor/anchorDateMs/actualTempC kopieres bevisst ikke;
+    // bakplanen (og en evt. pågående nedtelling) nullstilles ved oppstart.
   }
 
   try {
@@ -2757,7 +2827,7 @@
   }
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)
-  ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation'].forEach(id => {
+  ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation', 'adjust-temp'].forEach(id => {
     const inp = document.getElementById(id);
     if (inp) initStepper(inp);
   });

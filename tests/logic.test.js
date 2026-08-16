@@ -420,3 +420,38 @@ test('riseDoneMinutes: alltid kortere enn total tid (steking ekskludert)', () =>
 test('riseDoneMinutes: ukjent modus gir 0', () => {
   assert.equal(L.riseDoneMinutes({ mode: 'ukjent' }), 0);
 });
+
+// ─── adjustedBulkRemainingHours (juster underveis) ─────────────────────────
+
+// 16 t plan ved 21°C med vann på romtemp: budsjettet er nøyaktig 16
+// effektivtimer, så regnestykkene under kan sjekkes for hånd.
+const adjustState = { mode: 'classic', riseHours: 16, temperatureC: 21, waterTempC: 21, hydration: 75 };
+
+test('adjustedBulkRemainingHours: samme temp som planlagt gir planlagt resttid', () => {
+  const r = L.adjustedBulkRemainingHours(adjustState, 10, 21);
+  assert.ok(Math.abs(r - 6) < 1e-9, `forventet 6, fikk ${r}`);
+});
+
+test('adjustedBulkRemainingHours: varmere enn planlagt korter ned resttiden', () => {
+  // 10 t @ 25°C forbruker ~10 × 2^0.4 ≈ 13,2 av 16 effektivtimer;
+  // resten ved 25°C tar ~2,1 klokketimer (mot 6 planlagt).
+  const r = L.adjustedBulkRemainingHours(adjustState, 10, 25);
+  assert.ok(r > 1.5 && r < 3, `forventet ~2,1, fikk ${r}`);
+});
+
+test('adjustedBulkRemainingHours: kaldere enn planlagt forlenger resttiden', () => {
+  const r = L.adjustedBulkRemainingHours(adjustState, 10, 18);
+  assert.ok(r > 6, `forventet > 6, fikk ${r}`);
+});
+
+test('adjustedBulkRemainingHours: over budsjett gir negativ resttid', () => {
+  // 14 t @ 27°C ≈ 21 effektivtimer forbrukt av 16.
+  const r = L.adjustedBulkRemainingHours(adjustState, 14, 27);
+  assert.ok(r < 0, `forventet negativ, fikk ${r}`);
+});
+
+test('adjustedBulkRemainingHours: budsjettet bevares (forbrukt + rest ved planlagt temp = plan)', () => {
+  // Kjør «10 t har gått» ved planlagt temp: elapsed + rest skal bli hele planen.
+  const r = L.adjustedBulkRemainingHours(adjustState, 4, 21);
+  assert.ok(Math.abs(4 + r - 16) < 1e-9);
+});
