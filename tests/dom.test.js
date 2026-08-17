@@ -306,6 +306,47 @@ test('gjenopptak: utgått bake nullstilles i stedet for å gjenopptas', async ()
   }
 });
 
+test('gjenopptak: justert (forlenget) heving overlever omstart etter planlagt slutt', async () => {
+  // Planlagt 14 t ved 21°, men faktisk temp 17° ("Juster underveis") strekker
+  // hevingen til ~18,5 t. Omstart etter 18 t er forbi planlagt totaltid, men
+  // baken pågår fortsatt og skal ikke nullstilles.
+  const startedAt = Date.now() - 18 * 3600 * 1000;
+  const { document, close } = await loadPage({
+    seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt, actualTempC: 17 })
+  });
+  try {
+    const on = document.querySelector('button[data-alarm="on"]');
+    assert.equal(on.getAttribute('aria-pressed'), 'true', 'alarmen skal fortsatt være på');
+    assert.equal(document.getElementById('adjust-field').hidden, false, 'juster-feltet skal være aktivt');
+  } finally {
+    close();
+  }
+});
+
+test('alarm av midt i pågående bake krever bekreftelse', async () => {
+  // Startet for 4 t siden ⇒ baken pågår. Av-knappen skal spørre først, og
+  // avbrutt bekreftelse skal la alarmen (og baken) stå urørt.
+  const startedAt = Date.now() - 4 * 3600 * 1000;
+  const { window, document, close } = await loadPage({
+    seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt })
+  });
+  try {
+    const off = document.querySelector('button[data-alarm="off"]');
+    const on = document.querySelector('button[data-alarm="on"]');
+
+    window.confirm = () => false;
+    fire(window, off, 'click');
+    assert.equal(on.getAttribute('aria-pressed'), 'true', 'avbrutt bekreftelse beholder alarmen');
+    assert.equal(document.getElementById('adjust-field').hidden, false, 'baken pågår fortsatt');
+
+    window.confirm = () => true;
+    fire(window, off, 'click');
+    assert.equal(off.getAttribute('aria-pressed'), 'true', 'bekreftet Av skrur av alarmen');
+  } finally {
+    close();
+  }
+});
+
 test('juster underveis: synlig med alarm på i klassisk, skjult ellers', async () => {
   const { window, document, close } = await loadPage();
   try {

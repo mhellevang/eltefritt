@@ -1,6 +1,10 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v21';
+const CACHE_VERSION = 'eltefritt-v22';
+
+// Liten side-cache appen skriver brukerens språkvalg til (service workeren
+// kan ikke lese localStorage). Må overleve versjons-opprydding i activate.
+const PREFS_CACHE = 'eltefritt-prefs';
 
 const CORE_ASSETS = [
   './',
@@ -26,7 +30,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))
+        keys.filter((k) => k !== CACHE_VERSION && k !== PREFS_CACHE).map((k) => caches.delete(k))
       )
     )
   );
@@ -66,18 +70,30 @@ self.addEventListener('fetch', (event) => {
 
 // ---- Web Push ----
 // Pushen fra push-serveren er tom (ingen payload); teksten er statisk og
-// vises herfra. Norsk uansett app-språk: service workeren kjenner ikke
-// brukerens språkvalg, og nb er appens standard.
+// vises herfra. Speiler alarm.notify.title/body i src/i18n.js (hold i synk);
+// språkvalget leses fra PREFS_CACHE, som appen skriver ved oppstart og bytte.
+const PUSH_TEXT = {
+  nb: { title: 'Hevingen er ferdig 🍞', body: 'Klar for neste steg i oppskriften.' },
+  en: { title: 'The rise is done 🍞', body: 'Ready for the next step in the recipe.' },
+};
+
 self.addEventListener('push', (event) => {
   event.waitUntil(
-    self.registration.showNotification('Hevingen er ferdig 🍞', {
-      body: 'Klar for neste steg i oppskriften.',
-      icon: './icons/icon-192.png',
-      badge: './icons/icon-192.png',
-      tag: 'eltefritt-rise',
-      renotify: true,
-      requireInteraction: true
-    })
+    caches.open(PREFS_CACHE)
+      .then((cache) => cache.match('./__lang'))
+      .then((res) => (res ? res.text() : 'nb'))
+      .catch(() => 'nb')
+      .then((lang) => {
+        const text = PUSH_TEXT[lang] || PUSH_TEXT.nb;
+        return self.registration.showNotification(text.title, {
+          body: text.body,
+          icon: './icons/icon-192.png',
+          badge: './icons/icon-192.png',
+          tag: 'eltefritt-rise',
+          renotify: true,
+          requireInteraction: true
+        });
+      })
   );
 });
 

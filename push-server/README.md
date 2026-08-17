@@ -47,11 +47,12 @@ på hjemskjermen (iOS 16.4+).
 
 ## API
 
-- `POST /schedule` — `{ subscription: <PushSubscription.toJSON()>, fireAtMs }`.
+- `POST /schedule`: `{ subscription: <PushSubscription.toJSON()>, fireAtMs }`.
   Samme endepunkt overskriver forrige tidspunkt (retargeting fra
   "Juster underveis" er bare en ny /schedule).
-- `POST /cancel` — `{ endpoint }`. Sletter abonnementets lagring og alarm.
+- `POST /cancel`: `{ endpoint }`. Sletter abonnementets lagring og alarm.
 
-Begge er CORS-låst til `ALLOWED_ORIGIN`. Ingen kontoer, ingen persondata:
+Begge krever at requestens `Origin`-header er lik `ALLOWED_ORIGIN` (403
+ellers), i tillegg til CORS-headerne. Ingen kontoer, ingen persondata:
 serveren lagrer kun push-endepunktet (en anonym URL hos nettleserens
 push-tjeneste) og ett tidspunkt, og sletter alt når pushen er sendt.

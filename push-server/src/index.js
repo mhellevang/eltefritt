@@ -4,13 +4,15 @@
 // en statisk notifikasjon. Uten payload trengs ingen aes128gcm-kryptering,
 // så worker-en er avhengighetsfri (WebCrypto gjør ES256-signeringen).
 //
-// API (CORS-låst til ALLOWED_ORIGIN):
+// API (krever Origin-header lik ALLOWED_ORIGIN):
 //   POST /schedule  { subscription: <PushSubscription.toJSON()>, fireAtMs }
 //   POST /cancel    { endpoint }
 //
 // Oppsett og deploy: se README.md i denne mappen.
 
-const MAX_AHEAD_MS = 48 * 3600 * 1000;
+// Romsligere enn lengste plan: kald modus tillater 6 t bulk + 36 t kaldheving,
+// og starten kan ligge inntil ~ett døgn frem i tid.
+const MAX_AHEAD_MS = 72 * 3600 * 1000;
 
 function corsHeaders(env) {
   return {
@@ -24,6 +26,14 @@ export default {
   async fetch(req, env) {
     const headers = corsHeaders(env);
     if (req.method === 'OPTIONS') return new Response(null, { headers });
+
+    // CORS-headerne forteller bare nettleseren hva som er lov; selve låsen er
+    // denne sjekken. Origin kan forfalskes utenfor nettleser, men dette stopper
+    // andre nettsteder og tilfeldig skripting fra å bruke serveren som
+    // push-relé eller avbestille andres alarmer.
+    if (req.headers.get('origin') !== env.ALLOWED_ORIGIN) {
+      return new Response('forbidden', { status: 403, headers });
+    }
 
     const url = new URL(req.url);
     if (req.method !== 'POST' || (url.pathname !== '/schedule' && url.pathname !== '/cancel')) {

@@ -68,6 +68,7 @@
       'alarm.blocked': 'Varsler er blokkert i nettleseren, men appen piper når tiden er ute (så lenge fanen er åpen).',
       'alarm.notify.title': 'Hevingen er ferdig 🍞',
       'alarm.notify.body': 'Klar for neste steg i oppskriften.',
+      'alarm.confirmOff': 'Hevingen pågår. Skru av alarmen og forkast den pågående baken?',
 
       // ── Juster underveis ──
       'field.adjust': 'Juster underveis',
@@ -299,6 +300,7 @@
       'alarm.blocked': 'Notifications are blocked in your browser, but the app will beep when time is up (as long as this tab is open).',
       'alarm.notify.title': 'The rise is done 🍞',
       'alarm.notify.body': 'Ready for the next step in the recipe.',
+      'alarm.confirmOff': 'The rise is in progress. Turn off the alarm and discard the current bake?',
 
       // ── Adjust mid-rise ──
       'field.adjust': 'Adjust mid-rise',

@@ -2128,21 +2128,29 @@
     setBadge(false);
   }
 
+  // Chrome på Android tillater ikke Notification-konstruktøren i sidekontekst
+  // ("Illegal constructor"); gå via service workeren der en finnes, så virker
+  // varselet overalt og klikk håndteres av sw.js (som også kan gjenåpne appen).
+  // Konstruktør-fallback dekker kjøring uten SW (f.eks. åpnet fra fil).
+  async function showAlarmNotification() {
+    const opts = {
+      body: t('alarm.notify.body'),
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: 'eltefritt-rise',
+      renotify: true,
+      // Bli stående til brukeren lukker varselet (der nettleseren støtter det).
+      requireInteraction: true
+    };
+    const reg = 'serviceWorker' in navigator
+      ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) return reg.showNotification(t('alarm.notify.title'), opts);
+    const n = new Notification(t('alarm.notify.title'), opts);
+    n.onclick = () => { try { window.focus(); } catch (e) {} n.close(); };
+  }
+
   function fireAlarm() {
-    if (alarmPermission() === 'granted') {
-      try {
-        const n = new Notification(t('alarm.notify.title'), {
-          body: t('alarm.notify.body'),
-          icon: 'icons/icon-192.png',
-          tag: 'eltefritt-rise',
-          renotify: true,
-          // Bli stående til brukeren lukker varselet (der nettleseren støtter det).
-          requireInteraction: true
-        });
-        // Klikk på varselet skal hente frem appen igjen.
-        n.onclick = () => { try { window.focus(); } catch (e) {} n.close(); };
-      } catch (e) {}
-    }
+    if (alarmPermission() === 'granted') showAlarmNotification().catch(() => {});
     alarmBurst();
     stopAlarmRepeat();
     setBadge(true);
@@ -2167,11 +2175,24 @@
   const PUSH_SERVER = 'https://eltefritt-push.mathias-hellevang.workers.dev';
   const VAPID_PUBLIC_KEY = 'BC5ZLEJHjx7LG_km01geRtEK0h-YdMgyWJP4IF0RuM-KIU_jH0Xil6SL--bBs-m0S1WWBHJlH5X_rgk7L7CNDII';  // offentlig nøkkel fra nøkkelgenereringen i README
 
-  let pushSyncedMs = null; // sist synkede mål; null = ingenting planlagt hos serveren
+  let pushDesiredMs = null; // siste ønskede mål (null = ingenting skal være planlagt)
+  let pushSyncedMs;         // bekreftet servertilstand; undefined = ukjent, så første
+                            // avbestilling alltid sendes (rydder etter forrige økt)
+  let pushInFlight = false;
+  let pushRetryTimer = null;
 
   function pushEnabled() {
     return PUSH_SERVER && VAPID_PUBLIC_KEY &&
       'serviceWorker' in navigator && 'PushManager' in window;
+  }
+
+  // Speil språkvalget til en cache service workeren kan lese (den har ikke
+  // localStorage), så push-varselet fra sw.js kommer på riktig språk.
+  function persistLangForSW() {
+    if (!('caches' in window)) return;
+    caches.open('eltefritt-prefs')
+      .then(c => c.put('./__lang', new Response(lang)))
+      .catch(() => {});
   }
 
   function vapidKeyBytes() {
@@ -2181,32 +2202,51 @@
     return Uint8Array.from(raw, c => c.charCodeAt(0));
   }
 
-  // Hold serverens fyringstidspunkt i synk med alarm-målet. Best effort:
-  // pushen er backup for lukket app, den lokale alarmen er primær, så feil
-  // svelges. targetMs = null avbestiller.
-  async function syncPush(targetMs) {
-    if (!pushEnabled() || targetMs === pushSyncedMs) return;
+  // Hold serverens fyringstidspunkt i synk med alarm-målet. targetMs = null
+  // avbestiller. Én forespørsel om gangen; endres målet underveis synkes det
+  // på nytt etterpå, så siste ønske vinner (ikke siste svar som kom frem).
+  function syncPush(targetMs) {
+    pushDesiredMs = targetMs;
+    pumpPush();
+  }
+
+  async function pumpPush() {
+    if (pushInFlight || !pushEnabled() || pushDesiredMs === pushSyncedMs) return;
+    pushInFlight = true;
+    const targetMs = pushDesiredMs;
+    let failed = false;
     try {
       const reg = await navigator.serviceWorker.ready;
       if (targetMs == null) {
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
-          await fetch(PUSH_SERVER + '/cancel', {
+          const res = await fetch(PUSH_SERVER + '/cancel', {
             method: 'POST',
             body: JSON.stringify({ endpoint: sub.endpoint })
           });
+          failed = !res.ok;
         }
-      } else {
-        if (alarmPermission() !== 'granted') return;
+        if (!failed) pushSyncedMs = null;
+      } else if (alarmPermission() === 'granted') {
         const sub = await reg.pushManager.getSubscription() ||
           await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes() });
-        await fetch(PUSH_SERVER + '/schedule', {
+        const res = await fetch(PUSH_SERVER + '/schedule', {
           method: 'POST',
           body: JSON.stringify({ subscription: sub.toJSON(), fireAtMs: targetMs })
         });
+        if (res.ok) pushSyncedMs = targetMs; else failed = true;
       }
-      pushSyncedMs = targetMs;
-    } catch (e) {}
+      // Uten varsel-tillatelse er det ingenting å sende; renderAlarm kaller
+      // syncPush igjen når tillatelsen evt. gis.
+    } catch (e) { failed = true; }
+    pushInFlight = false;
+    if (pushDesiredMs !== targetMs) { pumpPush(); return; }
+    if (failed) {
+      // Pushen er backup, den lokale alarmen primær: ikke gi opp stille, men
+      // ikke hamre heller. Nytt forsøk om 30 s (og ved neste update()).
+      clearTimeout(pushRetryTimer);
+      pushRetryTimer = setTimeout(pumpPush, 30000);
+    }
   }
 
   // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
@@ -2282,7 +2322,16 @@
   }
   document.addEventListener('pointerdown', () => { if (state.alarm) warmAudio(); }, { capture: true });
 
+  // En bake pågår når den frosne starten er passert og alarmen ikke har gått;
+  // da betyr "Av" å forkaste den (av så på re-ankrer til en ny plan).
+  function bakeInProgress() {
+    return state.anchorDateMs != null && state.anchorDateMs <= Date.now() && !alarmFired;
+  }
+
   function setAlarm(on) {
+    if (!on && state.alarm && bakeInProgress() && !window.confirm(t('alarm.confirmOff'))) {
+      return;
+    }
     if (on && !state.alarm) {
       warmAudio();
       // Be om varselstillatelse (ufarlig om den allerede er avgjort).
@@ -2386,6 +2435,8 @@
     const sa = $('#sour-amount-detail');
     if (sa) sa.textContent = t('helper.sourAmount', { temp: fmtTemp(21) });
     localizeStaticSteppers();
+    // Kjøres ved oppstart og hvert språkbytte: riktig sted å synke SW-språket.
+    persistLangForSW();
   }
 
   // Bygg oversetter på nytt og re-rendre alt ved språk/enhet-bytte.
@@ -2945,9 +2996,18 @@
   // brukeren har rørt appen (warmAudio); varsel/vibrasjon/badge går uansett.
   {
     const total = modeTotalMinutes(state);
+    // "Juster underveis" kan strekke hevingen forbi planlagt totaltid; regn
+    // vinduet fra det justerte målet når det finnes, så en omstart midt i
+    // forlengelsen ikke nullstiller en fortsatt pågående bake.
+    let plannedEndMs = state.anchorDateMs == null ? 0 : state.anchorDateMs + total * 60000;
+    const adjusted = adjustedRiseDoneDate();
+    if (adjusted) {
+      plannedEndMs = Math.max(plannedEndMs,
+        adjusted.getTime() + (total - riseDoneMinutes(state)) * 60000);
+    }
     const resumable = state.alarm && state.anchorDateMs != null &&
       state.anchorDateMs < Date.now() + 48 * 3600 * 1000 &&
-      Date.now() < state.anchorDateMs + total * 60000;
+      Date.now() < plannedEndMs;
     if (resumable) {
       state.timeAnchor = 'start';
       state.anchorTime = formatTimeHM(new Date(state.anchorDateMs));
