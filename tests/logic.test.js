@@ -455,3 +455,108 @@ test('adjustedBulkRemainingHours: budsjettet bevares (forbrukt + rest ved planla
   const r = L.adjustedBulkRemainingHours(adjustState, 4, 21);
   assert.ok(Math.abs(4 + r - 16) < 1e-9);
 });
+
+// ---- Surdeigskoblingen som deskriptor ----
+// Grensene kommer inn som feltbord, så koblingen kan testes uten DOM. Før
+// dette leste den slider.min/.max av live noder, og klampe-hintene kunne
+// bare nås ved å dra sliders i jsdom.
+const Plantilstand = require('../src/plantilstand.js');
+const FIELDS = Plantilstand.FIELDS;
+
+const sour = extra => ({
+  ...Plantilstand.defaults(), leaven: 'sourdough', sourLead: 'inoculation', ...extra
+});
+
+test('sourCoupling: inokulering leder, bulk-tid følger i klassisk modus', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourInoculation: 20, temperatureC: 21 }), FIELDS);
+  assert.equal(d.field, 'riseHours');
+  assert.equal(d.value, 11, 'referansen 20 % @ 21 °C ≈ 11 t');
+  assert.equal(d.clamp, 'none');
+  assert.equal(d.note, null);
+});
+
+test('sourCoupling: tid leder, inokulering følger', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourLead: 'time', riseHours: 11, temperatureC: 21 }), FIELDS);
+  assert.equal(d.field, 'sourInoculation');
+  assert.equal(d.value, 20);
+  assert.equal(d.clamp, 'none');
+});
+
+test('sourCoupling: følger bulk-slideren når hevemodus bytter', () => {
+  assert.equal(L.sourCoupling(sour({ mode: 'classic' }), FIELDS).field, 'riseHours');
+  assert.equal(L.sourCoupling(sour({ mode: 'cold' }), FIELDS).field, 'bulkHours');
+});
+
+test('sourCoupling: kjøleskapsfasen kortner bulken i kald modus', () => {
+  const base = { mode: 'cold', sourInoculation: 20, temperatureC: 21, coldTempC: 6 };
+  const kort = L.sourCoupling(sour({ ...base, coldHours: 6 }), FIELDS);
+  const lang = L.sourCoupling(sour({ ...base, coldHours: 36 }), FIELDS);
+  assert.ok(lang.recommended < kort.recommended);
+});
+
+test('sourCoupling: verdien klampes til feltets grenser, aldri utenfor', () => {
+  const over = L.sourCoupling(sour({ mode: 'cold', sourInoculation: 10, coldHours: 6, coldTempC: 6 }), FIELDS);
+  assert.equal(over.value, FIELDS.bulkHours.max);
+  assert.ok(over.recommended > FIELDS.bulkHours.max);
+  assert.equal(over.clamp, 'over');
+});
+
+test('sourCoupling: klampet bulk over maks gir hint med feltets maks', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourInoculation: 10, temperatureC: 16 }), FIELDS);
+  assert.equal(d.clamp, 'over');
+  assert.equal(d.note.key, 'sour.bulkOverMax');
+  assert.equal(d.note.params.max, FIELDS.riseHours.max);
+  assert.equal(d.note.params.extra, '', 'ingen kald-tillegg i klassisk modus');
+  assert.equal(d.note.params.recText.approxHours, d.recommended);
+});
+
+test('sourCoupling: samme hint i kald modus peker også på kald etterheving', () => {
+  const d = L.sourCoupling(sour({ mode: 'cold', sourInoculation: 10, coldHours: 6, coldTempC: 6 }), FIELDS);
+  assert.equal(d.note.key, 'sour.bulkOverMax');
+  assert.deepEqual(d.note.params.extra, { i18n: 'sour.bulkOverMax.extraCold' });
+});
+
+test('sourCoupling: bulk under minimum gir overhevings-hint', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourInoculation: 40, temperatureC: 28 }), FIELDS);
+  assert.equal(d.value, FIELDS.riseHours.min);
+  assert.equal(d.clamp, 'under');
+  assert.equal(d.note.key, 'sour.bulkUnder');
+});
+
+test('sourCoupling: inokulering over maks gir hint med tettere brød', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourLead: 'time', riseHours: 4, temperatureC: 15 }), FIELDS);
+  assert.equal(d.value, FIELDS.sourInoculation.max);
+  assert.equal(d.clamp, 'over');
+  assert.equal(d.note.key, 'sour.inocOverMax');
+  assert.equal(d.note.params.max, FIELDS.sourInoculation.max);
+});
+
+test('sourCoupling: inokulering under minimum gir overhevings-hint', () => {
+  const d = L.sourCoupling(sour({ mode: 'classic', sourLead: 'time', riseHours: 24, temperatureC: 28 }), FIELDS);
+  assert.equal(d.value, FIELDS.sourInoculation.min);
+  assert.equal(d.clamp, 'under');
+  assert.equal(d.note.key, 'sour.inocUnder');
+  assert.equal(d.note.params.min, FIELDS.sourInoculation.min);
+});
+
+test('sourCoupling: ingen hint når klampingen er innenfor slakket', () => {
+  // Anbefaling like over maks, men mindre enn et halvt trinn: ikke verdt et hint.
+  const fields = { ...FIELDS, riseHours: { min: 4, max: 11 } };
+  const d = L.sourCoupling(sour({ mode: 'classic', sourInoculation: 20, temperatureC: 21 }), fields);
+  assert.ok(Math.abs(d.recommended - d.value) <= L.SOUR_CLAMP_SLACK);
+  assert.equal(d.clamp, 'none');
+  assert.equal(d.note, null);
+});
+
+test('sourCoupling: verdien er alltid et heltall innenfor området', () => {
+  [10, 15, 20, 25, 30, 35, 40].forEach(inoc => {
+    [15, 18, 21, 24, 28].forEach(temp => {
+      ['classic', 'cold'].forEach(mode => {
+        const d = L.sourCoupling(sour({ mode, sourInoculation: inoc, temperatureC: temp }), FIELDS);
+        const b = FIELDS[d.field];
+        assert.equal(d.value, Math.round(d.value));
+        assert.ok(d.value >= b.min && d.value <= b.max, `${mode}/${inoc}/${temp}: ${d.value}`);
+      });
+    });
+  });
+});

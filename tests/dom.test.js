@@ -482,3 +482,30 @@ test('vannrad: gram-hintet ved vanntemp-slideren følger oppskriftens vannmengde
     close();
   }
 });
+
+test('surdeig: klampet bulk-anbefaling viser hint med "~" og kald-tillegget', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    fire(window, document.querySelector('button[data-leaven="sourdough"]'), 'click');
+    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+
+    // 10 % surdeig i kald modus krever mer bulk enn slideren (6 t) tillater.
+    const inoc = document.getElementById('sour-inoculation');
+    inoc.value = '10';
+    fire(window, inoc, 'input');
+
+    const note = document.getElementById('sour-clamp-note');
+    assert.equal(note.hidden, false, 'klampe-hintet skal være synlig');
+    assert.match(note.textContent, /~\d+ t/, 'omtrentlig timetall via approxHours-markøren');
+    assert.match(note.textContent, /kald etterheving/, 'nøstet i18n-param er slått opp');
+    assert.equal(document.getElementById('bulk-time').value, '6', 'klampet til feltets maks');
+
+    // Nok surdeig: anbefalingen er innenfor området, og hintet forsvinner.
+    inoc.value = '40';
+    fire(window, inoc, 'input');
+    assert.equal(note.hidden, true);
+    assert.equal(note.textContent, '');
+  } finally {
+    close();
+  }
+});

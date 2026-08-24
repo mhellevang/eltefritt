@@ -1453,8 +1453,7 @@
     weightedHydration, modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,
     computeRecipe, flourTips,
-    recommendedSourBulkHours, recommendedSourInoculation,
-    effectiveColdHours, adjustedBulkRemainingHours, adjustedRiseDoneMs
+    sourCoupling, adjustedRiseDoneMs
   } = window.EltefrittLogic;
 
   const { createVarsling } = window.EltefrittVarsling;
@@ -1509,6 +1508,12 @@
     for (const k in params) {
       const v = params[k];
       if (v && typeof v === 'object' && typeof v.celsius === 'number') out[k] = fmtTemp(v.celsius);
+      // "~11" / "under 1": omtrentlig timetall der 0 ikke er meningsfullt.
+      else if (v && typeof v === 'object' && typeof v.approxHours === 'number') {
+        out[k] = v.approxHours < 1 ? t('sour.recUnder1') : '~' + formatNumber(Math.round(v.approxHours));
+      }
+      // Nøstet oppslag: en param som selv er en oversatt frase.
+      else if (v && typeof v === 'object' && typeof v.i18n === 'string') out[k] = t(v.i18n);
       else if (typeof v === 'number') out[k] = formatNumber(v);
       else out[k] = v;
     }
@@ -2476,72 +2481,24 @@
   }
 
   // ---- Surdeig-kobling ----
-  // Når leaven=sourdough koples inokulering og bulk-tid sammen via formelen
-  // i logic.js. Lederen (sourLead) styrer; følgeren oppdateres automatisk.
-  // Ved temperaturendring oppdateres bare følgeren. I kald modus teller også
-  // kjøleskapsfasens gjæring med i regnestykket (effectiveColdHours).
-  function bulkSliderForMode() {
-    return state.mode === 'classic' ? $('#rise-time') : $('#bulk-time');
-  }
-  function bulkFieldForMode() {
-    return state.mode === 'classic' ? 'riseHours' : 'bulkHours';
-  }
-  function sourColdEffectiveHours() {
-    if (state.mode !== 'cold') return 0;
-    return effectiveColdHours(state.coldHours, state.coldTempC, state.temperatureC);
-  }
-  function clampToSlider(slider, value) {
-    const min = parseFloat(slider.min);
-    const max = parseFloat(slider.max);
-    return Math.max(min, Math.min(max, Math.round(value)));
-  }
-  // Når anbefalingen klampes til sliderens grenser, si fra i stedet for å
-  // late som om den klampede verdien er anbefalt.
-  function setSourClampNote(text) {
-    const el = $('#sour-clamp-note');
-    el.hidden = !text;
-    el.textContent = text || '';
-  }
-  function syncSourBulkFromInoculation() {
-    const recommended = recommendedSourBulkHours(state.sourInoculation, state.temperatureC, sourColdEffectiveHours());
-    const slider = bulkSliderForMode();
-    const clamped = clampToSlider(slider, recommended);
-    state[bulkFieldForMode()] = clamped;
-    slider.value = clamped;
-    refreshStepperVisual(slider);
-    const recText = recommended < 1 ? t('sour.recUnder1') : '~' + formatNumber(Math.round(recommended));
-    if (recommended - clamped > 0.5) {
-      setSourClampNote(t('sour.bulkOverMax', {
-        recText,
-        max: slider.max,
-        extra: state.mode === 'cold' ? t('sour.bulkOverMax.extraCold') : ''
-      }));
-    } else if (clamped - recommended > 0.5) {
-      setSourClampNote(t('sour.bulkUnder', { recText }));
-    } else {
-      setSourClampNote(null);
-    }
-  }
-  function syncSourInoculationFromBulk() {
-    const bulkHours = state[bulkFieldForMode()];
-    const recommended = recommendedSourInoculation(bulkHours, state.temperatureC, sourColdEffectiveHours());
-    const slider = $('#sour-inoculation');
-    const clamped = clampToSlider(slider, recommended);
-    state.sourInoculation = clamped;
-    slider.value = clamped;
-    refreshStepperVisual(slider);
-    if (recommended - clamped > 0.5) {
-      setSourClampNote(t('sour.inocOverMax', { rec: Math.round(recommended), max: slider.max }));
-    } else if (clamped - recommended > 0.5) {
-      setSourClampNote(t('sour.inocUnder', { rec: Math.round(recommended), min: slider.min }));
-    } else {
-      setSourClampNote(null);
-    }
-  }
+  // Når leaven=sourdough koples inokulering og bulk-tid sammen. Beslutningen
+  // (hvilket felt som følger, hvilken verdi, om anbefalingen ble klampet og
+  // hvilket hint som gjelder) ligger i sourCoupling() i logic.js; her skrives
+  // den bare ut. Grensene kommer fra FIELDS, ikke fra DOM-en.
   function resyncSourFromLead() {
     if (state.leaven !== 'sourdough') return;
-    if (state.sourLead === 'time') syncSourInoculationFromBulk();
-    else syncSourBulkFromInoculation();
+    const d = sourCoupling(state, Plantilstand.FIELDS);
+    state[d.field] = d.value;
+    const input = document.getElementById(Plantilstand.FIELDS[d.field].inputId);
+    if (input) {
+      input.value = d.value;
+      refreshStepperVisual(input);
+    }
+    // Når anbefalingen klampes til feltets grenser, si fra i stedet for å
+    // late som om den klampede verdien er anbefalt.
+    const note = $('#sour-clamp-note');
+    note.hidden = !d.note;
+    note.textContent = d.note ? td(d.note.key, d.note.params) : '';
   }
 
   // ---- Wire up controls ----
@@ -2617,7 +2574,7 @@
     state.riseHours = parseInt(e.target.value, 10);
     if (state.leaven === 'sourdough') {
       state.sourLead = 'time';
-      syncSourInoculationFromBulk();
+      resyncSourFromLead();
     }
     update();
   });
@@ -2636,7 +2593,7 @@
     state.bulkHours = parseInt(e.target.value, 10);
     if (state.leaven === 'sourdough') {
       state.sourLead = 'time';
-      syncSourInoculationFromBulk();
+      resyncSourFromLead();
     }
     update({ skipFlourList: true });
   });
@@ -2657,7 +2614,7 @@
   $('#sour-inoculation').addEventListener('input', e => {
     state.sourInoculation = parseInt(e.target.value, 10);
     state.sourLead = 'inoculation';
-    if (state.leaven === 'sourdough') syncSourBulkFromInoculation();
+    resyncSourFromLead();
     update({ skipFlourList: true });
   });
 
@@ -2725,7 +2682,7 @@
         state.riseHours = newHours;
         if (state.leaven === 'sourdough') {
           state.sourLead = 'time';
-          syncSourInoculationFromBulk();
+          resyncSourFromLead();
         }
       }
       state.timeAnchor = 'start';

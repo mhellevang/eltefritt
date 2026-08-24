@@ -177,6 +177,70 @@
     return SOUR_BASE_INOC * (SOUR_BASE_BULK / totalEffective);
   }
 
+  // ---- Surdeigskoblingen som deskriptor ----
+  // Lederen (state.sourLead) styrer; funksjonen sier hvilket felt som skal
+  // følge, hvilken verdi det får, om anbefalingen måtte klampes til feltets
+  // grenser, og hvilket hint som i så fall skal vises. Render-laget skriver
+  // verdien og slår opp teksten; her ligger bare beslutningen.
+  //
+  // fields = feltbordet fra plantilstand.js, eneste kopi av de gyldige
+  // områdene. Grensene kommer altså inn som argument, ikke fra DOM-en.
+  const SOUR_CLAMP_SLACK = 0.5;
+
+  function clampToField(field, value) {
+    return Math.max(field.min, Math.min(field.max, Math.round(value)));
+  }
+
+  function clampDirection(recommended, value) {
+    if (recommended - value > SOUR_CLAMP_SLACK) return 'over';
+    if (value - recommended > SOUR_CLAMP_SLACK) return 'under';
+    return 'none';
+  }
+
+  function sourCoupling(state, fields) {
+    // Hvilken slider som er bulk-slideren avhenger av hevemodus.
+    const bulkField = state.mode === 'classic' ? 'riseHours' : 'bulkHours';
+    // I kald modus teller kjøleskapsfasens gjæring med i regnestykket.
+    const coldEffective = state.mode === 'cold'
+      ? effectiveColdHours(state.coldHours, state.coldTempC, state.temperatureC)
+      : 0;
+
+    if (state.sourLead === 'time') {
+      const field = 'sourInoculation';
+      const bounds = fields[field];
+      const recommended = recommendedSourInoculation(state[bulkField], state.temperatureC, coldEffective);
+      const value = clampToField(bounds, recommended);
+      const clamp = clampDirection(recommended, value);
+      const rec = Math.round(recommended);
+      let note = null;
+      if (clamp === 'over') note = { key: 'sour.inocOverMax', params: { rec, max: bounds.max } };
+      else if (clamp === 'under') note = { key: 'sour.inocUnder', params: { rec, min: bounds.min } };
+      return { field, value, recommended, clamp, note };
+    }
+
+    const field = bulkField;
+    const bounds = fields[field];
+    const recommended = recommendedSourBulkHours(state.sourInoculation, state.temperatureC, coldEffective);
+    const value = clampToField(bounds, recommended);
+    const clamp = clampDirection(recommended, value);
+    // Under 1 t har "~0 t" ingen mening; i18n har en egen frase for det.
+    const recText = { approxHours: recommended };
+    let note = null;
+    if (clamp === 'over') {
+      note = {
+        key: 'sour.bulkOverMax',
+        params: {
+          recText,
+          max: bounds.max,
+          extra: state.mode === 'cold' ? { i18n: 'sour.bulkOverMax.extraCold' } : ''
+        }
+      };
+    } else if (clamp === 'under') {
+      note = { key: 'sour.bulkUnder', params: { recText } };
+    }
+    return { field, value, recommended, clamp, note };
+  }
+
   // Starttemperatur i deigen rett etter blanding, vektet etter varmekapasitet.
   // Antar at melet ligger ved romtemp; vannet er det vi varierer.
   function initialDoughTempC(waterTempC, flourTempC, hydrationPct) {
@@ -440,6 +504,7 @@
     initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
     adjustedBulkRemainingHours, adjustedRiseDoneMs,
     recommendedSourBulkHours, recommendedSourInoculation,
+    sourCoupling, SOUR_CLAMP_SLACK,
     modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,
     blandStep,
