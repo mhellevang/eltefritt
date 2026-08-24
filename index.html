@@ -1443,6 +1443,7 @@
 </div>
 
 <script src="src/logic.js"></script>
+<script src="src/varsling.js"></script>
 <script>
 (() => {
   const {
@@ -1455,6 +1456,7 @@
     effectiveColdHours, adjustedBulkRemainingHours
   } = window.EltefrittLogic;
 
+  const { createVarsling } = window.EltefrittVarsling;
   const I18n = window.EltefrittI18n;
 
   // ---- Språk + temperaturenhet (presentasjonsvalg, separat fra recipe-state,
@@ -2005,11 +2007,11 @@
   // En ren web-app kan ikke pålitelig fyre en alarm hvis fanen er lukket i
   // timevis (Notification Triggers er Chrome-only og eksperimentelt). Derfor:
   // live nedtelling + varsel/lyd/vibrasjon når hevingen er ferdig, så lenge
-  // fanen er åpen (også i bakgrunnen).
-  let alarmTargetMs = null;   // absolutt tidspunkt (ms) hevingen er ferdig; fryst mellom update()
-  let alarmFired = false;     // har vi allerede varslet for gjeldende mål
-  let audioCtx = null;        // opprettes ved brukergest (toggle på) for å omgå autoplay-sperre
-  let titleFlashTimer = null; // blinker fane-tittel til brukeren ser den
+  // fanen er åpen (også i bakgrunnen), med Web Push som backup når den ikke er.
+  //
+  // Selve tilstandsmaskinen (armert → fyrt → kvittert, gjentakelse, oppgi,
+  // push-forsoning) ligger i src/varsling.js. Her bygges bare nettleser-
+  // adapteren den kjører effektene sine gjennom.
   const baseTitle = () => t('doc.title');
 
   function alarmSupported() { return typeof Notification !== 'undefined'; }
@@ -2059,17 +2061,18 @@
     return addMinutes(start, riseDoneMinutes(state));
   }
 
-  function stopTitleFlash() {
-    if (titleFlashTimer) { clearInterval(titleFlashTimer); titleFlashTimer = null; }
-    document.title = baseTitle();
-  }
-  function startTitleFlash() {
-    if (titleFlashTimer) return;
-    let on = false;
-    titleFlashTimer = setInterval(() => {
-      on = !on;
-      document.title = on ? '⏰ ' + t('alarm.done') : baseTitle();
-    }, 1000);
+  // ---- Nettleser-adapter for Varsling ----
+  let audioCtx = null;        // opprettes ved brukergest (toggle på) for å omgå autoplay-sperre
+  let titleFlashTimer = null; // blinker fane-tittel til brukeren ser den
+
+  // Opprett/vekk audio-context. Må skje i en brukergest for at pip skal være
+  // tillatt (autoplay-sperre); kalles fra alarm-toggle og, for gjenopptatte
+  // nedtellinger, fra første interaksjon etter oppstart.
+  function warmAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    } catch (e) {}
   }
 
   function playBeeps() {
@@ -2095,20 +2098,8 @@
     } catch (e) {}
   }
 
-  // Alarmen gjentas til den kvitteres, så et enkelt pip ikke går tapt.
-  // Kvittering = klikk/tastetrykk i appen, tilbake til fanen, eller alarm av.
-  // En forlatt fane skal ikke pipe evig: gi opp etter ALARM_GIVE_UP_MS.
-  const ALARM_REPEAT_MS = 12 * 1000;
-  const ALARM_GIVE_UP_MS = 5 * 60 * 1000;
-  let alarmRepeatTimer = null;
-
-  function stopAlarmRepeat() {
-    if (alarmRepeatTimer) { clearInterval(alarmRepeatTimer); alarmRepeatTimer = null; }
-  }
-
-  function alarmBurst() {
+  function vibrateBurst() {
     if (navigator.vibrate) { try { navigator.vibrate([300, 150, 300, 150, 300]); } catch (e) {} }
-    playBeeps();
   }
 
   // App-badge på ikonet (dock/oppgavelinje/hjemskjerm) når alarmen har gått.
@@ -2121,11 +2112,18 @@
     } catch (e) {}
   }
 
-  // Kvittering: brukeren har fått med seg alarmen. Stopper gjentatt piping
-  // og fjerner badgen; tittel-blinkingen styres separat av fane-synlighet.
-  function acknowledgeAlarm() {
-    stopAlarmRepeat();
-    setBadge(false);
+  function flashTitle(on) {
+    if (!on) {
+      if (titleFlashTimer) { clearInterval(titleFlashTimer); titleFlashTimer = null; }
+      document.title = baseTitle();
+      return;
+    }
+    if (titleFlashTimer) return;
+    let lit = false;
+    titleFlashTimer = setInterval(() => {
+      lit = !lit;
+      document.title = lit ? '⏰ ' + t('alarm.done') : baseTitle();
+    }, 1000);
   }
 
   // Chrome på Android tillater ikke Notification-konstruktøren i sidekontekst
@@ -2149,24 +2147,6 @@
     n.onclick = () => { try { window.focus(); } catch (e) {} n.close(); };
   }
 
-  function fireAlarm() {
-    if (alarmPermission() === 'granted') showAlarmNotification().catch(() => {});
-    alarmBurst();
-    stopAlarmRepeat();
-    setBadge(true);
-    const giveUpAt = Date.now() + ALARM_GIVE_UP_MS;
-    alarmRepeatTimer = setInterval(() => {
-      if (Date.now() > giveUpAt) { stopAlarmRepeat(); return; }
-      alarmBurst();
-    }, ALARM_REPEAT_MS);
-    startTitleFlash();
-  }
-
-  // Kvitter alarmen ved første interaksjon (fanger også Av-knappen og
-  // juster-stepperen; å røre appen er å ha fått den med seg).
-  ['pointerdown', 'keydown'].forEach(ev =>
-    document.addEventListener(ev, acknowledgeAlarm, { capture: true }));
-
   // ---- Web Push (valgfritt) ----
   // Det lokale varselet krever åpen fane/app; Web Push vekker service
   // workeren selv når appen er lukket. Krever en deployet push-server
@@ -2175,15 +2155,9 @@
   const PUSH_SERVER = 'https://eltefritt-push.mathias-hellevang.workers.dev';
   const VAPID_PUBLIC_KEY = 'BC5ZLEJHjx7LG_km01geRtEK0h-YdMgyWJP4IF0RuM-KIU_jH0Xil6SL--bBs-m0S1WWBHJlH5X_rgk7L7CNDII';  // offentlig nøkkel fra nøkkelgenereringen i README
 
-  let pushDesiredMs = null; // siste ønskede mål (null = ingenting skal være planlagt)
-  let pushSyncedMs;         // bekreftet servertilstand; undefined = ukjent, så første
-                            // avbestilling alltid sendes (rydder etter forrige økt)
-  let pushInFlight = false;
-  let pushRetryTimer = null;
-
   function pushEnabled() {
-    return PUSH_SERVER && VAPID_PUBLIC_KEY &&
-      'serviceWorker' in navigator && 'PushManager' in window;
+    return !!(PUSH_SERVER && VAPID_PUBLIC_KEY &&
+      'serviceWorker' in navigator && 'PushManager' in window);
   }
 
   // Speil språkvalget til en cache service workeren kan lese (den har ikke
@@ -2202,66 +2176,54 @@
     return Uint8Array.from(raw, c => c.charCodeAt(0));
   }
 
-  // Hold serverens fyringstidspunkt i synk med alarm-målet. targetMs = null
-  // avbestiller. Én forespørsel om gangen; endres målet underveis synkes det
-  // på nytt etterpå, så siste ønske vinner (ikke siste svar som kom frem).
-  function syncPush(targetMs) {
-    pushDesiredMs = targetMs;
-    pumpPush();
-  }
-
-  async function pumpPush() {
-    if (pushInFlight || !pushEnabled() || pushDesiredMs === pushSyncedMs) return;
-    pushInFlight = true;
-    const targetMs = pushDesiredMs;
-    let failed = false;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (targetMs == null) {
-        const sub = await reg.pushManager.getSubscription();
-        if (sub) {
-          const res = await fetch(PUSH_SERVER + '/cancel', {
-            method: 'POST',
-            body: JSON.stringify({ endpoint: sub.endpoint })
-          });
-          failed = !res.ok;
-        }
-        if (!failed) pushSyncedMs = null;
-      } else if (alarmPermission() === 'granted') {
-        const sub = await reg.pushManager.getSubscription() ||
-          await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes() });
-        const res = await fetch(PUSH_SERVER + '/schedule', {
-          method: 'POST',
-          body: JSON.stringify({ subscription: sub.toJSON(), fireAtMs: targetMs })
-        });
-        if (res.ok) pushSyncedMs = targetMs; else failed = true;
-      }
-      // Uten varsel-tillatelse er det ingenting å sende; renderAlarm kaller
-      // syncPush igjen når tillatelsen evt. gis.
-    } catch (e) { failed = true; }
-    pushInFlight = false;
-    if (pushDesiredMs !== targetMs) { pumpPush(); return; }
-    if (failed) {
-      // Pushen er backup, den lokale alarmen primær: ikke gi opp stille, men
-      // ikke hamre heller. Nytt forsøk om 30 s (og ved neste update()).
-      clearTimeout(pushRetryTimer);
-      pushRetryTimer = setTimeout(pumpPush, 30000);
+  // Sender ett ønske til push-serveren og sier om det gikk. targetMs = null
+  // avbestiller. Forsoningen (hva som er ønsket vs. bekreftet, ett kall om
+  // gangen, nytt forsøk ved feil) ligger i Varsling.
+  async function pushSend(targetMs) {
+    const reg = await navigator.serviceWorker.ready;
+    if (targetMs == null) {
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) return true;  // ingenting å avbestille
+      const res = await fetch(PUSH_SERVER + '/cancel', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: sub.endpoint })
+      });
+      return res.ok;
     }
+    const sub = await reg.pushManager.getSubscription() ||
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes() });
+    const res = await fetch(PUSH_SERVER + '/schedule', {
+      method: 'POST',
+      body: JSON.stringify({ subscription: sub.toJSON(), fireAtMs: targetMs })
+    });
+    return res.ok;
   }
 
-  // Skriver nedtellings-/statuslinja i #alarm-detail ut fra gjenværende tid.
-  function refreshCountdown(remainingMs) {
+  const varsling = createVarsling({
+    now: () => Date.now(),
+    permission: alarmPermission,
+    notify: showAlarmNotification,
+    beep: playBeeps,
+    vibrate: vibrateBurst,
+    badge: setBadge,
+    titleFlash: flashTitle,
+    pushEnabled,
+    pushSend
+  });
+
+  // Skriver nedtellings-/statuslinja i #alarm-detail ut fra alarmstatusen.
+  function refreshCountdown(st) {
     const el = $('#alarm-detail');
     el.classList.remove('is-active', 'is-done');
-    if (alarmFired) {
+    if (st.fired) {
       el.textContent = t('alarm.done');
       el.classList.add('is-done');
       return;
     }
     if (alarmPermission() === 'denied') {
-      el.textContent = t('alarm.countdown', { dur: formatDuration(remainingMs) }) + ' · ' + t('alarm.blocked');
+      el.textContent = t('alarm.countdown', { dur: formatDuration(st.remainingMs) }) + ' · ' + t('alarm.blocked');
     } else {
-      el.textContent = t('alarm.countdown', { dur: formatDuration(remainingMs) });
+      el.textContent = t('alarm.countdown', { dur: formatDuration(st.remainingMs) });
     }
     el.classList.add('is-active');
   }
@@ -2271,61 +2233,37 @@
     renderSegment($$('.seg button[data-alarm]'), state.alarm ? 'on' : 'off', 'alarm');
     const el = $('#alarm-detail');
     if (!state.alarm) {
-      alarmTargetMs = null;
-      alarmFired = false;
-      stopTitleFlash();
-      acknowledgeAlarm();
+      varsling.disarm();
       el.classList.remove('is-active', 'is-done');
       el.textContent = t('alarm.help');
-      syncPush(null);
       return;
     }
-    const ms = alarmTargetDate().getTime();
-    if (ms !== alarmTargetMs) {
-      // Planen endret seg: arm på nytt. Ikke fyr etterskuddsvis for et mål
-      // som allerede er passert (f.eks. ved gjenoppretting).
-      alarmTargetMs = ms;
-      alarmFired = Date.now() >= ms;
-      if (!alarmFired) { stopTitleFlash(); acknowledgeAlarm(); }
-    }
-    refreshCountdown(alarmTargetMs - Date.now());
-    // Utenfor ms-endrings-sjekken: tillatelsen kan bli gitt etter armering,
-    // og syncPush deduper selv mot pushSyncedMs.
-    syncPush(alarmFired ? null : alarmTargetMs);
+    refreshCountdown(varsling.arm(alarmTargetDate().getTime()));
   }
 
-  // 1 Hz-tikk: oppdater nedtelling og fyr alarmen når tiden er ute.
-  function alarmTick() {
-    if (!state.alarm || alarmTargetMs == null) return;
-    const remaining = alarmTargetMs - Date.now();
-    if (remaining <= 0 && !alarmFired) {
-      alarmFired = true;
-      fireAlarm();
-    }
-    refreshCountdown(remaining);
-  }
-  setInterval(alarmTick, 1000);
+  // 1 Hz-tikk: oppdater nedtelling og la Varsling fyre når tiden er ute.
+  setInterval(() => {
+    if (!state.alarm) return;
+    const st = varsling.tick();
+    if (st.armed) refreshCountdown(st);
+  }, 1000);
+
+  // Kvitter alarmen ved første interaksjon (fanger også Av-knappen og
+  // juster-stepperen; å røre appen er å ha fått den med seg).
+  ['pointerdown', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, () => varsling.acknowledge(), { capture: true }));
 
   // Stopp blinking og gjentatt piping når brukeren kommer tilbake til fanen.
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && alarmFired) { stopTitleFlash(); acknowledgeAlarm(); }
+    if (!document.hidden) varsling.seen();
   });
 
-  // Opprett/vekk audio-context. Må skje i en brukergest for at pip skal være
-  // tillatt (autoplay-sperre); kalles fra alarm-toggle og, for gjenopptatte
-  // nedtellinger, fra første interaksjon etter oppstart.
-  function warmAudio() {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) { if (!audioCtx) audioCtx = new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-    } catch (e) {}
-  }
   document.addEventListener('pointerdown', () => { if (state.alarm) warmAudio(); }, { capture: true });
 
   // En bake pågår når den frosne starten er passert og alarmen ikke har gått;
   // da betyr "Av" å forkaste den (av så på re-ankrer til en ny plan).
   function bakeInProgress() {
-    return state.anchorDateMs != null && state.anchorDateMs <= Date.now() && !alarmFired;
+    return state.anchorDateMs != null && state.anchorDateMs <= Date.now() && !varsling.status().fired;
   }
 
   function setAlarm(on) {
@@ -2339,7 +2277,6 @@
         try { Notification.requestPermission().then(() => update({ skipFlourList: true })); } catch (e) {}
       }
     }
-    if (!on) stopTitleFlash();
     state.alarm = on;
     if (!on) state.actualTempC = null;
     refreezeAnchor();
