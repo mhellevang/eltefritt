@@ -67,6 +67,7 @@ python3 -m http.server    # eller: npx serve
 - `index.html`: hele UI-et, inline CSS og scripts
 - `src/logic.js`: rene helpers (matte, tabeller, modes) som lastes i nettleser og brukes av tester
 - `src/plantilstand.js`: standardverdier, gyldige områder og gjenoppretting av lagret state. Feltbordet `FIELDS` er eneste kopi av hvert område; sliderne i `index.html` arver `min`/`max` derfra
+- `src/visning.js`: utleder hva siden skal si som verdier (deskriptorer, ikke ferdig tekst). `index.html` har én applier som skriver dem ut
 - `src/varsling.js`: alarm-tilstandsmaskinen (armering, fyring, gjentakelse, push-forsoning). Tar alle nettleser-effekter inn som en injisert adapter, så den kan testes med falsk klokke
 - `tests/`: `node --test`-baserte enhets- og DOM-tester
 - `sw.js`: service worker for PWA
@@ -79,4 +80,4 @@ npm install   # installerer jsdom (eneste devDep)
 npm test      # kjører alle tester
 ```
 
-Logikk-tester går mot `src/logic.js`, `src/plantilstand.js` og `src/varsling.js`. DOM-tester laster `index.html` inn i jsdom og asserter på computed styles, slik at vi fanger CSS-feller som ren enhetstest ville glipt.
+Logikk-tester går mot `src/logic.js`, `src/plantilstand.js`, `src/visning.js` og `src/varsling.js`. DOM-tester laster `index.html` inn i jsdom og asserter på computed styles, slik at vi fanger CSS-feller som ren enhetstest ville glipt.

@@ -1445,19 +1445,18 @@
 <script src="src/logic.js"></script>
 <script src="src/varsling.js"></script>
 <script src="src/plantilstand.js"></script>
+<script src="src/visning.js"></script>
 <script>
 (() => {
   const {
-    FLOUR_TYPES, LEAVEN_DETAILS, MODE_META,
-    addMinutes, addHours,
-    weightedHydration, modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
-    modePlanItems, modeInstructions,
-    computeRecipe, flourTips,
+    FLOUR_TYPES,
+    addMinutes, modeTotalMinutes, riseDoneMinutes, planWindow,
     sourCoupling, adjustedRiseDoneMs
   } = window.EltefrittLogic;
 
   const { createVarsling } = window.EltefrittVarsling;
   const Plantilstand = window.EltefrittPlantilstand;
+  const Visning = window.EltefrittVisning;
   const I18n = window.EltefrittI18n;
 
   // ---- Språk + temperaturenhet (presentasjonsvalg, separat fra recipe-state,
@@ -1514,6 +1513,18 @@
       }
       // Nøstet oppslag: en param som selv er en oversatt frase.
       else if (v && typeof v === 'object' && typeof v.i18n === 'string') out[k] = t(v.i18n);
+      // Gram-mengde med appens avrundingsregler.
+      else if (v && typeof v === 'object' && typeof v.grams === 'number') out[k] = formatGrams(v.grams);
+      // Prosent med to desimaler (gjærmengde).
+      else if (v && typeof v === 'object' && typeof v.pct2 === 'number') {
+        out[k] = formatNumber(v.pct2, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      // Klokkeslett med dag-etikett når det ikke er i dag.
+      else if (v && typeof v === 'object' && typeof v.at === 'number') {
+        const d = new Date(v.at);
+        const day = dayLabelInfo(d);
+        out[k] = formatTimeHM(d) + (day.isToday ? '' : ' ' + day.label);
+      }
       else if (typeof v === 'number') out[k] = formatNumber(v);
       else out[k] = v;
     }
@@ -1521,6 +1532,17 @@
   }
   // Oversett en deskriptor (nøkkel + evt. temp/tall-params).
   const td = (key, params) => t(key, resolveParams(params));
+
+  // Skriv ut en visnings-slot fra src/visning.js. Én form per måte å vise en
+  // verdi på, og ingen beslutninger: alt som varierer er avgjort i viewOf().
+  function renderSlot(slot) {
+    if (!slot) return '';
+    if (Array.isArray(slot)) return slot.map(renderSlot).join('');
+    if (slot.text != null) return slot.text;
+    if (slot.grams != null) return formatGrams(slot.grams);
+    const out = td(slot.key, slot.params);
+    return slot.lower ? out.toLowerCase() : out;
+  }
 
   // Dag-etikett (i dag / i morgen / ukedag) med isToday-flagg.
   function dayLabelInfo(date) {
@@ -1620,8 +1642,6 @@
     refreshStepperVisual(input);
   }
 
-  const currentModeMeta = () => MODE_META[state.mode];
-
   // ---- Render ----
   function renderSegment(buttons, currentValue, attr) {
     buttons.forEach(b => {
@@ -1636,22 +1656,6 @@
   // risikerer at toppen treffer lokket under ovnsspranget; for stor er
   // tilgivende, så tabellen runder heller opp. Brødform: deigen fyller
   // formen ~2/3 før etterheving.
-  function equipmentForSize(g) {
-    if (g <= 600) return t('equipment.pot.s');
-    if (g <= 800) return t('equipment.pot.m');
-    if (g <= 1100) return t('equipment.pot.l');
-    if (g <= 1500) return t('equipment.pot.xl');
-    return t('equipment.pot.xxl');
-  }
-
-  function bannetonForSize(g) {
-    if (g <= 600) return t('banneton.s');
-    if (g <= 800) return t('banneton.m');
-    if (g <= 1100) return t('banneton.l');
-    if (g <= 1500) return t('banneton.xl');
-    return t('banneton.xxl');
-  }
-
   function setFlourPct(idx, newPct) {
     const n = state.flours.length;
     if (n === 1) {
@@ -1688,21 +1692,6 @@
   }
 
   // Med 3+ frie glidere må brukeren selv treffe 100 %. Vis hvor langt unna.
-  function flourSumLabel(totalPct) {
-    if (totalPct === 100) return t('flourSum.exact');
-    const diff = 100 - totalPct;
-    return diff > 0
-      ? t('flourSum.remaining', { total: totalPct, diff })
-      : t('flourSum.over', { total: totalPct, diff: -diff });
-  }
-
-  function renderFlourSum() {
-    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
-    const warn = $('#flour-warning');
-    warn.textContent = flourSumLabel(totalPct);
-    warn.classList.toggle('error', totalPct !== 100);
-  }
-
   function renderFlourList() {
     const list = $('#flour-list');
     list.innerHTML = '';
@@ -1814,81 +1803,46 @@
 
       initStepper(slider);
     });
-
-    renderFlourSum();
   }
 
-  function renderFlourTip() {
-    const tips = flourTips(state.flours);
-    const el = $('#flour-tip');
-    if (tips.length === 0) {
-      el.hidden = true;
-      el.innerHTML = '';
+  // Melandeler: hele lista bygges på nytt når den kan ha endret form, ellers
+  // synkroniseres den eksisterende DOM-en (så en pågående drag ikke brytes).
+  function applyFlour(flour, opts) {
+    if (!opts.skipFlourList) {
+      renderFlourList();
     } else {
-      el.hidden = false;
-      el.innerHTML = tips.map(tip => `<p>${t(tip.key)}</p>`).join('');
+      const rows = $('#flour-list').children;
+      flour.rows.forEach((f, i) => {
+        const row = rows[i];
+        if (!row) return;
+        const pctLabel = row.querySelector('.flour-pct');
+        const slider = row.querySelector('.flour-slider');
+        if (pctLabel) pctLabel.textContent = `${f.pct}%`;
+        if (slider && i !== opts.fromSlider) {
+          slider.value = f.pct;
+          refreshStepperVisual(slider);
+        }
+      });
     }
-  }
 
-  function renderFlourBreakdown(flourTotal) {
+    const warn = $('#flour-warning');
+    warn.textContent = renderSlot(flour.sum);
+    warn.classList.toggle('error', flour.sumError);
+
+    const tipEl = $('#flour-tip');
+    tipEl.innerHTML = flour.tips.map(tip => `<p>${t(tip.key)}</p>`).join('');
+
     const wrap = $('#flour-breakdown');
     wrap.innerHTML = '';
-    const totalPct = state.flours.reduce((s, f) => s + f.pct, 0);
-    if (state.flours.length === 1) {
-      $('#flour-types-label').textContent = t('flour.' + state.flours[0].type).toLowerCase();
-      return;
-    }
-    $('#flour-types-label').textContent = t('flour.typesLabelOther', { count: state.flours.length });
-    state.flours.forEach(f => {
-      if (f.pct === 0) return;
-      const grams = (f.pct / Math.max(totalPct, 1)) * flourTotal;
+    flour.breakdown.forEach(f => {
       const row = document.createElement('div');
       row.className = 'ingredient';
       row.innerHTML = `
         <span class="name">${t('flour.' + f.type)} <span class="sub">${f.pct}%</span></span>
-        <span class="amount">${formatGrams(grams)} g</span>
+        <span class="amount">${formatGrams(f.grams)} g</span>
       `;
       wrap.appendChild(row);
     });
-  }
-
-  function resolveAnchorDate(timeStr) {
-    const [hh, mm] = timeStr.split(':').map(Number);
-    const now = nowDate();
-    const nowMinute = new Date(now);
-    nowMinute.setSeconds(0, 0);
-    const d = new Date(now);
-    d.setHours(hh, mm, 0, 0);
-    // Bruk strict < og minutt-presisjon, så "akkurat nå" ikke bumpes til i morgen
-    if (d < nowMinute) d.setDate(d.getDate() + 1);
-    return d;
-  }
-
-  // Dag-etiketter håndteres av dayLabelInfo() (i18n) lenger oppe i scriptet.
-
-  function getStartAndReady() {
-    const total = modeTotalMinutes(state);
-    // Med alarmen på er starten fryst som absolutt tidspunkt, så en heving
-    // som pågår ikke re-ankres til neste dag når start-klokkeslettet
-    // passeres igjen (resolveAnchorDate dytter passerte HH:MM fremover).
-    if (state.alarm && state.anchorDateMs != null) {
-      const start = new Date(state.anchorDateMs);
-      return { start, ready: addMinutes(start, total) };
-    }
-    if (state.timeAnchor === 'ready') {
-      let ready = resolveAnchorDate(state.anchorTime);
-      let start = addMinutes(ready, -total);
-      // Hvis Start havner før nå, flytt Ready én dag fram (cap for sikkerhet)
-      const now = nowDate();
-      let safety = 5;
-      while (start < now && safety-- > 0) {
-        ready = addMinutes(ready, 24 * 60);
-        start = addMinutes(ready, -total);
-      }
-      return { start, ready };
-    }
-    const start = resolveAnchorDate(state.anchorTime);
-    return { start, ready: addMinutes(start, total) };
   }
 
   function renderInstructions(instructions) {
@@ -1928,8 +1882,12 @@
     return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
   }
 
-  function renderPlan() {
-    const { start, ready } = getStartAndReady();
+  // Dag-etiketter håndteres av dayLabelInfo() (i18n) lenger oppe i scriptet.
+  // Planvinduet (start/ferdig ut fra anker og modus) ligger i logic.js.
+  const getStartAndReady = () => planWindow(state, Date.now());
+
+  function renderPlan(plan) {
+    const { start, ready, items } = plan;
     const startInput = $('#start-time');
     const readyInput = $('#ready-time');
     if (document.activeElement !== startInput) startInput.value = formatTimeHM(start);
@@ -1942,7 +1900,7 @@
     const stepsEl = $('#plan-steps');
     stepsEl.innerHTML = '';
     const stepEls = [];
-    modePlanItems(state, start).forEach(item => {
+    items.forEach(item => {
       if (item.kind === 'duration') {
         const d = document.createElement('div');
         d.className = 'plan-duration';
@@ -2265,29 +2223,17 @@
   // "Juster underveis": synlig mens en klassisk bulk pågår med alarmen på.
   // Stepperen viser faktisk temp så langt; avviker den fra planlagt temp,
   // regnes gjenstående tid om og alarmen re-armeres (via alarmTargetDate).
-  function renderAdjust() {
-    const field = $('#adjust-field');
-    const active = state.alarm && state.mode === 'classic' && state.anchorDateMs != null;
-    field.hidden = !active;
-    if (!active) return;
+  // Hva som skal stå der er avgjort i viewOf().
+  function applyAdjust(adjust) {
+    $('#adjust-field').hidden = !adjust.active;
+    if (!adjust.active) return;
     const input = $('#adjust-temp');
-    const shownTemp = state.actualTempC != null ? state.actualTempC : state.temperatureC;
     if (document.activeElement !== input) {
-      input.value = shownTemp;
+      input.value = adjust.shownTempC;
       refreshStepperVisual(input);
     }
-    renderTempReadout('adjust-temp-value', shownTemp);
-    const el = $('#adjust-detail');
-    const adjusted = adjustedRiseDoneDate();
-    if (!adjusted) {
-      el.textContent = t('adjust.help');
-    } else if (adjusted.getTime() <= Date.now()) {
-      el.textContent = t('adjust.overdue');
-    } else {
-      const day = dayLabelInfo(adjusted);
-      const time = formatTimeHM(adjusted) + (day.isToday ? '' : ' ' + day.label);
-      el.textContent = t('adjust.readyAt', { time });
-    }
+    renderTempReadout('adjust-temp-value', adjust.shownTempC);
+    $('#adjust-detail').textContent = renderSlot(adjust.note);
   }
 
   // Temperatur-avlesning: tall i valgt enhet + enhets-suffiks (°C/°F). Modellen
@@ -2362,122 +2308,43 @@
     update();
   }
 
-  function update(opts = {}) {
-    const result = computeRecipe(state);
-
-    // Brødstørrelse-detalj
-    const sizeNameKey = { 400: 'size.small', 500: 'size.medium', 700: 'size.large' }[state.sizePerLoaf];
-    $('#size-value').textContent = sizeNameKey ? t(sizeNameKey) : t('size.custom', { g: formatNumber(state.sizePerLoaf) });
-    // Deig = mel × (1 + hydrering + 2 % salt); ferdig brød ≈ deig × 0.88
-    // (litt vekttap fra stekning), avrundet til nærmeste 50 g.
-    const doughFactor = 1 + result.hydration / 100 + 0.02;
-    const finished = Math.round((state.sizePerLoaf * doughFactor * 0.88) / 50) * 50;
-    $('#size-detail').textContent = t('size.detail', { flour: formatGrams(state.sizePerLoaf), finished: formatGrams(finished) });
-    let equipmentText = t('equipment.line', {
-      pot: equipmentForSize(state.sizePerLoaf),
-      banneton: bannetonForSize(state.sizePerLoaf)
+  // Skriver ut en ferdig View. Ingen beslutninger her: alt som varierer med
+  // state er avgjort i viewOf(), og alt som varierer med språk/enhet i
+  // renderSlot/renderTempReadout.
+  function apply(view, opts) {
+    Object.entries(view.text).forEach(([id, slot]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = renderSlot(slot);
     });
-    if (state.loaves > 1) equipmentText += t('equipment.perLoaf');
-    $('#equipment-detail').textContent = equipmentText;
+    Object.entries(view.hidden).forEach(([id, isHidden]) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = isHidden;
+    });
+    Object.entries(view.temps).forEach(([id, celsius]) => renderTempReadout(id, celsius));
+    Object.entries(view.values).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = value;
+      refreshStepperVisual(el);
+    });
 
-    // Antall brød
-    $('#loaves-value').textContent = state.loaves;
-
-    // Meltype-anbefaling
-    const recommended = weightedHydration(state.flours);
-    const recMin = Math.round(recommended.min);
-    const recMax = Math.round(recommended.max);
-    $('#hydration-suggestion').textContent = recMin === recMax
-      ? t('hydration.suggestion.single', { n: recMin })
-      : t('hydration.suggestion.range', { min: recMin, max: recMax });
-    refreshHydrationRecommend(recommended.min, recommended.max);
-
-    // Hvis ikke manuelt overstyrt, sett hydrering til midtpunkt av anbefalt område
-    if (!state.hydrationManual) {
-      state.hydration = Math.round((recommended.min + recommended.max) / 2);
-      $('#hydration').value = state.hydration;
-      refreshStepperVisual($('#hydration'));
-    }
-    $('#hydration-value').textContent = state.hydration;
-
-    renderTempReadout('temp-value', state.temperatureC);
-    renderTempReadout('water-temp-value', state.waterTempC);
-    renderTempReadout('water-temp-inline-value', state.waterTempC);
-    $('#time-value').textContent = state.riseHours;
-    $('#bulk-time-value').textContent = state.bulkHours;
-    $('#cold-time-value').textContent = state.coldHours;
-    renderTempReadout('cold-temp-value', state.coldTempC);
-    $('#sour-inoculation-value').textContent = state.sourInoculation;
+    refreshHydrationRecommend(view.hydrationBand.min, view.hydrationBand.max);
     renderMarks();
-
-    // Vis riktig kontrollsett basert på modus og heveform.
-    Object.entries(MODE_META).forEach(([key, meta]) => {
-      $(`#${meta.controlsId}`).hidden = state.mode !== key;
-    });
-    $('#sourdough-controls').hidden = state.leaven !== 'sourdough';
-    $('#mode-detail').textContent = t(currentModeMeta().detailKey);
-    const ld = LEAVEN_DETAILS[state.leaven];
-    $('#leaven-detail').textContent = ld ? td(ld.key, ld.params) : '';
-    renderInstructions(modeInstructions(state));
-
-    if (!opts.skipFlourList) {
-      renderFlourList();
-    } else {
-      // Synkroniser eksisterende DOM uten å rebygge (så drag-interaksjonen ikke brytes)
-      const rows = $('#flour-list').children;
-      state.flours.forEach((f, i) => {
-        const row = rows[i];
-        if (!row) return;
-        const pctLabel = row.querySelector('.flour-pct');
-        const slider = row.querySelector('.flour-slider');
-        if (pctLabel) pctLabel.textContent = `${f.pct}%`;
-        if (slider && i !== opts.fromSlider) {
-          slider.value = f.pct;
-          refreshStepperVisual(slider);
-        }
-      });
-      renderFlourSum();
-    }
-    renderFlourTip();
-
-    $('#flour-amount').textContent = formatGrams(result.flourAdded);
-    $('#water-amount').textContent = formatGrams(result.water);
-    $('#water-temp-grams').textContent = t('field.waterTemp.grams', { grams: formatGrams(result.water) });
-    // Temp-tallet vises alltid i inline-stepperen; sub-teksten sier bare fra
-    // når vannet fortsatt følger romtemp.
-    $('#water-sub').textContent = state.waterTempC === state.temperatureC
-      ? t('water.sub.roomTemp')
-      : '';
-    $('#salt-amount').textContent = formatGrams(result.salt);
-
-    if (result.leaven === 'sourdough') {
-      $('#yeast-row').hidden = true;
-      $('#starter-row').hidden = false;
-      $('#starter-amount').textContent = formatGrams(result.starter);
-    } else {
-      $('#yeast-row').hidden = false;
-      $('#starter-row').hidden = true;
-      const pctVal = formatNumber(result.yeastPct, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      if (result.leaven === 'fresh') {
-        $('#yeast-label').textContent = t('yeast.fresh');
-        $('#yeast-amount').textContent = formatGrams(result.yeast * 3);
-        $('#yeast-fresh').textContent = t('yeast.detail.fresh', { pct: pctVal, grams: formatGrams(result.yeast) });
-      } else {
-        $('#yeast-label').textContent = t('yeast.dry');
-        $('#yeast-amount').textContent = formatGrams(result.yeast);
-        $('#yeast-fresh').textContent = t('yeast.detail.dry', { pct: pctVal, grams: formatGrams(result.yeast * 3) });
-      }
-    }
-
-    renderFlourBreakdown(result.flourAdded);
-    renderPlan();
+    renderInstructions(view.instructions);
+    applyFlour(view.flour, opts);
+    renderPlan(view.plan);
     renderAlarm();
-    renderAdjust();
+    applyAdjust(view.adjust);
+  }
 
-    // Lagre state
-    try {
-      localStorage.setItem(STATE_KEY, Plantilstand.serialize(state));
-    } catch (e) {}
+  function saveState() {
+    try { localStorage.setItem(STATE_KEY, Plantilstand.serialize(state)); } catch (e) {}
+  }
+
+  function update(opts = {}) {
+    Visning.normalize(state);
+    apply(Visning.viewOf(state, Date.now()), opts);
+    saveState();
   }
 
   // ---- Surdeig-kobling ----

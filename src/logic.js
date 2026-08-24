@@ -350,6 +350,46 @@
     return 0;
   }
 
+  // ---- Planvinduet ----
+  // Løs et HH:MM-anker til neste forekomst av det klokkeslettet. Strict < og
+  // minutt-presisjon, så "akkurat nå" ikke bumpes til i morgen.
+  function resolveAnchorDate(timeStr, nowMs) {
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const now = new Date(nowMs);
+    const nowMinute = new Date(now);
+    nowMinute.setSeconds(0, 0);
+    const d = new Date(now);
+    d.setHours(hh, mm, 0, 0);
+    if (d < nowMinute) d.setDate(d.getDate() + 1);
+    return d;
+  }
+
+  // Start og ferdigtid for planen. Rent avhengig av state og "nå".
+  function planWindow(state, nowMs) {
+    const total = modeTotalMinutes(state);
+    // Med alarmen på er starten fryst som absolutt tidspunkt, så en heving
+    // som pågår ikke re-ankres til neste dag når start-klokkeslettet
+    // passeres igjen (resolveAnchorDate dytter passerte HH:MM fremover).
+    if (state.alarm && state.anchorDateMs != null) {
+      const start = new Date(state.anchorDateMs);
+      return { start, ready: addMinutes(start, total) };
+    }
+    if (state.timeAnchor === 'ready') {
+      let ready = resolveAnchorDate(state.anchorTime, nowMs);
+      let start = addMinutes(ready, -total);
+      // Havner Start før nå, flytt Ready én dag fram (cap for sikkerhet).
+      const now = new Date(nowMs);
+      let safety = 5;
+      while (start < now && safety-- > 0) {
+        ready = addMinutes(ready, 24 * 60);
+        start = addMinutes(ready, -total);
+      }
+      return { start, ready };
+    }
+    const start = resolveAnchorDate(state.anchorTime, nowMs);
+    return { start, ready: addMinutes(start, total) };
+  }
+
   // Returnerer deskriptorer; render-laget formaterer tall/temp/locale.
   // duration: { kind, key, params? }; step: { kind, labelKey, time }.
   function modePlanItems(state, start) {
@@ -507,6 +547,7 @@
     sourCoupling, SOUR_CLAMP_SLACK,
     modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,
+    resolveAnchorDate, planWindow,
     blandStep,
     computeRecipe, flourTips
   };
