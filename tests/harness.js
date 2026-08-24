@@ -18,6 +18,16 @@ const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
 
+// Rekkefølgen er den samme som i index.html.
+const SRC_SCRIPTS = [
+  'src/i18n.js',
+  'src/logic.js',
+  'src/varsling.js',
+  'src/plantilstand.js',
+  'src/visning.js',
+  'src/app.js',
+];
+
 async function loadPage(opts = {}) {
   // Frø språk/enhet deterministisk: jsdom sin navigator.language er en-US, så
   // uten frø ville auto-deteksjon vippe hele DOM-suiten til engelsk/Fahrenheit.
@@ -25,20 +35,15 @@ async function loadPage(opts = {}) {
   const unit = opts.unit || 'c';
 
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const i18n = fs.readFileSync(path.join(ROOT, 'src/i18n.js'), 'utf8');
-  const logic = fs.readFileSync(path.join(ROOT, 'src/logic.js'), 'utf8');
-  const varsling = fs.readFileSync(path.join(ROOT, 'src/varsling.js'), 'utf8');
-  const plantilstand = fs.readFileSync(path.join(ROOT, 'src/plantilstand.js'), 'utf8');
-  const visning = fs.readFileSync(path.join(ROOT, 'src/visning.js'), 'utf8');
 
   // Inline src-modulene i samme rekkefølge som nettleseren laster dem, så
-  // jsdom slipper å hente dem over HTTP.
-  const inlinedHtml = html
-    .replace(/<script src="src\/i18n\.js"><\/script>/, `<script>${i18n}</script>`)
-    .replace(/<script src="src\/logic\.js"><\/script>/, `<script>${logic}</script>`)
-    .replace(/<script src="src\/varsling\.js"><\/script>/, `<script>${varsling}</script>`)
-    .replace(/<script src="src\/plantilstand\.js"><\/script>/, `<script>${plantilstand}</script>`)
-    .replace(/<script src="src\/visning\.js"><\/script>/, `<script>${visning}</script>`);
+  // jsdom slipper å hente dem over HTTP. Erstatningen går via en funksjon:
+  // koden inneholder $$(...) og $-sekvenser har spesiell betydning i en
+  // erstatnings-streng.
+  const inlinedHtml = SRC_SCRIPTS.reduce((acc, src) => {
+    const code = fs.readFileSync(path.join(ROOT, src), 'utf8');
+    return acc.replace(`<script src="${src}"></script>`, () => `<script>${code}</script>`);
+  }, html);
 
   const dom = new JSDOM(inlinedHtml, {
     url: 'http://localhost:8765/',

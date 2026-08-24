@@ -2,8 +2,8 @@
 
 // Varsling: hele alarm-tilstandsmaskinen bak ett lite grensesnitt.
 //
-// Modulen eier beslutningene — når alarmen er armert, når den fyrer, når den
-// gjentas, når den gir opp, og hva push-serveren skal ha planlagt — og tar
+// Modulen eier beslutningene (når alarmen er armert, når den fyrer, når den
+// gjentas, når den gir opp, og hva push-serveren skal ha planlagt) og tar
 // alle nettleser-effekter inn som en injisert adapter. Appen sender inn
 // nettleser-adapteren (Notification, AudioContext, vibrate, setAppBadge,
 // fetch mot push-serveren); testene sender inn en adapter som bare noterer
@@ -14,8 +14,8 @@
 //                  re-armerer bare når målet faktisk har flyttet seg.
 //   disarm()       alarmen er av.
 //   tick()         kalles 1 Hz; fyrer alarmen når tiden er ute.
-//   acknowledge()  brukeren har rørt appen — stopp gjentatt piping.
-//   seen()         brukeren ser på fanen — stopp også tittel-blinkingen.
+//   acknowledge()  brukeren har rørt appen; stopp gjentatt piping.
+//   seen()         brukeren ser på fanen; stopp også tittel-blinkingen.
 //   status()       { armed, fired, remainingMs }
 //
 // arm() og tick() returnerer samme status, så render-laget slipper et ekstra
