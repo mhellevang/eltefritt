@@ -236,6 +236,20 @@
     return (budget - consumed) / fermentationFactor(actualTempC);
   }
 
+  // Justert slutt på bulkhevingen når "faktisk temp så langt" er satt (kun
+  // klassisk modus, mens hevingen pågår). null = ingen justering aktiv. Målet
+  // regnes fra nå + gjenstående budsjett; ved konstant temp er det stabilt
+  // mellom oppdateringer (avrundet til hele minutter mot smådrift). Kan ligge
+  // i fortid når deigen er over budsjett.
+  function adjustedRiseDoneMs(state, nowMs) {
+    if (state.mode !== 'classic' || state.actualTempC == null) return null;
+    if (!state.alarm || state.anchorDateMs == null) return null;
+    const elapsedH = (nowMs - state.anchorDateMs) / 3600000;
+    if (elapsedH <= 0) return null;
+    const remainingH = adjustedBulkRemainingHours(state, elapsedH, state.actualTempC);
+    return Math.round((nowMs + remainingH * 3600000) / 60000) * 60000;
+  }
+
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
   function modeEffectiveHours(state) {
     const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
@@ -424,7 +438,7 @@
     addMinutes, addHours,
     weightedHydration, calculateYeast,
     initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
-    adjustedBulkRemainingHours,
+    adjustedBulkRemainingHours, adjustedRiseDoneMs,
     recommendedSourBulkHours, recommendedSourInoculation,
     modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,
     modePlanItems, modeInstructions,

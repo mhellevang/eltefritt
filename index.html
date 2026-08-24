@@ -1139,7 +1139,7 @@
       </div>
       <div class="size-custom">
         <label for="size-custom-input" data-i18n="field.sizeCustomLabel">eller egen vekt</label>
-        <input type="number" id="size-custom-input" class="size-custom-input" min="100" max="3000" step="10" inputmode="numeric" value="500" />
+        <input type="number" id="size-custom-input" class="size-custom-input" step="10" inputmode="numeric" value="500" />
         <span data-i18n="field.sizeUnit">g mel</span>
       </div>
       <p class="helper-text" id="size-detail">≈ 500 g mel · ~800 g ferdig brød</p>
@@ -1163,7 +1163,7 @@
         <span class="field-value"><span id="hydration-value">75</span>%</span>
       </div>
       <div class="stepper" data-stepper-for="hydration">
-        <input type="range" id="hydration" class="visually-hidden" min="60" max="95" value="75" step="1" />
+        <input type="range" id="hydration" class="visually-hidden" value="75" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hydrering">−</button>
         <div class="step-track" aria-hidden="true"><div class="step-recommend" id="hydration-recommend"></div><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hydrering">+</button>
@@ -1209,7 +1209,7 @@
         <span class="field-value"><span id="temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="temp">
-        <input type="range" id="temp" class="visually-hidden" min="15" max="28" value="21" step="1" />
+        <input type="range" id="temp" class="visually-hidden" value="21" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser romtemperatur">−</button>
         <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk romtemperatur">+</button>
@@ -1227,7 +1227,7 @@
         <span class="field-value"><span id="water-temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="water-temp">
-        <input type="range" id="water-temp" class="visually-hidden" min="5" max="40" value="21" step="1" />
+        <input type="range" id="water-temp" class="visually-hidden" value="21" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser vanntemperatur">−</button>
         <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk vanntemperatur">+</button>
@@ -1247,7 +1247,7 @@
           <span class="field-value"><span id="time-value">14</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="rise-time">
-          <input type="range" id="rise-time" class="visually-hidden" min="4" max="24" value="14" step="1" />
+          <input type="range" id="rise-time" class="visually-hidden" value="14" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser hevetid">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk hevetid">+</button>
@@ -1268,7 +1268,7 @@
           <span class="field-value"><span id="bulk-time-value">2</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="bulk-time">
-          <input type="range" id="bulk-time" class="visually-hidden" min="1" max="6" value="2" step="1" />
+          <input type="range" id="bulk-time" class="visually-hidden" value="2" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser bulkheving">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk bulkheving">+</button>
@@ -1286,7 +1286,7 @@
           <span class="field-value"><span id="cold-time-value">12</span> <span data-i18n="unit.hours">t</span></span>
         </div>
         <div class="stepper" data-stepper-for="cold-time">
-          <input type="range" id="cold-time" class="visually-hidden" min="6" max="36" value="12" step="1" />
+          <input type="range" id="cold-time" class="visually-hidden" value="12" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kald etterheving">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kald etterheving">+</button>
@@ -1305,7 +1305,7 @@
           <span class="field-value"><span id="cold-temp-value">6</span><span class="temp-unit">°C</span></span>
         </div>
         <div class="stepper" data-stepper-for="cold-temp">
-          <input type="range" id="cold-temp" class="visually-hidden" min="2" max="10" value="6" step="1" />
+          <input type="range" id="cold-temp" class="visually-hidden" value="6" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser kjøleskapstemperatur">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk kjøleskapstemperatur">+</button>
@@ -1325,7 +1325,7 @@
           <span class="field-value"><span id="sour-inoculation-value">20</span>%</span>
         </div>
         <div class="stepper" data-stepper-for="sour-inoculation">
-          <input type="range" id="sour-inoculation" class="visually-hidden" min="10" max="40" value="20" step="1" />
+          <input type="range" id="sour-inoculation" class="visually-hidden" value="20" step="1" />
           <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser surdeig-mengde">−</button>
           <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
           <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk surdeig-mengde">+</button>
@@ -1384,7 +1384,7 @@
         <span class="field-value"><span id="adjust-temp-value">21</span><span class="temp-unit">°C</span></span>
       </div>
       <div class="stepper" data-stepper-for="adjust-temp">
-        <input type="range" id="adjust-temp" class="visually-hidden" min="15" max="32" value="21" step="1" />
+        <input type="range" id="adjust-temp" class="visually-hidden" value="21" step="1" />
         <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser faktisk temperatur">−</button>
         <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
         <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk faktisk temperatur">+</button>
@@ -1444,6 +1444,7 @@
 
 <script src="src/logic.js"></script>
 <script src="src/varsling.js"></script>
+<script src="src/plantilstand.js"></script>
 <script>
 (() => {
   const {
@@ -1453,10 +1454,11 @@
     modePlanItems, modeInstructions,
     computeRecipe, flourTips,
     recommendedSourBulkHours, recommendedSourInoculation,
-    effectiveColdHours, adjustedBulkRemainingHours
+    effectiveColdHours, adjustedBulkRemainingHours, adjustedRiseDoneMs
   } = window.EltefrittLogic;
 
   const { createVarsling } = window.EltefrittVarsling;
+  const Plantilstand = window.EltefrittPlantilstand;
   const I18n = window.EltefrittI18n;
 
   // ---- Språk + temperaturenhet (presentasjonsvalg, separat fra recipe-state,
@@ -1473,31 +1475,10 @@
   const localeTag = () => I18n.localeTag(lang);
 
   // ---- State ----
-  const state = {
-    loaves: 1,
-    sizePerLoaf: 500,
-    flours: [
-      { type: 'hvete', pct: 100 }
-    ],
-    hydration: 75,
-    hydrationManual: false,
-    temperatureC: 21,
-    waterTempC: 21,            // Default = romtemp.
-    waterTempManual: false,    // true når brukeren har satt vanntemp ulik romtemp; da slutter den å følge.
-    mode: 'classic',           // 'classic' | 'cold'. Påvirker tidsplan.
-    leaven: 'dry',             // 'dry' | 'fresh' | 'sourdough'. Påvirker ingrediens.
-    riseHours: 14,             // brukes i classic
-    bulkHours: 2,              // brukes i cold
-    coldHours: 12,             // brukes i cold
-    coldTempC: 6,              // brukes i cold. Default 6°C: typisk norsk kjøleskap ligger nærmere 5-6°C enn Mattilsynets ideal på 4°C.
-    sourInoculation: 20,       // brukes når leaven === 'sourdough'. % av total mel.
-    sourLead: 'inoculation',   // 'inoculation' | 'time'. Hvilken slider som leder koblingen.
-    timeAnchor: 'start',       // 'start' | 'ready'. Hvilket endepunkt brukeren sist satte.
-    anchorTime: '10:00',       // HH:MM
-    alarm: false,              // Nedtelling + varsel når hevingen er ferdig.
-    anchorDateMs: null,        // Absolutt starttidspunkt, fryst mens alarmen er på (HH:MM er tvetydig over døgngrenser).
-    actualTempC: null          // "Juster underveis": faktisk temp så langt. null = ingen justering.
-  };
+  // Standardverdier, gyldige områder og gjenoppretting ligger i
+  // src/plantilstand.js; her holder vi bare den levende staten.
+  const STATE_KEY = 'eltefritt-state';
+  const state = Plantilstand.defaults();
 
   // ---- Helpers ----
   const $ = sel => document.querySelector(sel);
@@ -2039,19 +2020,12 @@
     if (state.alarm) state.anchorDateMs = getStartAndReady().start.getTime();
   }
 
-  // Justert bulk-slutt når "faktisk temp så langt" er satt (kun klassisk
-  // modus, mens hevingen pågår). null = ingen justering aktiv. Målet regnes
-  // fra nå + gjenstående budsjett; ved konstant temp er det stabilt mellom
-  // oppdateringer (avrundet til hele minutter mot smådrift). Kan ligge i
-  // fortid når deigen er over budsjett; da settes alarmen som allerede utløst.
+  // Justert bulk-slutt når "faktisk temp så langt" er satt. null = ingen
+  // justering aktiv; kan ligge i fortid når deigen er over budsjett, og da
+  // settes alarmen som allerede utløst.
   function adjustedRiseDoneDate() {
-    if (state.mode !== 'classic' || state.actualTempC == null) return null;
-    if (!state.alarm || state.anchorDateMs == null) return null;
-    const now = Date.now();
-    const elapsedH = (now - state.anchorDateMs) / 3600000;
-    if (elapsedH <= 0) return null;
-    const remainingH = adjustedBulkRemainingHours(state, elapsedH, state.actualTempC);
-    return new Date(Math.round((now + remainingH * 3600000) / 60000) * 60000);
+    const ms = adjustedRiseDoneMs(state, Date.now());
+    return ms == null ? null : new Date(ms);
   }
 
   function alarmTargetDate() {
@@ -2497,7 +2471,7 @@
 
     // Lagre state
     try {
-      localStorage.setItem('eltefritt-state', JSON.stringify(state));
+      localStorage.setItem(STATE_KEY, Plantilstand.serialize(state));
     } catch (e) {}
   }
 
@@ -2589,8 +2563,9 @@
   });
 
   $('#size-custom-input').addEventListener('input', e => {
+    const size = Plantilstand.FIELDS.sizePerLoaf;
     const v = parseInt(e.target.value, 10);
-    if (!Number.isFinite(v) || v < 100 || v > 3000) return;
+    if (!Number.isFinite(v) || v < size.min || v > size.max) return;
     state.sizePerLoaf = v;
     renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
     update();
@@ -2853,111 +2828,31 @@
     syncSettingsSelected();
   }));
 
-  // ---- Restore state ----
-  // Feltvis validering i stedet for Object.assign: lagret state kan komme fra
-  // en eldre versjon av appen (andre felter, fjernede meltype-nøkler) eller
-  // være korrupt, og skal aldri kunne sette state utenfor gyldige grenser.
-  function restoreState(parsed) {
-    // Migrer fra gammel state hvor surdeig var en modus (før heveform-toggle).
-    if (parsed.mode === 'sourdough') {
-      parsed.mode = 'cold';
-      parsed.leaven = 'sourdough';
-    }
-
-    const num = (v, min, max, fallback) =>
-      (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max) ? v : fallback;
-    const oneOf = (v, allowed, fallback) => allowed.includes(v) ? v : fallback;
-
-    state.loaves = oneOf(parsed.loaves, [1, 2, 3, 4], state.loaves);
-    state.sizePerLoaf = num(parsed.sizePerLoaf, 100, 3000, state.sizePerLoaf);
-    if (Array.isArray(parsed.flours)) {
-      const flours = parsed.flours.filter(f =>
-        f && FLOUR_TYPES[f.type] && typeof f.pct === 'number' && f.pct >= 0 && f.pct <= 100);
-      const total = flours.reduce((s, f) => s + f.pct, 0);
-      if (flours.length > 0 && total > 0) {
-        flours.forEach(f => f.pct = Math.round((f.pct / total) * 100));
-        const newTotal = flours.reduce((s, f) => s + f.pct, 0);
-        if (newTotal !== 100) flours[0].pct += (100 - newTotal);
-        state.flours = flours;
-      }
-    }
-    state.hydration = num(parsed.hydration, 60, 95, state.hydration);
-    state.hydrationManual = parsed.hydrationManual === true;
-    state.temperatureC = num(parsed.temperatureC, 15, 28, state.temperatureC);
-    state.mode = oneOf(parsed.mode, Object.keys(MODE_META), state.mode);
-    state.leaven = oneOf(parsed.leaven, ['dry', 'fresh', 'sourdough'], state.leaven);
-    state.riseHours = num(parsed.riseHours, 4, 24, state.riseHours);
-    state.bulkHours = num(parsed.bulkHours, 1, 6, state.bulkHours);
-    state.coldHours = num(parsed.coldHours, 6, 36, state.coldHours);
-    state.coldTempC = num(parsed.coldTempC, 2, 10, state.coldTempC);
-    state.sourInoculation = num(parsed.sourInoculation, 10, 40, state.sourInoculation);
-    state.sourLead = oneOf(parsed.sourLead, ['inoculation', 'time'], state.sourLead);
-    // Gammel state manglet vanntemp: la den følge romtemp.
-    state.waterTempC = num(parsed.waterTempC, 5, 40, state.temperatureC);
-    state.waterTempManual = typeof parsed.waterTempManual === 'boolean'
-      ? parsed.waterTempManual
-      : state.waterTempC !== state.temperatureC;
-    // anchorTime/timeAnchor kopieres ikke; de settes i oppstartsblokken under,
-    // som enten gjenopptar en pågående nedtelling eller nullstiller bakplanen.
-    state.alarm = parsed.alarm === true;
-    state.anchorDateMs = (typeof parsed.anchorDateMs === 'number' && Number.isFinite(parsed.anchorDateMs))
-      ? parsed.anchorDateMs : null;
-    state.actualTempC = num(parsed.actualTempC, 15, 32, null);
-  }
-
-  try {
-    const saved = localStorage.getItem('eltefritt-state');
-    if (saved) {
-      restoreState(JSON.parse(saved));
-      // Synkroniser DOM-kontroller
-      renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
-      renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
-      $('#size-custom-input').value = state.sizePerLoaf;
-      renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
-      renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
-      $('#hydration').value = state.hydration;
-      $('#temp').value = state.temperatureC;
-      $('#water-temp').value = state.waterTempC;
-      $('#rise-time').value = state.riseHours;
-      $('#bulk-time').value = state.bulkHours;
-      $('#cold-time').value = state.coldHours;
-      $('#cold-temp').value = state.coldTempC;
-      $('#sour-inoculation').value = state.sourInoculation;
-    }
-  } catch (e) {}
-
-  // Gjenoppta en pågående nedtelling hvis planen fortsatt er aktuell (frem
-  // til planlagt ferdigtid, inkl. steking); ellers nullstill bakplan-tid som
-  // før, så man ikke arver starttid fra en bake for to dager siden.
+  // ---- Gjenoppretting ----
+  // Plantilstand validerer lagret state feltvis, migrerer gammel form og
+  // avgjør om en pågående nedtelling skal gjenopptas.
   // NB: lyd krever brukergest, så en gjenopptatt alarm piper først etter at
   // brukeren har rørt appen (warmAudio); varsel/vibrasjon/badge går uansett.
   {
-    const total = modeTotalMinutes(state);
-    // "Juster underveis" kan strekke hevingen forbi planlagt totaltid; regn
-    // vinduet fra det justerte målet når det finnes, så en omstart midt i
-    // forlengelsen ikke nullstiller en fortsatt pågående bake.
-    let plannedEndMs = state.anchorDateMs == null ? 0 : state.anchorDateMs + total * 60000;
-    const adjusted = adjustedRiseDoneDate();
-    if (adjusted) {
-      plannedEndMs = Math.max(plannedEndMs,
-        adjusted.getTime() + (total - riseDoneMinutes(state)) * 60000);
-    }
-    const resumable = state.alarm && state.anchorDateMs != null &&
-      state.anchorDateMs < Date.now() + 48 * 3600 * 1000 &&
-      Date.now() < plannedEndMs;
-    if (resumable) {
-      state.timeAnchor = 'start';
-      state.anchorTime = formatTimeHM(new Date(state.anchorDateMs));
-    } else {
-      state.alarm = false;
-      state.anchorDateMs = null;
-      state.actualTempC = null;
-      const d = nowDate();
-      d.setHours(d.getHours() + 1, 0, 0, 0);
-      state.anchorTime = formatTimeHM(d);
-      state.timeAnchor = 'start';
-    }
+    let raw = null;
+    try { raw = localStorage.getItem(STATE_KEY); } catch (e) {}
+    Object.assign(state, Plantilstand.load(raw, Date.now()).state);
   }
+
+  // Synkroniser DOM-kontrollene med gjenopprettet state. Sliderne arver
+  // grensene sine fra FIELDS, så det finnes bare én kopi av hvert område.
+  renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
+  renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+  renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+  renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
+  Object.entries(Plantilstand.FIELDS).forEach(([name, f]) => {
+    if (!f.inputId || f.min == null) return;
+    const el = document.getElementById(f.inputId);
+    if (!el) return;
+    el.min = f.min;
+    el.max = f.max;
+    if (state[name] != null) el.value = state[name];
+  });
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)
   ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation', 'adjust-temp'].forEach(id => {

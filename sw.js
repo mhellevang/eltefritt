@@ -1,6 +1,6 @@
 // Eltefritt service worker
 // Bump CACHE_VERSION when you deploy changes you want clients to pick up immediately.
-const CACHE_VERSION = 'eltefritt-v23';
+const CACHE_VERSION = 'eltefritt-v24';
 
 // Liten side-cache appen skriver brukerens språkvalg til (service workeren
 // kan ikke lese localStorage). Må overleve versjons-opprydding i activate.
@@ -11,6 +11,7 @@ const CORE_ASSETS = [
   './index.html',
   './src/logic.js',
   './src/varsling.js',
+  './src/plantilstand.js',
   './src/i18n.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

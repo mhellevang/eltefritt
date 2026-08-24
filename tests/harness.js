@@ -28,13 +28,15 @@ async function loadPage(opts = {}) {
   const i18n = fs.readFileSync(path.join(ROOT, 'src/i18n.js'), 'utf8');
   const logic = fs.readFileSync(path.join(ROOT, 'src/logic.js'), 'utf8');
   const varsling = fs.readFileSync(path.join(ROOT, 'src/varsling.js'), 'utf8');
+  const plantilstand = fs.readFileSync(path.join(ROOT, 'src/plantilstand.js'), 'utf8');
 
   // Inline src-modulene i samme rekkefølge som nettleseren laster dem, så
   // jsdom slipper å hente dem over HTTP.
   const inlinedHtml = html
     .replace(/<script src="src\/i18n\.js"><\/script>/, `<script>${i18n}</script>`)
     .replace(/<script src="src\/logic\.js"><\/script>/, `<script>${logic}</script>`)
-    .replace(/<script src="src\/varsling\.js"><\/script>/, `<script>${varsling}</script>`);
+    .replace(/<script src="src\/varsling\.js"><\/script>/, `<script>${varsling}</script>`)
+    .replace(/<script src="src\/plantilstand\.js"><\/script>/, `<script>${plantilstand}</script>`);
 
   const dom = new JSDOM(inlinedHtml, {
     url: 'http://localhost:8765/',
