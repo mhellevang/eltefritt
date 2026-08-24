@@ -70,6 +70,8 @@ python3 -m http.server    # eller: npx serve
 - `src/plantilstand.js`: standardverdier, gyldige områder og gjenoppretting av lagret state. Feltbordet `FIELDS` er eneste kopi av hvert område; sliderne i `index.html` arver `min`/`max` derfra
 - `src/visning.js`: utleder hva siden skal si som verdier (deskriptorer, ikke ferdig tekst). `src/app.js` har én applier som skriver dem ut
 - `src/varsling.js`: alarm-tilstandsmaskinen (armering, fyring, gjentakelse, push-forsoning). Tar alle nettleser-effekter inn som en injisert adapter, så den kan testes med falsk klokke
+- `CONTEXT.md`: ordliste over appens domenespråk. Bruk ordene derfra i kode og tekst
+- `docs/adr/`: beslutninger som er vanskelige å snu, med begrunnelsen
 - `tests/`: `node --test`-baserte enhets- og DOM-tester
 - `sw.js`: service worker for PWA
 - `manifest.webmanifest`: PWA-manifest

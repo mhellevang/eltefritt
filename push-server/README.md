@@ -19,7 +19,7 @@ payload-kryptering).
    ```
 
 2. **Lim inn offentlig nøkkel** (PUBLIC-linjen) i `VAPID_PUBLIC_KEY` i
-   `wrangler.toml` her, og i `VAPID_PUBLIC_KEY`-konstanten i `index.html`.
+   `wrangler.toml` her, og i `VAPID_PUBLIC_KEY`-konstanten i `src/app.js`.
 
 3. **Lagre privat nøkkel som secret** (PRIVATE-linjen, hele JSON-strengen).
    Den skal aldri sjekkes inn:
