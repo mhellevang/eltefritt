@@ -827,7 +827,7 @@
     'hydration': 'aria.field.hydration',
     'temp': 'aria.field.roomTemp',
     'water-temp': 'aria.field.waterTemp',
-    'rise-time': 'aria.field.riseTime',
+    'rise-time': 'aria.field.bulk',
     'bulk-time': 'aria.field.bulk',
     'cold-time': 'aria.field.coldProof',
     'cold-temp': 'aria.field.coldTemp',
