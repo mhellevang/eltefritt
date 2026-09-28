@@ -349,12 +349,6 @@
       stepper.appendChild(track);
       stepper.appendChild(plusBtn);
 
-      if (state.flours.length === 1) {
-        slider.disabled = true;
-        minusBtn.disabled = true;
-        plusBtn.disabled = true;
-      }
-
       slider.addEventListener('input', e => {
         const v = parseInt(e.target.value, 10);
         setFlourPct(idx, v);
@@ -363,10 +357,12 @@
       });
 
       row.appendChild(top);
-      row.appendChild(stepper);
+      // Én meltype er alltid 100 %; da er det ingenting å justere.
+      if (state.flours.length > 1) {
+        row.appendChild(stepper);
+        initStepper(slider);
+      }
       list.appendChild(row);
-
-      initStepper(slider);
     });
   }
 

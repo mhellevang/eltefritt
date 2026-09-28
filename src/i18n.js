@@ -30,7 +30,7 @@
     nb: {
       // ── Dokument / meta ──
       'doc.title': 'Eltefritt: kalkulator for eltefritt brød',
-      'doc.metaDescription': 'Kalkulator og bakplan for eltefritt brød. Jim Lahey-metoden, med støtte for kald etterheving.',
+      'doc.metaDescription': 'Kalkulator og bakplan for eltefritt brød. Etter Jim Laheys oppskrift, med støtte for kald etterheving.',
       'app.subtitle': 'Kalkulator for eltefritt brød',
 
       // ── Kort-titler ──
@@ -253,7 +253,7 @@
       'aria.removeFlour': 'Fjern meltype',
 
       // ── Footer ──
-      'footer.line1': 'Eltefritt-kalkulator · basert på Jim Lahey-metoden',
+      'footer.line1': 'Eltefritt-kalkulator · etter Jim Laheys oppskrift',
       'footer.line2': 'Mengder er per brød × antall brød. Tilpass etter erfaring og bakebehov.'
     },
 

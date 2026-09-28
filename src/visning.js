@@ -163,6 +163,7 @@
     const tips = Logic.flourTips(state.flours);
     hidden['flour-tip'] = tips.length === 0;
     const single = state.flours.length === 1;
+    hidden['flour-warning'] = single;
     text['flour-types-label'] = single
       ? { key: 'flour.' + state.flours[0].type, lower: true }
       : { key: 'flour.typesLabelOther', params: { count: state.flours.length } };
