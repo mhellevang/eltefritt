@@ -9,6 +9,7 @@ Eltefritt er no-knead-metoden gjort kjent av Jim Lahey: lang heving erstatter el
 ## Funksjoner
 
 - Mengder for 1–4 brød, med tre presetstørrelser (Lite 400 g, Medium 500 g, Stort 700 g) eller egen melvekt
+- Rundstykker som alternativ til brød: lavere hydrering, kortere etterheving, stekt på brett i ~20 min
 - Utstyrsanbefaling (jerngryte og brødform) tilpasset melvekt
 - Flere meltyper samtidig: to typer auto-balanseres (den andre følger), tre+ justeres fritt med sum-indikator. Vektet hydreringsanbefaling (område, ikke ett tall)
 - To hevemetoder: klassisk lang bulk, eller kort bulk + kald etterheving i banneton

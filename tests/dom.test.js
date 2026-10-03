@@ -89,6 +89,18 @@ test('bytt fra Surdeig tilbake til Tørrgjær skjuler starter-row', async () => 
   }
 });
 
+test('Bakverk = Rundstykker skjuler antall brød og bytter utstyrslinja', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    fire(window, document.querySelector('button[data-product="rolls"]'), 'click');
+    assert.equal(window.getComputedStyle(document.getElementById('loaves-field')).display, 'none');
+    assert.match(document.getElementById('equipment-detail').textContent, /brett/i);
+    assert.match(document.getElementById('size-detail').textContent, /rundstykker/i);
+  } finally {
+    close();
+  }
+});
+
 test('Hevemetode = Kald viser cold-controls, skjuler classic-controls', async () => {
   const { window, document, close } = await loadPage();
   try {

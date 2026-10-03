@@ -30,6 +30,8 @@
   // num: tallfelt med gyldig område. oneOf: fast verdisett. bool: flagg.
   // inputId: DOM-kontrollen som skal arve området (index.html setter min/max).
   const FIELDS = {
+    // Bakverk: brød eller rundstykker. Rundstykker er én deig som deles opp.
+    product:         { oneOf: ['loaf', 'rolls'], default: 'loaf' },
     loaves:          { oneOf: [1, 2, 3, 4], default: 1 },
     sizePerLoaf:     { min: 100, max: 3000, default: 500, inputId: 'size-custom-input' },
     hydration:       { min: 60, max: 95, default: 75, inputId: 'hydration' },

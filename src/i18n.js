@@ -41,8 +41,12 @@
       'method.summary': 'Slik gjør du det',
 
       // ── Feltlabels ──
+      'field.product': 'Bakverk',
+      'product.loaf': 'Brød',
+      'product.rolls': 'Rundstykker',
       'field.loaves': 'Antall brød',
       'field.size': 'Brødstørrelse',
+      'field.size.rolls': 'Deigmengde',
       'field.sizeCustomLabel': 'eller egen vekt',
       'field.sizeUnit': 'g mel',
       'field.flourType': 'Meltype',
@@ -162,6 +166,7 @@
 
       // ── Utstyr ──
       'equipment.line': '{pot}. Banneton {banneton} (valgfritt)',
+      'equipment.rolls': 'Stekebrett med bakepapir',
       'equipment.perLoaf': ' (per brød)',
       'equipment.pot.s': 'Jerngryte 4–4,5 L (23–24 cm), eller brødform 2 L',
       'equipment.pot.m': 'Jerngryte 5 L (26 cm), eller brødform 2,5 L',
@@ -176,6 +181,7 @@
 
       // ── Størrelse-detalj ──
       'size.detail': '≈ {flour} g mel · ~{finished} g ferdig brød',
+      'size.detail.rolls': '≈ {flour} g mel · ~{count} rundstykker',
 
       // ── Tidsplan ──
       'plan.start': 'Start',
@@ -185,8 +191,10 @@
       'plan.bulk': 'Bulkheving · {hours} t ved {temp}',
       'plan.secondProof': 'Etterheving · ~{hours} t',
       'plan.cold': 'Etterheving i kjøleskap · {hours} t ved {temp}',
-      'plan.bake': 'Steking · ~45 min',
+      'plan.bake': 'Steking · ~{minutes} min',
       'plan.shapeClassic': 'Form og etterhev',
+      'plan.shapeRolls': 'Del opp, form og etterhev',
+      'plan.shapeRollsCold': 'Del opp, form og legg på brett',
       'plan.intoOven': 'Inn i ovnen',
       'plan.shapeCold': 'Form og legg i banneton',
       'plan.intoOvenCold': 'Inn i ovnen (rett fra kjøleskap)',
@@ -211,17 +219,25 @@
       'step.bulk.body.cold': 'Dekk og la stå ved romtemperatur. Gjør gjerne 2–3 stretch & fold underveis for ekstra struktur.',
       'step.shape.title': 'Form',
       'step.shape.body': 'Vend deigen ut på godt melet benk. Brett inn fra alle kantene mot midten, snu med skjøten ned og forme til en kule. La etterheve på melet kjøkkenhåndkle eller i banneton i 1–2 t, til deigen er synlig luftigere og rundt 50 % større. Snarvei: hopp over forming og plopp deigen rett i den varme gryta etter bulk, det blir litt rustikkere men funker fint.',
+      'step.shapeRolls.title': 'Del opp og form',
+      'step.shapeRolls.body': 'Vend deigen ut på godt melet benk og del i like store emner (ca. 90 g). Trill hvert emne til en stram bolle med skjøten ned og legg på brett med bakepapir, med litt avstand. Dekk med et kjøkkenhåndkle og la etterheve ca. 1 t, til bollene er synlig luftigere.',
+      'step.shapeRollsCold.title': 'Del opp, form og legg på brett',
+      'step.shapeRollsCold.body': 'Vend deigen ut på godt melet benk og del i like store emner (ca. 90 g). Trill hvert emne til en stram bolle med skjøten ned og legg på brett med bakepapir, med litt avstand.',
       'step.shapeCold.title': 'Form og legg i banneton',
       'step.shapeCold.body': 'Vend ut på godt melet benk. Brett inn fra kantene mot midten og forme til en kule eller batard. Mel en banneton (gjerne med rismel) og legg deigen i med skjøtesiden opp.',
       'step.coldProof.title': 'Kald etterheving',
       'step.coldProof.body.yeast': 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. Lang tid gir dypere smak og enklere skåring.',
       'step.coldProof.body.sourdough': 'Dekk banneton med plastpose eller dusjhette og sett i kjøleskap. 12–18 t gir god smak og enklere skåring.',
+      'step.coldProof.body.rolls': 'Dekk brettet med plastpose eller plastfolie og sett i kjøleskap. Rundstykkene kan stekes rett fra kjøleskapet.',
       'step.bake.title': 'Stek',
       'step.bake.body': 'I jerngryte: forvarm gryte med lokk til {hot}. Vipp deigen forsiktig oppi, sett på lokket og stek 30 min. Ta av lokket, skru ned til {low} og stek videre ~15 min til brødet er gyllent og lyder hult når du banker på bunnen. I brødform: smør formen, hell deigen i, og stek på {pan} i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.',
+      'step.bakeRolls.body': 'Forvarm ovnen til {oven}. Skår gjerne bollene med kniv eller barberblad. Stek midt i ovnen i ~{minutes} min til de er gylne og lyder hult når du banker på bunnen. Sett en skål med kokende vann i bunnen av ovnen de første 10 min for sprøere skorpe.',
+      'step.bakeRollsCold.body': 'Forvarm ovnen til {oven}. Ta brettet rett fra kjøleskapet, skår gjerne bollene, og stek midt i ovnen i ~{minutes} min til de er gylne. Sett en skål med kokende vann i bunnen av ovnen de første 10 min for sprøere skorpe.',
       'step.bakeCold.title': 'Stek direkte fra kjøleskap',
       'step.bakeCold.body': 'I jerngryte: forvarm gryte med lokk til {hot}. Vipp deigen rett fra kald banneton over på bakepapir, skår med kniv eller barberblad, og senk i den varme gryta. Lokk på, stek 30 min. Ta av lokket, skru ned til {low} og stek ~15 min til gyllent. I brødform: smør formen, hell deigen i (skår om ønskelig), stek på {pan} i ~40 min. Sett en skål med kokende vann i bunnen av ovnen de første 15 min for sprøere skorpe.',
       'step.cool.title': 'Avkjøl',
       'step.cool.body.short': 'La brødet avkjøle på rist i minst 30 min før du skjærer.',
+      'step.cool.body.rolls': 'La rundstykkene avkjøle på rist i 10–15 min. De kan spises lune.',
       'step.cool.body.sourdough': 'La avkjøle på rist i minst 1 t før du skjærer. Surdeigsbrød trenger lengre tid for å sette seg enn gjærbakt.',
       'step.cool.body.sourdoughShort': 'La avkjøle på rist i minst 1 t før du skjærer.',
 
@@ -271,8 +287,12 @@
       'method.summary': 'How to do it',
 
       // ── Field labels ──
+      'field.product': 'Bake',
+      'product.loaf': 'Loaf',
+      'product.rolls': 'Rolls',
       'field.loaves': 'Number of loaves',
       'field.size': 'Loaf size',
+      'field.size.rolls': 'Dough amount',
       'field.sizeCustomLabel': 'or custom weight',
       'field.sizeUnit': 'g flour',
       'field.flourType': 'Flour type',
@@ -392,6 +412,7 @@
 
       // ── Equipment ──
       'equipment.line': '{pot}. Banneton {banneton} (optional)',
+      'equipment.rolls': 'Baking sheet with parchment paper',
       'equipment.perLoaf': ' (per loaf)',
       'equipment.pot.s': 'Dutch oven 4–4.5 L (23–24 cm), or loaf pan 2 L',
       'equipment.pot.m': 'Dutch oven 5 L (26 cm), or loaf pan 2.5 L',
@@ -406,6 +427,7 @@
 
       // ── Size detail ──
       'size.detail': '≈ {flour} g flour · ~{finished} g finished loaf',
+      'size.detail.rolls': '≈ {flour} g flour · ~{count} rolls',
 
       // ── Schedule ──
       'plan.start': 'Start',
@@ -415,8 +437,10 @@
       'plan.bulk': 'Bulk rise · {hours} h at {temp}',
       'plan.secondProof': 'Final proof · ~{hours} h',
       'plan.cold': 'Final proof in the fridge · {hours} h at {temp}',
-      'plan.bake': 'Baking · ~45 min',
+      'plan.bake': 'Baking · ~{minutes} min',
       'plan.shapeClassic': 'Shape and proof',
+      'plan.shapeRolls': 'Divide, shape and proof',
+      'plan.shapeRollsCold': 'Divide, shape and place on a sheet',
       'plan.intoOven': 'Into the oven',
       'plan.shapeCold': 'Shape and place in banneton',
       'plan.intoOvenCold': 'Into the oven (straight from the fridge)',
@@ -441,17 +465,25 @@
       'step.bulk.body.cold': 'Cover and leave at room temperature. Feel free to do 2–3 stretch & folds along the way for extra structure.',
       'step.shape.title': 'Shape',
       'step.shape.body': 'Turn the dough out onto a well-floured surface. Fold in all the edges toward the centre, flip seam-side down and shape into a ball. Let it proof on a floured kitchen towel or in a banneton for 1–2 h, until visibly airier and around 50% larger. Shortcut: skip shaping and plop the dough straight into the hot pot after bulk, it comes out a bit more rustic but works fine.',
+      'step.shapeRolls.title': 'Divide and shape',
+      'step.shapeRolls.body': 'Turn the dough out onto a well-floured surface and divide into equal pieces (about 90 g). Roll each piece into a tight ball, seam-side down, and place on a parchment-lined baking sheet with some space between them. Cover with a kitchen towel and proof for about 1 h, until visibly airier.',
+      'step.shapeRollsCold.title': 'Divide, shape and place on a sheet',
+      'step.shapeRollsCold.body': 'Turn the dough out onto a well-floured surface and divide into equal pieces (about 90 g). Roll each piece into a tight ball, seam-side down, and place on a parchment-lined baking sheet with some space between them.',
       'step.shapeCold.title': 'Shape and place in banneton',
       'step.shapeCold.body': 'Turn out onto a well-floured surface. Fold in the edges toward the centre and shape into a ball or batard. Flour a banneton (rice flour works well) and place the dough in seam-side up.',
       'step.coldProof.title': 'Cold proof',
       'step.coldProof.body.yeast': 'Cover the banneton with a plastic bag or shower cap and put it in the fridge. A long time gives deeper flavour and easier scoring.',
       'step.coldProof.body.sourdough': 'Cover the banneton with a plastic bag or shower cap and put it in the fridge. 12–18 h gives good flavour and easier scoring.',
+      'step.coldProof.body.rolls': 'Cover the sheet with a plastic bag or cling film and put it in the fridge. The rolls can be baked straight from the fridge.',
       'step.bake.title': 'Bake',
       'step.bake.body': 'In a Dutch oven: preheat the pot with its lid to {hot}. Tip the dough in gently, put the lid on and bake 30 min. Remove the lid, turn down to {low} and bake another ~15 min until the loaf is golden and sounds hollow when you tap the bottom. In a loaf pan: grease the pan, pour the dough in, and bake at {pan} for ~40 min. Put a dish of boiling water in the bottom of the oven for the first 15 min for a crispier crust.',
+      'step.bakeRolls.body': 'Preheat the oven to {oven}. Score the rolls with a knife or razor if you like. Bake in the middle of the oven for ~{minutes} min until golden and hollow-sounding when tapped on the bottom. Put a dish of boiling water in the bottom of the oven for the first 10 min for a crispier crust.',
+      'step.bakeRollsCold.body': 'Preheat the oven to {oven}. Take the sheet straight from the fridge, score the rolls if you like, and bake in the middle of the oven for ~{minutes} min until golden. Put a dish of boiling water in the bottom of the oven for the first 10 min for a crispier crust.',
       'step.bakeCold.title': 'Bake straight from the fridge',
       'step.bakeCold.body': 'In a Dutch oven: preheat the pot with its lid to {hot}. Tip the dough straight from the cold banneton onto baking paper, score with a knife or razor, and lower it into the hot pot. Lid on, bake 30 min. Remove the lid, turn down to {low} and bake ~15 min until golden. In a loaf pan: grease the pan, pour the dough in (score if you like), bake at {pan} for ~40 min. Put a dish of boiling water in the bottom of the oven for the first 15 min for a crispier crust.',
       'step.cool.title': 'Cool',
       'step.cool.body.short': 'Cool the loaf on a rack for at least 30 min before slicing.',
+      'step.cool.body.rolls': 'Cool the rolls on a rack for 10–15 min. They can be eaten warm.',
       'step.cool.body.sourdough': 'Cool on a rack for at least 1 h before slicing. Sourdough needs longer to set than yeasted bread.',
       'step.cool.body.sourdoughShort': 'Cool on a rack for at least 1 h before slicing.',
 

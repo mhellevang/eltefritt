@@ -9,8 +9,14 @@ samtale.
 
 **Eltefritt**:
 Bakemetoden appen dekker: høy hydrering og lang heving i stedet for elting, og
-steking i forvarmet jerngryte.
+steking i forvarmet jerngryte. Rundstykker er unntaket: samme deig, litt
+stivere, stekt på brett.
 _Unngå_: no-knead, Lahey-metoden
+
+**Bakverk**:
+Hva deigen skal bli: Brød eller Rundstykker. Bestemmer hydreringsområde,
+etterheving, steking og utstyr. Standard er Brød.
+_Unngå_: produkt, fasong, type
 
 **Heveform**:
 Hva som får deigen til å heve: tørrgjær, ferskgjær eller surdeig. Bestemmer
@@ -55,6 +61,8 @@ stekingen.
 **Forming**:
 Å stramme deigen til en kule før etterhevingen. Anbefalt, men valgfri i
 Klassisk, der deigen kan slippes rett i den varme gryta etter bulkhevingen.
+For Rundstykker er den obligatorisk: deigen deles i emner på rundt 90 g som
+trilles hver for seg.
 
 ## Deigen
 

@@ -560,3 +560,52 @@ test('sourCoupling: verdien er alltid et heltall innenfor området', () => {
     });
   });
 });
+
+// ─── Rundstykker ───────────────────────────────────────────────────────────
+
+test('rundstykker: hydreringsområdet ligger 5 poeng under brød av samme mel', () => {
+  const flours = [{ type: 'hvete', pct: 100 }];
+  const loaf = L.weightedHydration(flours);
+  const rolls = L.weightedHydration(flours, 'rolls');
+  assert.equal(rolls.min, loaf.min + L.ROLLS_HYDRATION_OFFSET);
+  assert.equal(rolls.max, loaf.max + L.ROLLS_HYDRATION_OFFSET);
+});
+
+test('rundstykker: kortere steking og etterheving gir kortere totaltid', () => {
+  const loaf = L.modeTotalMinutes(baseState);
+  const rolls = L.modeTotalMinutes({ ...baseState, product: 'rolls' });
+  assert.equal(loaf - rolls, (L.BAKE_MIN - L.ROLLS_BAKE_MIN) + (L.SECOND_PROOF_HOURS - L.ROLLS_SECOND_PROOF_HOURS) * 60);
+});
+
+test('rundstykker: antall brød teller ikke, det er én deig', () => {
+  const r = L.computeRecipe({ ...baseState, product: 'rolls', loaves: 3 });
+  assert.equal(r.flourTotal, 500);
+});
+
+test('rundstykker: stekesteget bruker ovnstemp og minutter, ikke gryte', () => {
+  const steps = L.modeInstructions({ ...baseState, product: 'rolls' });
+  const bake = steps.find(s => s.titleKey === 'step.bake.title');
+  assert.equal(bake.bodyKey, 'step.bakeRolls.body');
+  assert.equal(bake.params.oven.celsius, 230);
+  assert.equal(bake.params.minutes, L.ROLLS_BAKE_MIN);
+  assert.ok(!steps.some(s => s.bodyKey === 'step.shape.body'));
+});
+
+test('rundstykker: kald etterheving skjer på brett, ikke i banneton', () => {
+  const steps = L.modeInstructions({ ...baseState, product: 'rolls', mode: 'cold' });
+  assert.deepEqual(steps.map(s => s.bodyKey).slice(2),
+    ['step.shapeRollsCold.body', 'step.coldProof.body.rolls', 'step.bakeRollsCold.body', 'step.cool.body.rolls']);
+});
+
+test('rundstykker: planen sier steketiden og eget formingssteg', () => {
+  const items = L.modePlanItems({ ...baseState, product: 'rolls' }, new Date(2020, 0, 1, 10, 0));
+  assert.equal(items[1].labelKey, 'plan.shapeRolls');
+  assert.equal(items[4].params.minutes, L.ROLLS_BAKE_MIN);
+  const loaf = L.modePlanItems(baseState, new Date(2020, 0, 1, 10, 0));
+  assert.equal(loaf[4].params.minutes, L.BAKE_MIN);
+});
+
+test('rollCount: deigvekt delt på emnevekt, aldri under 1', () => {
+  assert.equal(L.rollCount(900), 10);
+  assert.equal(L.rollCount(10), 1);
+});

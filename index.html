@@ -1116,6 +1116,16 @@
 
     <div class="field">
       <div class="field-label">
+        <span data-i18n="field.product">Bakverk</span>
+      </div>
+      <div class="seg" style="--cols: 2" role="group" aria-label="Bakverk" data-i18n-aria-label="field.product">
+        <button data-product="loaf" aria-pressed="true" data-i18n="product.loaf">Brød</button>
+        <button data-product="rolls" aria-pressed="false" data-i18n="product.rolls">Rundstykker</button>
+      </div>
+    </div>
+
+    <div class="field" id="loaves-field">
+      <div class="field-label">
         <span data-i18n="field.loaves">Antall brød</span>
         <span class="field-value" id="loaves-value">1</span>
       </div>
@@ -1129,7 +1139,7 @@
 
     <div class="field">
       <div class="field-label">
-        <span data-i18n="field.size">Brødstørrelse</span>
+        <span data-i18n="field.size" id="size-label">Brødstørrelse</span>
         <span class="field-value" id="size-value">Lite</span>
       </div>
       <div class="seg" style="--cols: 3" role="group" aria-label="Brødstørrelse" data-i18n-aria-label="field.size">

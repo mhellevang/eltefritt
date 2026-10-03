@@ -11,12 +11,27 @@
   const REF_TEMP = 21;
   // Steking: 30 min med lokk + ~15 min uten. Matcher "~45 min" i instruksjonene.
   const BAKE_MIN = 45;
+  // Rundstykker stekes på brett uten lokk, varmt og kort.
+  const ROLLS_BAKE_MIN = 20;
+  const ROLLS_BAKE_TEMP_C = 230;
+  // Rundstykker må kunne deles og formes uten å flyte ut: litt stivere deig
+  // enn brød av samme mel.
+  const ROLLS_HYDRATION_OFFSET = -5;
+  // Deigvekt per rundstykke, før steking.
+  const ROLL_DOUGH_G = 90;
 
   // Etterheving (andreheving) i klassisk modus, etter forming og før steking.
   // Laheys originaloppskrift bruker ~2 t; vi velger 1,5 t som representativt
   // midtsjikt og beskriver 1–2 t i instruksjonene. Tidligere var dette
   // hardkodet til 45 min, som er i knappeste laget for en no-knead-deig.
   const SECOND_PROOF_HOURS = 1.5;
+  // Små emner på brett er klare raskere.
+  const ROLLS_SECOND_PROOF_HOURS = 1;
+
+  const isRolls = product => product === 'rolls';
+  const bakeMinutes = product => (isRolls(product) ? ROLLS_BAKE_MIN : BAKE_MIN);
+  const secondProofHours = product => (isRolls(product) ? ROLLS_SECOND_PROOF_HOURS : SECOND_PROOF_HOURS);
+  const rollCount = doughGrams => Math.max(1, Math.round(doughGrams / ROLL_DOUGH_G));
 
   // Newtons avkjøling: en typisk eltefritt-deig (500–1000 g) i tildekket
   // bolle ved romtemp har en tidskonstant tau ≈ 2–4 t. Vi velger 2,5 t som
@@ -126,7 +141,8 @@
   }
 
   // ---- Calculations ----
-  function weightedHydration(flours) {
+  function weightedHydration(flours, product) {
+    const offset = isRolls(product) ? ROLLS_HYDRATION_OFFSET : 0;
     let sumMin = 0, sumMax = 0, total = 0;
     flours.forEach(f => {
       const ft = FLOUR_TYPES[f.type];
@@ -135,8 +151,8 @@
       sumMax += ft.hydrationMax * f.pct;
       total += f.pct;
     });
-    if (total === 0) return { min: 75, max: 75 };
-    return { min: sumMin / total, max: sumMax / total };
+    if (total === 0) return { min: 75 + offset, max: 75 + offset };
+    return { min: sumMin / total + offset, max: sumMax / total + offset };
   }
 
   // Referanse: 0.23 % instant tørrgjær gir ~14 t god heving ved 21 °C.
@@ -335,8 +351,9 @@
   }
 
   function modeTotalMinutes(state) {
-    if (state.mode === 'classic') return state.riseHours * 60 + SECOND_PROOF_HOURS * 60 + BAKE_MIN;
-    if (state.mode === 'cold') return state.bulkHours * 60 + state.coldHours * 60 + BAKE_MIN;
+    const bake = bakeMinutes(state.product);
+    if (state.mode === 'classic') return state.riseHours * 60 + secondProofHours(state.product) * 60 + bake;
+    if (state.mode === 'cold') return state.bulkHours * 60 + state.coldHours * 60 + bake;
     return 0;
   }
 
@@ -393,15 +410,18 @@
   // Returnerer deskriptorer; render-laget formaterer tall/temp/locale.
   // duration: { kind, key, params? }; step: { kind, labelKey, time }.
   function modePlanItems(state, start) {
+    const rolls = isRolls(state.product);
+    const bakeItem = { kind: 'duration', key: 'plan.bake', params: { minutes: bakeMinutes(state.product) } };
     if (state.mode === 'classic') {
+      const proof = secondProofHours(state.product);
       const shape = addHours(start, state.riseHours);
-      const bake = addHours(shape, SECOND_PROOF_HOURS);
+      const bake = addHours(shape, proof);
       return [
         { kind: 'duration', key: 'plan.bulk', params: { hours: state.riseHours, temp: { celsius: state.temperatureC } } },
-        { kind: 'step', labelKey: 'plan.shapeClassic', time: shape },
-        { kind: 'duration', key: 'plan.secondProof', params: { hours: SECOND_PROOF_HOURS } },
+        { kind: 'step', labelKey: rolls ? 'plan.shapeRolls' : 'plan.shapeClassic', time: shape },
+        { kind: 'duration', key: 'plan.secondProof', params: { hours: proof } },
         { kind: 'step', labelKey: 'plan.intoOven', time: bake },
-        { kind: 'duration', key: 'plan.bake' }
+        bakeItem
       ];
     }
     // cold
@@ -409,10 +429,10 @@
     const bake = addHours(shape, state.coldHours);
     return [
       { kind: 'duration', key: 'plan.bulk', params: { hours: state.bulkHours, temp: { celsius: state.temperatureC } } },
-      { kind: 'step', labelKey: 'plan.shapeCold', time: shape },
+      { kind: 'step', labelKey: rolls ? 'plan.shapeRollsCold' : 'plan.shapeCold', time: shape },
       { kind: 'duration', key: 'plan.cold', params: { hours: state.coldHours, temp: { celsius: state.coldTempC } } },
       { kind: 'step', labelKey: 'plan.intoOvenCold', time: bake },
-      { kind: 'duration', key: 'plan.bake' }
+      bakeItem
     ];
   }
 
@@ -436,9 +456,11 @@
     low: { celsius: BAKE_LID_OFF_TEMP_C },
     pan: { celsius: BAKE_PAN_TEMP_C }
   };
+  const ROLLS_BAKE_PARAMS = { oven: { celsius: ROLLS_BAKE_TEMP_C }, minutes: ROLLS_BAKE_MIN };
 
   function modeInstructions(state) {
     const leaven = state.leaven;
+    const rolls = isRolls(state.product);
     const steps = [];
     if (leaven === 'sourdough') steps.push(SOURDOUGH_CHECK);
     steps.push(blandStep(leaven));
@@ -448,6 +470,12 @@
         titleKey: 'step.bulk.title',
         bodyKey: leaven === 'sourdough' ? 'step.bulk.body.classic.sourdough' : 'step.bulk.body.classic.yeast'
       });
+      if (rolls) {
+        steps.push({ titleKey: 'step.shapeRolls.title', bodyKey: 'step.shapeRolls.body' });
+        steps.push({ titleKey: 'step.bake.title', bodyKey: 'step.bakeRolls.body', params: ROLLS_BAKE_PARAMS });
+        steps.push({ titleKey: 'step.cool.title', bodyKey: 'step.cool.body.rolls' });
+        return steps;
+      }
       steps.push({ titleKey: 'step.shape.title', bodyKey: 'step.shape.body' });
       steps.push({ titleKey: 'step.bake.title', bodyKey: 'step.bake.body', params: BAKE_PARAMS });
       steps.push({
@@ -458,6 +486,13 @@
     }
     // cold
     steps.push({ titleKey: 'step.bulk.title', bodyKey: 'step.bulk.body.cold' });
+    if (rolls) {
+      steps.push({ titleKey: 'step.shapeRollsCold.title', bodyKey: 'step.shapeRollsCold.body' });
+      steps.push({ titleKey: 'step.coldProof.title', bodyKey: 'step.coldProof.body.rolls' });
+      steps.push({ titleKey: 'step.bakeCold.title', bodyKey: 'step.bakeRollsCold.body', params: ROLLS_BAKE_PARAMS });
+      steps.push({ titleKey: 'step.cool.title', bodyKey: 'step.cool.body.rolls' });
+      return steps;
+    }
     steps.push({ titleKey: 'step.shapeCold.title', bodyKey: 'step.shapeCold.body' });
     steps.push({
       titleKey: 'step.coldProof.title',
@@ -473,12 +508,13 @@
 
   // Hovedberegning: tar hele state, returnerer alle mengder for oppskriften.
   function computeRecipe(state) {
-    const flourTotal = state.sizePerLoaf * state.loaves;
+    // Rundstykker er én deig som deles opp; antall brød gjelder ikke.
+    const flourTotal = state.sizePerLoaf * (isRolls(state.product) ? 1 : state.loaves);
     let hydration;
     if (state.hydrationManual) {
       hydration = state.hydration;
     } else {
-      const r = weightedHydration(state.flours);
+      const r = weightedHydration(state.flours, state.product);
       // Avrund til heltall så oppskriften bruker nøyaktig samme verdi som
       // vises i UI-et (som viser hele prosent).
       hydration = Math.round((r.min + r.max) / 2);
@@ -534,6 +570,8 @@
 
   const api = {
     REF_TEMP, BAKE_MIN, SECOND_PROOF_HOURS,
+    ROLLS_BAKE_MIN, ROLLS_SECOND_PROOF_HOURS, ROLLS_HYDRATION_OFFSET, ROLL_DOUGH_G,
+    isRolls, bakeMinutes, secondProofHours, rollCount,
     COOLING_TAU_HOURS, COLD_COOLING_TAU_HOURS,
     FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
     LOW_TEMP_KNEE_C, FERMENT_MIN_TEMP_C, fermentationFactor,

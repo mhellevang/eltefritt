@@ -930,6 +930,14 @@
   }
 
   // ---- Wire up controls ----
+  $$('.seg button[data-product]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.product = btn.dataset.product;
+      renderSegment($$('.seg button[data-product]'), state.product, 'product');
+      update();
+    });
+  });
+
   $$('.seg button[data-loaves]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.loaves = parseInt(btn.dataset.loaves, 10);
@@ -1229,6 +1237,7 @@
   renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
   renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
   renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
+  renderSegment($$('.seg button[data-product]'), state.product, 'product');
   renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');
   Object.entries(Plantilstand.FIELDS).forEach(([name, f]) => {
     if (!f.inputId || f.min == null) return;

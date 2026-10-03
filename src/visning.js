@@ -44,7 +44,7 @@
   // anbefalt område for melblandingen.
   function normalize(state) {
     if (!state.hydrationManual) {
-      const r = Logic.weightedHydration(state.flours);
+      const r = Logic.weightedHydration(state.flours, state.product);
       state.hydration = Math.round((r.min + r.max) / 2);
     }
     return state;
@@ -73,7 +73,8 @@
 
   function viewOf(state, nowMs) {
     const recipe = Logic.computeRecipe(state);
-    const band = Logic.weightedHydration(state.flours);
+    const band = Logic.weightedHydration(state.flours, state.product);
+    const rolls = Logic.isRolls(state.product);
     const recMin = Math.round(band.min);
     const recMax = Math.round(band.max);
 
@@ -90,16 +91,27 @@
     // Deig = mel × (1 + hydrering + 2 % salt); ferdig brød ≈ deig × 0.88
     // (litt vekttap fra stekning), avrundet til nærmeste 50 g.
     const doughFactor = 1 + recipe.hydration / 100 + 0.02;
-    const finished = Math.round((state.sizePerLoaf * doughFactor * 0.88) / 50) * 50;
-    text['size-detail'] = {
-      key: 'size.detail',
-      params: { flour: { grams: state.sizePerLoaf }, finished: { grams: finished } }
-    };
-    const step = sizeStep(state.sizePerLoaf);
-    text['equipment-detail'] = [
-      { key: 'equipment.line', params: { pot: { i18n: 'equipment.pot.' + step }, banneton: { i18n: 'banneton.' + step } } }
-    ];
-    if (state.loaves > 1) text['equipment-detail'].push({ key: 'equipment.perLoaf' });
+    const dough = state.sizePerLoaf * doughFactor;
+    hidden['loaves-field'] = rolls;
+    text['size-label'] = { key: rolls ? 'field.size.rolls' : 'field.size' };
+    if (rolls) {
+      text['size-detail'] = {
+        key: 'size.detail.rolls',
+        params: { flour: { grams: state.sizePerLoaf }, count: Logic.rollCount(dough) }
+      };
+      text['equipment-detail'] = [{ key: 'equipment.rolls' }];
+    } else {
+      const finished = Math.round((dough * 0.88) / 50) * 50;
+      text['size-detail'] = {
+        key: 'size.detail',
+        params: { flour: { grams: state.sizePerLoaf }, finished: { grams: finished } }
+      };
+      const step = sizeStep(state.sizePerLoaf);
+      text['equipment-detail'] = [
+        { key: 'equipment.line', params: { pot: { i18n: 'equipment.pot.' + step }, banneton: { i18n: 'banneton.' + step } } }
+      ];
+      if (state.loaves > 1) text['equipment-detail'].push({ key: 'equipment.perLoaf' });
+    }
     text['loaves-value'] = { text: String(state.loaves) };
 
     // ---- Hydrering ----

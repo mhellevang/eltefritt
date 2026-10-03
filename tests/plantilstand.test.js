@@ -212,3 +212,10 @@ test('adjustedRiseDoneMs: kaldere enn planlagt skyver målet senere', () => {
   assert.ok(cold > warm);
   assert.equal(cold % 60000, 0, 'avrundet til hele minutter');
 });
+
+test('load: gammel state uten bakverk gir brød', () => {
+  const { state } = P.load(JSON.stringify({ loaves: 2 }), Date.now());
+  assert.equal(state.product, 'loaf');
+  assert.equal(P.load(JSON.stringify({ product: 'rolls' }), Date.now()).state.product, 'rolls');
+  assert.equal(P.load(JSON.stringify({ product: 'cake' }), Date.now()).state.product, 'loaf');
+});

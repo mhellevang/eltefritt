@@ -253,3 +253,27 @@ test('viewOf: rører ikke state', () => {
   V.viewOf(state, NOW);
   assert.equal(JSON.stringify(state), before);
 });
+
+// ---- Rundstykker ----
+
+test('rundstykker: antall brød skjules og størrelsen heter deigmengde', () => {
+  const { v } = view({ product: 'rolls' });
+  assert.equal(v.hidden['loaves-field'], true);
+  assert.equal(v.text['size-label'].key, 'field.size.rolls');
+  assert.equal(view().v.hidden['loaves-field'], false);
+  assert.equal(view().v.text['size-label'].key, 'field.size');
+});
+
+test('rundstykker: detaljlinja teller emner og utstyret er et brett', () => {
+  const { state, v } = view({ product: 'rolls' });
+  const dough = state.sizePerLoaf * (1 + state.hydration / 100 + 0.02);
+  assert.equal(v.text['size-detail'].key, 'size.detail.rolls');
+  assert.equal(v.text['size-detail'].params.count, L.rollCount(dough));
+  assert.deepEqual(v.text['equipment-detail'], [{ key: 'equipment.rolls' }]);
+});
+
+test('rundstykker: auto-hydreringen følger det lavere området', () => {
+  const loaf = view().state.hydration;
+  const rolls = view({ product: 'rolls' }).state.hydration;
+  assert.equal(rolls, loaf + L.ROLLS_HYDRATION_OFFSET);
+});
