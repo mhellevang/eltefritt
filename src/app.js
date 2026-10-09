@@ -910,10 +910,23 @@
   }
 
   // ---- Wire up controls ----
+  function renderSizes() {
+    const presets = Visning.SIZE_PRESETS[state.product];
+    $$('.seg button[data-size]').forEach((b, i) => { b.dataset.size = presets[i]; });
+    renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+  }
+
   $$('.seg button[data-product]').forEach(btn => {
     btn.addEventListener('click', () => {
+      // En navngitt størrelse beholder navnet (Medium → Medium); egen vekt står.
+      const slot = Visning.SIZE_PRESETS[state.product].indexOf(state.sizePerLoaf);
       state.product = btn.dataset.product;
+      if (slot >= 0) {
+        state.sizePerLoaf = Visning.SIZE_PRESETS[state.product][slot];
+        $('#size-custom-input').value = state.sizePerLoaf;
+      }
       renderSegment($$('.seg button[data-product]'), state.product, 'product');
+      renderSizes();
       update();
     });
   });
@@ -929,7 +942,7 @@
   $$('.seg button[data-size]').forEach(btn => {
     btn.addEventListener('click', () => {
       state.sizePerLoaf = parseInt(btn.dataset.size, 10);
-      renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+      renderSizes();
       $('#size-custom-input').value = state.sizePerLoaf;
       update();
     });
@@ -940,7 +953,7 @@
     const v = parseInt(e.target.value, 10);
     if (!Number.isFinite(v) || v < size.min || v > size.max) return;
     state.sizePerLoaf = v;
-    renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+    renderSizes();
     update();
   });
 
@@ -1208,7 +1221,7 @@
   // Synkroniser DOM-kontrollene med gjenopprettet state. Sliderne arver
   // grensene sine fra FIELDS, så det finnes bare én kopi av hvert område.
   renderSegment($$('.seg button[data-loaves]'), state.loaves, 'loaves');
-  renderSegment($$('.seg button[data-size]'), state.sizePerLoaf, 'size');
+  renderSizes();
   renderSegment($$('.seg button[data-mode]'), state.mode, 'mode');
   renderSegment($$('.seg button[data-product]'), state.product, 'product');
   renderSegment($$('.seg button[data-leaven]'), state.leaven, 'leaven');

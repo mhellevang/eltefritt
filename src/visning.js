@@ -30,8 +30,10 @@
   const isNode = typeof module !== 'undefined' && !!module.exports;
   const Logic = isNode ? require('./logic.js') : globalScope.EltefrittLogic;
 
-  // Navngitte brødstørrelser; alt annet er egen vekt.
-  const SIZE_NAME_KEYS = { 400: 'size.small', 500: 'size.medium', 700: 'size.large' };
+  // Lite/Medium/Stort i gram mel, per bakverk; alt annet er egen vekt. Brød
+  // er bundet av gryte og form, rundstykker bare av brettet.
+  const SIZE_PRESETS = { loaf: [400, 500, 700], rolls: [500, 750, 1000] };
+  const SIZE_NAME_KEYS = ['size.small', 'size.medium', 'size.large'];
 
   // Gryte- og banneton-anbefaling er samme trapp på melvekt per brød.
   const SIZE_STEPS = [[600, 's'], [800, 'm'], [1100, 'l'], [1500, 'xl']];
@@ -71,7 +73,7 @@
     const values = {};
 
     // ---- Brødstørrelse ----
-    const sizeKey = SIZE_NAME_KEYS[state.sizePerLoaf];
+    const sizeKey = SIZE_NAME_KEYS[SIZE_PRESETS[state.product].indexOf(state.sizePerLoaf)];
     text['size-value'] = sizeKey
       ? { key: sizeKey }
       : { key: 'size.custom', params: { g: state.sizePerLoaf } };
@@ -197,7 +199,7 @@
     };
   }
 
-  const api = { normalize, viewOf, SIZE_NAME_KEYS, sizeStep };
+  const api = { normalize, viewOf, SIZE_PRESETS, sizeStep };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (globalScope) globalScope.EltefrittVisning = api;

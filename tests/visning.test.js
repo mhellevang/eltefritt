@@ -48,6 +48,11 @@ test('brødstørrelse: navngitte størrelser vs. egen vekt', () => {
     { key: 'size.custom', params: { g: 640 } });
 });
 
+test('brødstørrelse: rundstykker har egne navngitte størrelser', () => {
+  assert.deepEqual(view({ product: 'rolls', sizePerLoaf: 1000 }).v.text['size-value'], { key: 'size.large' });
+  assert.equal(view({ product: 'rolls', sizePerLoaf: 700 }).v.text['size-value'].key, 'size.custom');
+});
+
 test('brødstørrelse: ferdig brød regnes fra deigvekt og avrundes til 50 g', () => {
   const { v } = view({ sizePerLoaf: 500 });
   const finished = v.text['size-detail'].params.finished.grams;

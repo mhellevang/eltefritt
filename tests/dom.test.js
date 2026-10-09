@@ -101,6 +101,24 @@ test('Bakverk = Rundstykker skjuler antall brød og bytter utstyrslinja', async 
   }
 });
 
+test('bytte bakverk beholder navngitt størrelse, ikke grammene', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const sizes = () => [...document.querySelectorAll('button[data-size]')].map(b => b.dataset.size);
+    fire(window, document.querySelector('button[data-product="rolls"]'), 'click');
+    assert.deepEqual(sizes(), ['500', '750', '1000']);
+    assert.equal(document.querySelector('button[data-size="750"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(document.getElementById('size-custom-input').value, '750');
+
+    fire(window, document.querySelector('button[data-size="1000"]'), 'click');
+    fire(window, document.querySelector('button[data-product="loaf"]'), 'click');
+    assert.deepEqual(sizes(), ['400', '500', '700']);
+    assert.equal(document.querySelector('button[data-size="700"]').getAttribute('aria-pressed'), 'true');
+  } finally {
+    close();
+  }
+});
+
 test('Hevemetode = Kald viser cold-controls, skjuler classic-controls', async () => {
   const { window, document, close } = await loadPage();
   try {
