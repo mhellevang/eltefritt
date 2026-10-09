@@ -1099,7 +1099,7 @@
     .card { margin-bottom: 0; }
     /* Kort stables i hver kolonne med luft mellom; resultatkolonnen ligger sticky. */
     .col-inputs > .card + .card,
-    .col-results > .card + .card { margin-top: 1.75rem; }
+    .col-results > .card:not([hidden]) + .card { margin-top: 1.75rem; }
     /* Under bakingen er valgene foldet bort; resultatet får én midtstilt kolonne. */
     .app.is-baking { grid-template-columns: minmax(0, 640px); justify-content: center; }
     .app.is-baking .col-results { position: static; max-height: none; overflow: visible; }
