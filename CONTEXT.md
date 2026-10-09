@@ -166,8 +166,10 @@ vibrasjon, ikonmerke og blinkende fanetittel, med en planlagt push som backup
 når appen er lukket.
 
 **Alarm**:
-Brukerens av/på for varsling. Er den på, er starten frosset og nedtellingen
-løper.
+Brukerens av/på for varsling, slått på med «Start bakingen» nederst på siden.
+Er den på, er starten frosset, nedtellingen løper og valgene er foldet bort
+til en oppsummering, så planen ikke kan endres ved et uhell. Bare Juster
+underveis er åpen.
 
 **Kvittering**:
 At bakeren har fått med seg alarmen. Å røre appen, komme tilbake til fanen

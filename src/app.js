@@ -726,16 +726,23 @@
     el.classList.add('is-active');
   }
 
-  // Kalles fra update(): synk toggle-knapper og (re)arm målet ut fra planen.
+  // Kalles fra update(): med alarmen på er bakingen i gang, og valgene som
+  // ville flyttet planen foldes bort eller låses. (Re)arm målet ut fra planen.
   function renderAlarm() {
-    renderSegment($$('.seg button[data-alarm]'), state.alarm ? 'on' : 'off', 'alarm');
-    const el = $('#alarm-detail');
-    if (!state.alarm) {
+    const baking = state.alarm;
+    $('.app').classList.toggle('is-baking', baking);
+    $('#col-inputs').hidden = baking;
+    $('#bake-card').hidden = !baking;
+    $('#bake-start').hidden = baking;
+    ['#start-time', '#ready-time', '#now-btn'].forEach(sel => { $(sel).disabled = baking; });
+    if (!baking) {
       varsling.disarm();
-      el.classList.remove('is-active', 'is-done');
-      el.textContent = t('alarm.help');
       return;
     }
+    $('#bake-summary').textContent = [
+      t('product.' + state.product), t('leaven.' + state.leaven),
+      t('mode.' + state.mode + '.label'), fmtTemp(state.temperatureC)
+    ].join(' · ');
     refreshCountdown(varsling.arm(alarmTargetDate().getTime()));
   }
 
@@ -759,7 +766,7 @@
   document.addEventListener('pointerdown', () => { if (state.alarm) warmAudio(); }, { capture: true });
 
   // En bake pågår når den frosne starten er passert og alarmen ikke har gått;
-  // da betyr "Av" å forkaste den (av så på re-ankrer til en ny plan).
+  // da betyr "Avslutt" å forkaste den (av så på re-ankrer til en ny plan).
   function bakeInProgress() {
     return state.anchorDateMs != null && state.anchorDateMs <= Date.now() && !varsling.status().fired;
   }
@@ -779,6 +786,8 @@
     if (!on) state.actualTempC = null;
     refreezeAnchor();
     update({ skipFlourList: true });
+    // Siden folder seg om; ta brukeren til toppen av det som nå vises.
+    window.scrollTo(0, 0);
   }
 
   // "Juster underveis": synlig mens en klassisk bulk pågår med alarmen på.
@@ -1064,7 +1073,7 @@
     });
   });
 
-  $$('.seg button[data-alarm]').forEach(btn => {
+  $$('button[data-alarm]').forEach(btn => {
     btn.addEventListener('click', () => setAlarm(btn.dataset.alarm === 'on'));
   });
 

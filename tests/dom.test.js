@@ -233,27 +233,30 @@ test('bytte enhet til °F oppdaterer avlesning, ikke modellverdien', async () =>
   }
 });
 
-test('alarm: av som standard, viser hjelpetekst', async () => {
+const baking = document => !document.getElementById('bake-card').hidden;
+
+test('baking: ikke i gang som standard, valgene er åpne', async () => {
   const { document, close } = await loadPage();
   try {
-    const off = document.querySelector('button[data-alarm="off"]');
-    const on = document.querySelector('button[data-alarm="on"]');
-    assert.equal(off.getAttribute('aria-pressed'), 'true');
-    assert.equal(on.getAttribute('aria-pressed'), 'false');
-    const detail = document.getElementById('alarm-detail');
-    assert.match(detail.textContent, /varsel/i);
-    assert.equal(detail.classList.contains('is-active'), false);
+    assert.equal(baking(document), false);
+    assert.equal(document.getElementById('bake-start').hidden, false);
+    assert.equal(document.getElementById('col-inputs').hidden, false);
+    assert.equal(document.getElementById('start-time').disabled, false);
   } finally {
     close();
   }
 });
 
-test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => {
+test('baking: Start armer nedtelling, folder bort valgene og låser planen', async () => {
   const { window, document, close } = await loadPage();
   try {
-    const on = document.querySelector('button[data-alarm="on"]');
-    fire(window, on, 'click');
-    assert.equal(on.getAttribute('aria-pressed'), 'true');
+    fire(window, document.querySelector('button[data-alarm="on"]'), 'click');
+    assert.equal(baking(document), true);
+    assert.equal(document.getElementById('bake-start').hidden, true);
+    assert.equal(document.getElementById('col-inputs').hidden, true);
+    assert.equal(document.getElementById('start-time').disabled, true);
+    assert.equal(document.getElementById('ready-time').disabled, true);
+    assert.match(document.getElementById('bake-summary').textContent, /Brød · Tørrgjær · Klassisk/);
     const detail = document.getElementById('alarm-detail');
     // Standard klassisk 14 t heving fra start om ~1 t ⇒ nedtelling med timer.
     assert.match(detail.textContent, /⏰/);
@@ -263,11 +266,11 @@ test('alarm: klikk På armer nedtelling og viser gjenværende tid', async () => 
     assert.match(detail.textContent, /\d{2}\s+sek/);
     assert.equal(detail.classList.contains('is-active'), true);
 
-    // Skru av igjen ⇒ tilbake til hjelpetekst, ingen nedtelling.
-    const off = document.querySelector('button[data-alarm="off"]');
-    fire(window, off, 'click');
-    assert.equal(off.getAttribute('aria-pressed'), 'true');
-    assert.equal(document.getElementById('alarm-detail').classList.contains('is-active'), false);
+    // Avslutt ⇒ valgene åpnes igjen.
+    fire(window, document.querySelector('button[data-alarm="off"]'), 'click');
+    assert.equal(baking(document), false);
+    assert.equal(document.getElementById('col-inputs').hidden, false);
+    assert.equal(document.getElementById('start-time').disabled, false);
   } finally {
     close();
   }
@@ -291,8 +294,7 @@ test('gjenopptak: pågående nedtelling overlever omstart', async () => {
     seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt })
   });
   try {
-    const on = document.querySelector('button[data-alarm="on"]');
-    assert.equal(on.getAttribute('aria-pressed'), 'true', 'alarmen skal være på etter omstart');
+    assert.equal(baking(document), true, 'bakingen skal være i gang etter omstart');
     const detail = document.getElementById('alarm-detail');
     assert.match(detail.textContent, /til hevingen er ferdig/i);
     // ~10 t igjen av bulken (14 − 4), ikke re-ankret frem i tid.
@@ -310,8 +312,7 @@ test('gjenopptak: utgått bake nullstilles i stedet for å gjenopptas', async ()
     seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt })
   });
   try {
-    const off = document.querySelector('button[data-alarm="off"]');
-    assert.equal(off.getAttribute('aria-pressed'), 'true', 'alarmen skal være av');
+    assert.equal(baking(document), false, 'bakingen skal være avsluttet');
     assert.equal(document.getElementById('adjust-field').hidden, true);
   } finally {
     close();
@@ -327,16 +328,15 @@ test('gjenopptak: justert (forlenget) heving overlever omstart etter planlagt sl
     seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt, actualTempC: 17 })
   });
   try {
-    const on = document.querySelector('button[data-alarm="on"]');
-    assert.equal(on.getAttribute('aria-pressed'), 'true', 'alarmen skal fortsatt være på');
+    assert.equal(baking(document), true, 'bakingen skal fortsatt være i gang');
     assert.equal(document.getElementById('adjust-field').hidden, false, 'juster-feltet skal være aktivt');
   } finally {
     close();
   }
 });
 
-test('alarm av midt i pågående bake krever bekreftelse', async () => {
-  // Startet for 4 t siden ⇒ baken pågår. Av-knappen skal spørre først, og
+test('avslutt midt i pågående bake krever bekreftelse', async () => {
+  // Startet for 4 t siden ⇒ baken pågår. Avslutt-knappen skal spørre først, og
   // avbrutt bekreftelse skal la alarmen (og baken) stå urørt.
   const startedAt = Date.now() - 4 * 3600 * 1000;
   const { window, document, close } = await loadPage({
@@ -344,16 +344,15 @@ test('alarm av midt i pågående bake krever bekreftelse', async () => {
   });
   try {
     const off = document.querySelector('button[data-alarm="off"]');
-    const on = document.querySelector('button[data-alarm="on"]');
 
     window.confirm = () => false;
     fire(window, off, 'click');
-    assert.equal(on.getAttribute('aria-pressed'), 'true', 'avbrutt bekreftelse beholder alarmen');
+    assert.equal(baking(document), true, 'avbrutt bekreftelse beholder bakingen');
     assert.equal(document.getElementById('adjust-field').hidden, false, 'baken pågår fortsatt');
 
     window.confirm = () => true;
     fire(window, off, 'click');
-    assert.equal(off.getAttribute('aria-pressed'), 'true', 'bekreftet Av skrur av alarmen');
+    assert.equal(baking(document), false, 'bekreftet Avslutt avslutter bakingen');
   } finally {
     close();
   }
@@ -369,13 +368,13 @@ test('juster underveis: synlig med alarm på i klassisk, skjult ellers', async (
     assert.equal(field.hidden, false, 'synlig med alarm på i klassisk modus');
     assert.match(document.getElementById('adjust-detail').textContent, /varmere eller kaldere/i);
 
+    fire(window, document.querySelector('button[data-alarm="off"]'), 'click');
+    assert.equal(field.hidden, true, 'skjult når bakingen avsluttes');
+
     // Kald modus har ingen justering (gjelder kun klassisk bulk).
     fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
+    fire(window, document.querySelector('button[data-alarm="on"]'), 'click');
     assert.equal(field.hidden, true, 'skjult i kald modus');
-
-    fire(window, document.querySelector('button[data-mode="classic"]'), 'click');
-    fire(window, document.querySelector('button[data-alarm="off"]'), 'click');
-    assert.equal(field.hidden, true, 'skjult når alarmen skrus av');
   } finally {
     close();
   }

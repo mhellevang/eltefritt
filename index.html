@@ -853,21 +853,58 @@
     line-height: 1.45;
   }
 
-  /* Alarm bor nederst i Tidsplan-kortet; skill den fra planen med en tynn strek. */
-  .alarm-field {
-    margin-top: 1rem;
-    padding-top: 1rem;
+  /* Bakingen startes nederst, etter oppskriften, og låser valgene. */
+  .bake-start { margin-top: 1rem; }
+  .bake-btn {
+    appearance: none;
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: var(--surface);
+    font: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+  }
+  .bake-btn-stop {
+    margin-top: 1.25rem;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .bake-btn-stop:hover { border-color: var(--accent); color: var(--accent); }
+  .bake-summary { margin: 0 0 0.75rem; color: var(--ink-soft); }
+  .adjust-field {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
     border-top: 1px solid var(--line);
+  }
+  .bake-card .field { margin-bottom: 0; }
+  .col-inputs[hidden] { display: none; }
+  .is-baking .water-temp-inline,
+  .is-baking .plan-now-btn { display: none; }
+  /* Låste klokkeslett skal leses som tekst, ikke som felt. */
+  .plan-anchor .plan-time-input:disabled {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ink);
+    -webkit-text-fill-color: var(--ink);
+    opacity: 1;
   }
 
   /* Alarm-nedtelling: framhev tid-igjen og ferdig-tilstand. */
-  .alarm-detail.is-active {
+  .alarm-detail {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
   .alarm-detail.is-done {
-    color: var(--accent);
-    font-weight: 600;
     animation: alarm-pulse 1s ease-in-out infinite;
   }
   @keyframes alarm-pulse {
@@ -1069,6 +1106,9 @@
     /* Kort stables i hver kolonne med luft mellom; resultatkolonnen ligger sticky. */
     .col-inputs > .card + .card,
     .col-results > .card + .card { margin-top: 1.75rem; }
+    /* Under bakingen er valgene foldet bort; resultatet får én midtstilt kolonne. */
+    .app.is-baking { grid-template-columns: minmax(0, 640px); justify-content: center; }
+    .app.is-baking .col-results { position: static; max-height: none; overflow: visible; }
     .col-results {
       position: sticky;
       top: 1.5rem;
@@ -1147,7 +1187,7 @@
     <p class="subtitle" data-i18n="app.subtitle">Kalkulator for eltefritt brød</p>
   </header>
 
-  <div class="col-inputs">
+  <div class="col-inputs" id="col-inputs">
 
   <section class="card" aria-label="Brødet">
     <h2 class="card-title"><span data-i18n="card.bread">Brødet</span></h2>
@@ -1393,6 +1433,28 @@
 
   <div class="col-results">
 
+  <section class="card bake-card" id="bake-card" aria-label="Bakingen er i gang" data-i18n-aria-label="card.baking" hidden>
+    <h2 class="card-title"><span data-i18n="card.baking">Bakingen er i gang</span></h2>
+    <p class="bake-summary" id="bake-summary"></p>
+    <p class="alarm-detail" id="alarm-detail"></p>
+
+    <div class="field adjust-field" id="adjust-field" hidden>
+      <div class="field-label">
+        <span data-i18n="field.adjust">Juster underveis</span>
+        <span class="field-value"><span id="adjust-temp-value">21</span><span class="temp-unit">°C</span></span>
+      </div>
+      <div class="stepper" data-stepper-for="adjust-temp">
+        <input type="range" id="adjust-temp" class="visually-hidden" value="21" step="1" />
+        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser faktisk temperatur">−</button>
+        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
+        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk faktisk temperatur">+</button>
+      </div>
+      <p class="helper-text" id="adjust-detail"></p>
+    </div>
+
+    <button type="button" class="bake-btn bake-btn-stop" data-alarm="off" data-i18n="bake.stop">Avslutt bakingen</button>
+  </section>
+
   <section class="card card-output" aria-label="Tidsplan">
     <h2 class="card-title"><span data-i18n="card.timeline">Tidsplan</span></h2>
 
@@ -1413,31 +1475,6 @@
         <input type="time" class="plan-time-input" id="ready-time" />
         <span class="plan-day" id="ready-day"></span>
       </div>
-    </div>
-
-    <div class="field alarm-field">
-      <div class="field-label">
-        <span data-i18n="field.alarm">Alarm når hevingen er ferdig</span>
-      </div>
-      <div class="seg" style="--cols: 2" role="group" aria-label="Alarm" data-i18n-aria-label="field.alarm">
-        <button data-alarm="off" aria-pressed="true" data-i18n="alarm.off">Av</button>
-        <button data-alarm="on" aria-pressed="false" data-i18n="alarm.on">På</button>
-      </div>
-      <p class="helper-text alarm-detail" id="alarm-detail"></p>
-    </div>
-
-    <div class="field" id="adjust-field" hidden>
-      <div class="field-label">
-        <span data-i18n="field.adjust">Juster underveis</span>
-        <span class="field-value"><span id="adjust-temp-value">21</span><span class="temp-unit">°C</span></span>
-      </div>
-      <div class="stepper" data-stepper-for="adjust-temp">
-        <input type="range" id="adjust-temp" class="visually-hidden" value="21" step="1" />
-        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser faktisk temperatur">−</button>
-        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk faktisk temperatur">+</button>
-      </div>
-      <p class="helper-text" id="adjust-detail"></p>
     </div>
   </section>
 
@@ -1482,6 +1519,11 @@
       </div>
     </details>
   </section>
+
+  <div class="bake-start" id="bake-start">
+    <button type="button" class="bake-btn" data-alarm="on" data-i18n="bake.start">Start bakingen</button>
+    <p class="helper-text" data-i18n="bake.help">Starter nedtellingen og låser valgene til du avslutter.</p>
+  </div>
   </div>
 
   <footer>

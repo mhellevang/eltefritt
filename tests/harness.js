@@ -51,6 +51,8 @@ async function loadPage(opts = {}) {
     pretendToBeVisual: true,
     // Frø språk/enhet før noen scripts kjører (head-boot leser localStorage).
     beforeParse(window) {
+      // jsdom har ingen scrolling; uten stubben logger den "Not implemented".
+      window.scrollTo = () => {};
       try {
         window.localStorage.setItem('eltefritt-lang', lang);
         window.localStorage.setItem('eltefritt-unit', unit);

@@ -38,6 +38,7 @@
       'card.rise': 'Heving',
       'card.timeline': 'Tidsplan',
       'card.recipe': 'Oppskrift',
+      'card.baking': 'Bakingen er i gang',
       'method.summary': 'Slik gjør du det',
 
       // ── Feltlabels ──
@@ -60,18 +61,17 @@
       'field.coldProof': 'Etterheving (kjøleskap)',
       'field.coldTemp': 'Kjøleskapstemp',
       'field.sourAmount': 'Surdeig-mengde',
-      'field.alarm': 'Alarm når hevingen er ferdig',
 
       // ── Alarm / nedtelling ──
-      'alarm.off': 'Av',
-      'alarm.on': 'På',
-      'alarm.help': 'Få et varsel når hevetiden er ute – appen piper til du kvitterer. Fanen må stå åpen (også i bakgrunnen).',
+      'bake.start': 'Start bakingen',
+      'bake.stop': 'Avslutt bakingen',
+      'bake.help': 'Starter nedtellingen og låser valgene til du avslutter. Appen piper når hevingen er ferdig, så la fanen stå åpen (i bakgrunnen går fint).',
       'alarm.countdown': '⏰ {dur} til hevingen er ferdig',
       'alarm.done': '⏰ Hevingen er ferdig – på tide med neste steg!',
       'alarm.blocked': 'Varsler er blokkert i nettleseren, men appen piper når tiden er ute (så lenge fanen er åpen).',
       'alarm.notify.title': 'Hevingen er ferdig 🍞',
       'alarm.notify.body': 'Klar for neste steg i oppskriften.',
-      'alarm.confirmOff': 'Hevingen pågår. Skru av alarmen og forkast den pågående baken?',
+      'alarm.confirmOff': 'Hevingen pågår. Avslutte bakingen og låse opp valgene?',
 
       // ── Juster underveis ──
       'field.adjust': 'Juster underveis',
@@ -284,6 +284,7 @@
       'card.rise': 'Proofing',
       'card.timeline': 'Schedule',
       'card.recipe': 'Recipe',
+      'card.baking': 'Bake in progress',
       'method.summary': 'How to do it',
 
       // ── Field labels ──
@@ -306,18 +307,17 @@
       'field.coldProof': 'Final proof (fridge)',
       'field.coldTemp': 'Fridge temp',
       'field.sourAmount': 'Sourdough amount',
-      'field.alarm': 'Alarm when the rise is done',
 
       // ── Alarm / countdown ──
-      'alarm.off': 'Off',
-      'alarm.on': 'On',
-      'alarm.help': 'Get a notification when the rise time is up – the app keeps beeping until you acknowledge it. Keep this tab open (background is fine).',
+      'bake.start': 'Start baking',
+      'bake.stop': 'End baking',
+      'bake.help': 'Starts the countdown and locks your choices until you end it. The app beeps when the rise is done, so keep this tab open (background is fine).',
       'alarm.countdown': '⏰ {dur} until the rise is done',
       'alarm.done': '⏰ The rise is done – time for the next step!',
       'alarm.blocked': 'Notifications are blocked in your browser, but the app will beep when time is up (as long as this tab is open).',
       'alarm.notify.title': 'The rise is done 🍞',
       'alarm.notify.body': 'Ready for the next step in the recipe.',
-      'alarm.confirmOff': 'The rise is in progress. Turn off the alarm and discard the current bake?',
+      'alarm.confirmOff': 'The rise is in progress. End baking and unlock your choices?',
 
       // ── Adjust mid-rise ──
       'field.adjust': 'Adjust mid-rise',
