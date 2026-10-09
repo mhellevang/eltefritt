@@ -73,12 +73,6 @@
       'alarm.notify.body': 'Klar for neste steg i oppskriften.',
       'alarm.confirmOff': 'Hevingen pågår. Avslutte bakingen og låse opp valgene?',
 
-      // ── Juster underveis ──
-      'field.adjust': 'Juster underveis',
-      'adjust.help': 'Ble rommet varmere eller kaldere enn planlagt? Sett temperaturen deigen faktisk har stått i, så flyttes klar-tiden og alarmen.',
-      'adjust.readyAt': 'Med denne temperaturen er bulkhevingen ferdig ca. {time}. Sjekk deigen: doblet, boblete og dirrende = klar.',
-      'adjust.overdue': 'Deigen har trolig hevet ferdig – form den nå, og kort heller inn etterhevingen.',
-
       // ── Enheter ──
       'unit.hours': 't',
       'unit.min': 'min',
@@ -263,7 +257,6 @@
       'aria.field.coldProof': 'etterheving i kjøleskap',
       'aria.field.coldTemp': 'kjøleskapstemperatur',
       'aria.field.sourAmount': 'surdeig-mengde',
-      'aria.field.adjustTemp': 'faktisk temperatur',
       'aria.flourShare': 'Andel {name}',
       'aria.flourShareField': 'andel {name}',
       'aria.removeFlour': 'Fjern meltype',
@@ -318,12 +311,6 @@
       'alarm.notify.title': 'The rise is done 🍞',
       'alarm.notify.body': 'Ready for the next step in the recipe.',
       'alarm.confirmOff': 'The rise is in progress. End baking and unlock your choices?',
-
-      // ── Adjust mid-rise ──
-      'field.adjust': 'Adjust mid-rise',
-      'adjust.help': 'Room warmer or colder than planned? Set the temperature the dough has actually seen, and the ready time and alarm move to match.',
-      'adjust.readyAt': 'At this temperature the bulk rise is done around {time}. Check the dough: doubled, bubbly and jiggly = ready.',
-      'adjust.overdue': 'The dough has likely finished rising – shape it now, and shorten the second proof instead.',
 
       // ── Units ──
       'unit.hours': 'h',
@@ -509,7 +496,6 @@
       'aria.field.coldProof': 'final proof in the fridge',
       'aria.field.coldTemp': 'fridge temperature',
       'aria.field.sourAmount': 'sourdough amount',
-      'aria.field.adjustTemp': 'actual temperature',
       'aria.flourShare': '{name} share',
       'aria.flourShareField': '{name} share',
       'aria.removeFlour': 'Remove flour type',

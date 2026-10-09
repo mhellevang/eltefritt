@@ -878,12 +878,6 @@
   }
   .bake-btn-stop:hover { border-color: var(--accent); color: var(--accent); }
   .bake-summary { margin: 0 0 0.75rem; color: var(--ink-soft); }
-  .adjust-field {
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--line);
-  }
-  .bake-card .field { margin-bottom: 0; }
   .col-inputs[hidden] { display: none; }
   .is-baking .water-temp-inline,
   .is-baking .plan-now-btn { display: none; }
@@ -1437,21 +1431,6 @@
     <h2 class="card-title"><span data-i18n="card.baking">Bakingen er i gang</span></h2>
     <p class="bake-summary" id="bake-summary"></p>
     <p class="alarm-detail" id="alarm-detail"></p>
-
-    <div class="field adjust-field" id="adjust-field" hidden>
-      <div class="field-label">
-        <span data-i18n="field.adjust">Juster underveis</span>
-        <span class="field-value"><span id="adjust-temp-value">21</span><span class="temp-unit">°C</span></span>
-      </div>
-      <div class="stepper" data-stepper-for="adjust-temp">
-        <input type="range" id="adjust-temp" class="visually-hidden" value="21" step="1" />
-        <button type="button" class="step-btn" data-step-dir="-1" aria-label="Reduser faktisk temperatur">−</button>
-        <div class="step-track" aria-hidden="true"><div class="step-fill"></div></div>
-        <button type="button" class="step-btn" data-step-dir="1" aria-label="Øk faktisk temperatur">+</button>
-      </div>
-      <p class="helper-text" id="adjust-detail"></p>
-    </div>
-
     <button type="button" class="bake-btn bake-btn-stop" data-alarm="off" data-i18n="bake.stop">Avslutt bakingen</button>
   </section>
 

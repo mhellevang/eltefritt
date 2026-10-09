@@ -16,7 +16,7 @@
   const {
     FLOUR_TYPES,
     addMinutes, modeTotalMinutes, riseDoneMinutes, planWindow,
-    sourCoupling, adjustedRiseDoneMs
+    sourCoupling
   } = window.EltefrittLogic;
 
   const { createVarsling } = window.EltefrittVarsling;
@@ -544,17 +544,7 @@
     if (state.alarm) state.anchorDateMs = getStartAndReady().start.getTime();
   }
 
-  // Justert bulk-slutt når "faktisk temp så langt" er satt. null = ingen
-  // justering aktiv; kan ligge i fortid når deigen er over budsjett, og da
-  // settes alarmen som allerede utløst.
-  function adjustedRiseDoneDate() {
-    const ms = adjustedRiseDoneMs(state, Date.now());
-    return ms == null ? null : new Date(ms);
-  }
-
   function alarmTargetDate() {
-    const adjusted = adjustedRiseDoneDate();
-    if (adjusted) return adjusted;
     const { start } = getStartAndReady();
     return addMinutes(start, riseDoneMinutes(state));
   }
@@ -754,7 +744,7 @@
   }, 1000);
 
   // Kvitter alarmen ved første interaksjon (fanger også Av-knappen og
-  // juster-stepperen; å røre appen er å ha fått den med seg).
+  // alle andre knapper; å røre appen er å ha fått den med seg).
   ['pointerdown', 'keydown'].forEach(ev =>
     document.addEventListener(ev, () => varsling.acknowledge(), { capture: true }));
 
@@ -783,27 +773,10 @@
       }
     }
     state.alarm = on;
-    if (!on) state.actualTempC = null;
     refreezeAnchor();
     update({ skipFlourList: true });
     // Siden folder seg om; ta brukeren til toppen av det som nå vises.
     window.scrollTo(0, 0);
-  }
-
-  // "Juster underveis": synlig mens en klassisk bulk pågår med alarmen på.
-  // Stepperen viser faktisk temp så langt; avviker den fra planlagt temp,
-  // regnes gjenstående tid om og alarmen re-armeres (via alarmTargetDate).
-  // Hva som skal stå der er avgjort i viewOf().
-  function applyAdjust(adjust) {
-    $('#adjust-field').hidden = !adjust.active;
-    if (!adjust.active) return;
-    const input = $('#adjust-temp');
-    if (document.activeElement !== input) {
-      input.value = adjust.shownTempC;
-      refreshStepperVisual(input);
-    }
-    renderTempReadout('adjust-temp-value', adjust.shownTempC);
-    $('#adjust-detail').textContent = renderSlot(adjust.note);
   }
 
   // Temperatur-avlesning: tall i valgt enhet + enhets-suffiks (°C/°F). Modellen
@@ -836,8 +809,7 @@
     'bulk-time': 'aria.field.bulk',
     'cold-time': 'aria.field.coldProof',
     'cold-temp': 'aria.field.coldTemp',
-    'sour-inoculation': 'aria.field.sourAmount',
-    'adjust-temp': 'aria.field.adjustTemp'
+    'sour-inoculation': 'aria.field.sourAmount'
   };
   function localizeStaticSteppers() {
     $$('[data-stepper-for]').forEach(st => {
@@ -904,7 +876,6 @@
     applyFlour(view.flour, opts);
     renderPlan(view.plan);
     renderAlarm();
-    applyAdjust(view.adjust);
   }
 
   function saveState() {
@@ -1075,13 +1046,6 @@
 
   $$('button[data-alarm]').forEach(btn => {
     btn.addEventListener('click', () => setAlarm(btn.dataset.alarm === 'on'));
-  });
-
-  $('#adjust-temp').addEventListener('input', e => {
-    const v = parseInt(e.target.value, 10);
-    // Tilbake på planlagt temp = ingen justering.
-    state.actualTempC = v === state.temperatureC ? null : v;
-    update({ skipFlourList: true });
   });
 
   $('#start-time').addEventListener('input', e => {
@@ -1258,7 +1222,7 @@
   });
 
   // Init steppers etter at input.value er satt (initStepper synker visualet)
-  ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation', 'adjust-temp'].forEach(id => {
+  ['hydration', 'temp', 'water-temp', 'rise-time', 'bulk-time', 'cold-time', 'cold-temp', 'sour-inoculation'].forEach(id => {
     const inp = document.getElementById(id);
     if (inp) initStepper(inp);
   });

@@ -127,16 +127,6 @@ Antallet effektive timer en plan er verdt. Gjærmengden regnes ut fra
 budsjettet, ikke fra klokketiden, så en kald plan får mer gjær enn en varm av
 samme lengde.
 
-**Faktisk temperatur**:
-Temperaturen deigen har stått i så langt, ikke temperaturen akkurat nå.
-Brukeren oppgir den under Juster underveis når rommet ble varmere eller
-kaldere enn planlagt.
-_Unngå_: nåværende temperatur, målt temperatur
-
-**Juster underveis**:
-Å regne om gjenstående hevetid mens hevingen pågår, ut fra faktisk
-temperatur. Sammenligner forbrukt mot hevebudsjett og flytter alarmen.
-
 ## Bakeplanen
 
 **Bakeplan**:
@@ -155,8 +145,7 @@ alarmen står på, fordi et klokkeslett er tvetydig over døgnskiftet.
 
 **Gjenopptak**:
 Å plukke opp en pågående bake etter at appen er lukket og åpnet igjen. En bake
-er pågående til planlagt ferdigtid, forlenget hvis Juster underveis har
-skjøvet den.
+er pågående til planlagt ferdigtid.
 
 ## Varsling
 
@@ -168,8 +157,7 @@ når appen er lukket.
 **Alarm**:
 Brukerens av/på for varsling, slått på med «Start bakingen» nederst på siden.
 Er den på, er starten frosset, nedtellingen løper og valgene er foldet bort
-til en oppsummering, så planen ikke kan endres ved et uhell. Bare Juster
-underveis er åpen.
+til en oppsummering, så planen ikke kan endres ved et uhell.
 
 **Kvittering**:
 At bakeren har fått med seg alarmen. Å røre appen, komme tilbake til fanen

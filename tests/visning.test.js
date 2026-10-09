@@ -10,7 +10,6 @@ const V = require('../src/visning.js');
 const P = require('../src/plantilstand.js');
 const L = require('../src/logic.js');
 
-const HOUR = 3600 * 1000;
 const NOW = new Date(2026, 7, 24, 10, 0, 0, 0).getTime();
 
 // Bygg en state og dens View i ett.
@@ -194,38 +193,6 @@ test('tidsplan: start og ferdig kommer fra planvinduet', () => {
   assert.equal(v.plan.ready.getTime(), w.ready.getTime());
   assert.ok(v.plan.items.length > 0);
   assert.ok(v.instructions.length > 0);
-});
-
-// ---- Juster underveis ----
-
-const running = extra => ({
-  alarm: true, mode: 'classic', riseHours: 14, temperatureC: 21, waterTempC: 21,
-  anchorDateMs: NOW - 2 * HOUR, ...extra
-});
-
-test('juster: skjult uten alarm, uten klassisk modus eller uten frosset start', () => {
-  assert.equal(view(running({ alarm: false })).v.adjust.active, false);
-  assert.equal(view(running({ mode: 'cold' })).v.adjust.active, false);
-  assert.equal(view(running({ anchorDateMs: null })).v.adjust.active, false);
-});
-
-test('juster: hjelpetekst så lenge ingen faktisk temp er satt', () => {
-  const { v } = view(running());
-  assert.equal(v.adjust.active, true);
-  assert.equal(v.adjust.shownTempC, 21, 'viser planlagt temp til brukeren setter en');
-  assert.deepEqual(v.adjust.note, { key: 'adjust.help' });
-});
-
-test('juster: avvikende temp gir et justert klokkeslett', () => {
-  const { v } = view(running({ actualTempC: 17 }));
-  assert.equal(v.adjust.shownTempC, 17);
-  assert.equal(v.adjust.note.key, 'adjust.readyAt');
-  assert.ok(v.adjust.note.params.time.at > NOW);
-});
-
-test('juster: over budsjett sier at deigen er forbi ferdig', () => {
-  const { v } = view(running({ anchorDateMs: NOW - 20 * HOUR, actualTempC: 25 }));
-  assert.deepEqual(v.adjust.note, { key: 'adjust.overdue' });
 });
 
 // ---- Formen på View-en ----

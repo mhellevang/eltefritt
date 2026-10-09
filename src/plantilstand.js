@@ -58,9 +58,7 @@
     // Hvilket endepunkt av planen brukeren sist satte.
     timeAnchor:      { oneOf: ['start', 'ready'], default: 'start' },
     // Nedtelling + varsel når hevingen er ferdig.
-    alarm:           { bool: true, default: false },
-    // "Juster underveis": faktisk temp så langt. null = ingen justering.
-    actualTempC:     { min: 15, max: 32, default: null, inputId: 'adjust-temp' }
+    alarm:           { bool: true, default: false }
   };
 
   const allowedValues = f => (typeof f.oneOf === 'function' ? f.oneOf() : f.oneOf);
@@ -124,20 +122,11 @@
       ? parsed.anchorDateMs : null;
   }
 
-  // Er den lagrede nedtellingen fortsatt aktuell? "Juster underveis" kan
-  // strekke hevingen forbi planlagt totaltid, så vinduet regnes fra det
-  // justerte målet når det finnes; da nullstiller ikke en omstart midt i
-  // forlengelsen en fortsatt pågående bake.
+  // Er den lagrede nedtellingen fortsatt aktuell, altså før planlagt ferdigtid?
   function resumable(state, nowMs) {
     if (!state.alarm || state.anchorDateMs == null) return false;
     if (state.anchorDateMs >= nowMs + RESUME_LOOKAHEAD_MS) return false;
-    const total = Logic.modeTotalMinutes(state);
-    let plannedEndMs = state.anchorDateMs + total * 60000;
-    const adjusted = Logic.adjustedRiseDoneMs(state, nowMs);
-    if (adjusted != null) {
-      plannedEndMs = Math.max(plannedEndMs, adjusted + (total - Logic.riseDoneMinutes(state)) * 60000);
-    }
-    return nowMs < plannedEndMs;
+    return nowMs < state.anchorDateMs + Logic.modeTotalMinutes(state) * 60000;
   }
 
   function load(raw, nowMs) {
@@ -156,7 +145,6 @@
       // Ikke arv starttid fra en bake for to dager siden: neste hele time.
       state.alarm = false;
       state.anchorDateMs = null;
-      state.actualTempC = null;
       const d = new Date(nowMs);
       d.setHours(d.getHours() + 1, 0, 0, 0);
       state.anchorTime = I18n.formatTimeHM(d);

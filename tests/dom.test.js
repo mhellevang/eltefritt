@@ -299,7 +299,6 @@ test('gjenopptak: pågående nedtelling overlever omstart', async () => {
     assert.match(detail.textContent, /til hevingen er ferdig/i);
     // ~10 t igjen av bulken (14 − 4), ikke re-ankret frem i tid.
     assert.match(detail.textContent, /\b(9|10)\s+t/);
-    assert.equal(document.getElementById('adjust-field').hidden, false, 'juster-feltet skal være aktivt');
   } finally {
     close();
   }
@@ -313,23 +312,6 @@ test('gjenopptak: utgått bake nullstilles i stedet for å gjenopptas', async ()
   });
   try {
     assert.equal(baking(document), false, 'bakingen skal være avsluttet');
-    assert.equal(document.getElementById('adjust-field').hidden, true);
-  } finally {
-    close();
-  }
-});
-
-test('gjenopptak: justert (forlenget) heving overlever omstart etter planlagt slutt', async () => {
-  // Planlagt 14 t ved 21°, men faktisk temp 17° ("Juster underveis") strekker
-  // hevingen til ~18,5 t. Omstart etter 18 t er forbi planlagt totaltid, men
-  // baken pågår fortsatt og skal ikke nullstilles.
-  const startedAt = Date.now() - 18 * 3600 * 1000;
-  const { document, close } = await loadPage({
-    seedState: savedBakeState({ alarm: true, anchorDateMs: startedAt, actualTempC: 17 })
-  });
-  try {
-    assert.equal(baking(document), true, 'bakingen skal fortsatt være i gang');
-    assert.equal(document.getElementById('adjust-field').hidden, false, 'juster-feltet skal være aktivt');
   } finally {
     close();
   }
@@ -348,33 +330,10 @@ test('avslutt midt i pågående bake krever bekreftelse', async () => {
     window.confirm = () => false;
     fire(window, off, 'click');
     assert.equal(baking(document), true, 'avbrutt bekreftelse beholder bakingen');
-    assert.equal(document.getElementById('adjust-field').hidden, false, 'baken pågår fortsatt');
 
     window.confirm = () => true;
     fire(window, off, 'click');
     assert.equal(baking(document), false, 'bekreftet Avslutt avslutter bakingen');
-  } finally {
-    close();
-  }
-});
-
-test('juster underveis: synlig med alarm på i klassisk, skjult ellers', async () => {
-  const { window, document, close } = await loadPage();
-  try {
-    const field = document.getElementById('adjust-field');
-    assert.equal(field.hidden, true, 'skjult uten alarm');
-
-    fire(window, document.querySelector('button[data-alarm="on"]'), 'click');
-    assert.equal(field.hidden, false, 'synlig med alarm på i klassisk modus');
-    assert.match(document.getElementById('adjust-detail').textContent, /varmere eller kaldere/i);
-
-    fire(window, document.querySelector('button[data-alarm="off"]'), 'click');
-    assert.equal(field.hidden, true, 'skjult når bakingen avsluttes');
-
-    // Kald modus har ingen justering (gjelder kun klassisk bulk).
-    fire(window, document.querySelector('button[data-mode="cold"]'), 'click');
-    fire(window, document.querySelector('button[data-alarm="on"]'), 'click');
-    assert.equal(field.hidden, true, 'skjult i kald modus');
   } finally {
     close();
   }

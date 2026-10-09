@@ -7,7 +7,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const P = require('../src/plantilstand.js');
-const Logic = require('../src/logic.js');
 
 const HOUR = 3600 * 1000;
 // Fast "nå": 2026-08-24 14:00 lokal tid.
@@ -78,15 +77,6 @@ test('load: NaN og strenger i tallfelt forkastes', () => {
   assert.equal(state.coldTempC, P.FIELDS.coldTempC.default);
 });
 
-test('load: actualTempC utenfor området blir null, ikke standardverdi', () => {
-  assert.equal(load(JSON.stringify({ actualTempC: 99 })).state.actualTempC, null);
-  // En gyldig verdi beholdes bare når baken faktisk gjenopptas; ellers
-  // nullstilles justeringen sammen med resten av bakplanen.
-  const running = { alarm: true, mode: 'classic', riseHours: 14, temperatureC: 21, anchorDateMs: NOW - 2 * HOUR };
-  assert.equal(load(JSON.stringify({ ...running, actualTempC: 24 })).state.actualTempC, 24);
-  assert.equal(load(JSON.stringify({ actualTempC: 24 })).state.actualTempC, null);
-});
-
 test('load: migrerer gammel state der surdeig var en modus', () => {
   const { state } = load(JSON.stringify({ mode: 'sourdough' }));
   assert.equal(state.mode, 'cold');
@@ -149,18 +139,7 @@ test('gjenopptak: utgått bake nullstilles', () => {
   assert.equal(resumed, false);
   assert.equal(state.alarm, false);
   assert.equal(state.anchorDateMs, null);
-  assert.equal(state.actualTempC, null);
   assert.equal(state.anchorTime, '15:00');
-});
-
-test('gjenopptak: justert (forlenget) heving overlever planlagt ferdigtid', () => {
-  const anchor = NOW - 20 * HOUR;
-  // Uten justering er den samme baken utgått ...
-  assert.equal(load(bake({ anchorDateMs: anchor })).resumed, false);
-  // ... men 20 t ved 15 °C har brukt mindre av budsjettet enn planlagt.
-  const { state, resumed } = load(bake({ anchorDateMs: anchor, actualTempC: 15 }));
-  assert.equal(resumed, true);
-  assert.equal(state.actualTempC, 15);
 });
 
 test('gjenopptak: alarm av gir ingen gjenopptak', () => {
@@ -193,24 +172,6 @@ test('serialize → load: state overlever en runde gjennom lageret', () => {
   assert.equal(after.sourInoculation, 15);
   assert.equal(after.sourLead, 'time');
   assert.equal(after.coldHours, 20);
-});
-
-// ---- Delt med logic.js ----
-
-test('adjustedRiseDoneMs: null uten aktiv justering', () => {
-  const base = { mode: 'classic', alarm: true, anchorDateMs: NOW - HOUR, riseHours: 14, temperatureC: 21 };
-  assert.equal(Logic.adjustedRiseDoneMs({ ...base, actualTempC: null }, NOW), null);
-  assert.equal(Logic.adjustedRiseDoneMs({ ...base, mode: 'cold', actualTempC: 20 }, NOW), null);
-  assert.equal(Logic.adjustedRiseDoneMs({ ...base, alarm: false, actualTempC: 20 }, NOW), null);
-  assert.equal(Logic.adjustedRiseDoneMs({ ...base, anchorDateMs: NOW + HOUR, actualTempC: 20 }, NOW), null);
-});
-
-test('adjustedRiseDoneMs: kaldere enn planlagt skyver målet senere', () => {
-  const base = { mode: 'classic', alarm: true, anchorDateMs: NOW - 4 * HOUR, riseHours: 14, temperatureC: 21, waterTempC: 21 };
-  const cold = Logic.adjustedRiseDoneMs({ ...base, actualTempC: 17 }, NOW);
-  const warm = Logic.adjustedRiseDoneMs({ ...base, actualTempC: 25 }, NOW);
-  assert.ok(cold > warm);
-  assert.equal(cold % 60000, 0, 'avrundet til hele minutter');
 });
 
 test('load: gammel state uten bakverk gir brød', () => {

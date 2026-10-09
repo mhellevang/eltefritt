@@ -302,34 +302,6 @@
     return effectivePhaseHours(coldHours, coldTempC, startTempC, COLD_COOLING_TAU_HOURS);
   }
 
-  // ---- Juster underveis ----
-  // Planen "riseHours ved temperatureC" er egentlig et budsjett av 21°-
-  // ekvivalente timer (samme budsjett gjærmengden ble regnet fra). Har deigen
-  // i stedet stått elapsedHours ved actualTempC, er forbruket et annet.
-  // Returnerer gjenstående klokketimer ved actualTempC; negativ verdi betyr
-  // at deigen er over budsjett. Gjelder klassisk modus (riseHours).
-  function adjustedBulkRemainingHours(state, elapsedHours, actualTempC) {
-    const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
-    const hydration = state.hydration != null ? state.hydration : 75;
-    const budget = effectiveBulkHours(state.riseHours, state.temperatureC, waterTempC, hydration);
-    const consumed = effectiveBulkHours(Math.max(0, elapsedHours), actualTempC, waterTempC, hydration);
-    return (budget - consumed) / fermentationFactor(actualTempC);
-  }
-
-  // Justert slutt på bulkhevingen når "faktisk temp så langt" er satt (kun
-  // klassisk modus, mens hevingen pågår). null = ingen justering aktiv. Målet
-  // regnes fra nå + gjenstående budsjett; ved konstant temp er det stabilt
-  // mellom oppdateringer (avrundet til hele minutter mot smådrift). Kan ligge
-  // i fortid når deigen er over budsjett.
-  function adjustedRiseDoneMs(state, nowMs) {
-    if (state.mode !== 'classic' || state.actualTempC == null) return null;
-    if (!state.alarm || state.anchorDateMs == null) return null;
-    const elapsedH = (nowMs - state.anchorDateMs) / 3600000;
-    if (elapsedH <= 0) return null;
-    const remainingH = adjustedBulkRemainingHours(state, elapsedH, state.actualTempC);
-    return Math.round((nowMs + remainingH * 3600000) / 60000) * 60000;
-  }
-
   // 21°C-ekvivalente timer for gjærberegning (Q10 ≈ 2).
   function modeEffectiveHours(state) {
     const waterTempC = state.waterTempC != null ? state.waterTempC : state.temperatureC;
@@ -580,7 +552,6 @@
     addMinutes, addHours,
     weightedHydration, calculateYeast,
     initialDoughTempC, effectivePhaseHours, effectiveBulkHours, effectiveColdHours,
-    adjustedBulkRemainingHours, adjustedRiseDoneMs,
     recommendedSourBulkHours, recommendedSourInoculation,
     sourCoupling, SOUR_CLAMP_SLACK,
     modeEffectiveHours, modeTotalMinutes, riseDoneMinutes,

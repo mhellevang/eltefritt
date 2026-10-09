@@ -17,7 +17,7 @@
 //   hidden  elementId → bool
 //   temps   elementId → grader celsius (render-laget velger enhet)
 //   values  input-id  → tallverdi kontrollen skal tvinges til
-//   hydrationBand, instructions, flour, plan, adjust, recipe
+//   hydrationBand, instructions, flour, plan, recipe
 //
 // Slot-former (én per måte å vise en verdi på):
 //   { key, params }   i18n-oppslag; params kan bære markører som { grams: n }
@@ -56,19 +56,6 @@
     return diff > 0
       ? { key: 'flourSum.remaining', params: { total: totalPct, diff } }
       : { key: 'flourSum.over', params: { total: totalPct, diff: -diff } };
-  }
-
-  function adjustView(state, nowMs) {
-    // "Juster underveis" er synlig mens en klassisk bulk pågår med alarmen på.
-    const active = state.alarm && state.mode === 'classic' && state.anchorDateMs != null;
-    if (!active) return { active: false };
-    const shownTempC = state.actualTempC != null ? state.actualTempC : state.temperatureC;
-    const adjusted = Logic.adjustedRiseDoneMs(state, nowMs);
-    let note;
-    if (adjusted == null) note = { key: 'adjust.help' };
-    else if (adjusted <= nowMs) note = { key: 'adjust.overdue' };
-    else note = { key: 'adjust.readyAt', params: { time: { at: adjusted } } };
-    return { active: true, shownTempC, note };
   }
 
   function viewOf(state, nowMs) {
@@ -206,8 +193,7 @@
       hydrationBand: { min: band.min, max: band.max },
       instructions: Logic.modeInstructions(state),
       flour,
-      plan,
-      adjust: adjustView(state, nowMs)
+      plan
     };
   }
 
