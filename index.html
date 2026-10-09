@@ -1052,7 +1052,19 @@
     header, footer {
       grid-column: 1 / -1;
     }
-    header { margin-bottom: 2.5rem; }
+    /* Kompakt header så kortene starter over folden på laptop-høyde. */
+    header {
+      margin-bottom: 2rem;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 1rem;
+      align-items: center;
+      text-align: left;
+    }
+    .logo { grid-row: span 2; margin: 0; }
+    .logo img { width: 72px; height: 72px; }
+    h1 { align-self: end; margin: 0; }
+    .subtitle { align-self: start; }
     .card { margin-bottom: 0; }
     /* Kort stables i hver kolonne med luft mellom; resultatkolonnen ligger sticky. */
     .col-inputs > .card + .card,
@@ -1060,7 +1072,33 @@
     .col-results {
       position: sticky;
       top: 1.5rem;
+      /* Høyere enn vinduet ville ellers kappe bunnen av Oppskrift. */
+      max-height: calc(100dvh - 3rem);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
     }
+  }
+
+  /* Bred desktop: Brødet og Heving side om side, så de tre kolonnene blir
+     omtrent like høye. */
+  @media (min-width: 1280px) {
+    .app {
+      max-width: 1240px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .col-inputs { display: contents; }
+    .col-inputs > .card + .card { margin-top: 0; }
+    /* Kolonnene er omtrent like høye, så resultatet trenger ikke stå fast. */
+    .col-results {
+      position: static;
+      max-height: none;
+      overflow: visible;
+    }
+    /* Hold mengden på samme linje i det smale kortet; undertekst får bryte i stedet. */
+    .ingredient-water { flex-wrap: nowrap; }
+    .ingredient-water .name { min-width: 0; }
+    .ingredient-water .sub { margin-left: 0; display: block; }
   }
 </style>
 </head>
