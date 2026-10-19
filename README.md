@@ -10,8 +10,9 @@ Eltefritt er no-knead-metoden gjort kjent av Jim Lahey: lang heving erstatter el
 
 - Mengder for 1–4 brød, med tre presetstørrelser (Lite 400 g, Medium 500 g, Stort 700 g) eller egen melvekt. Rundstykker har egne størrelser: 500, 750 og 1000 g mel
 - Rundstykker som alternativ til brød: lavere hydrering, kortere etterheving, stekt på brett i ~20 min
-- Utstyrsanbefaling (jerngryte og brødform) tilpasset melvekt
+- Utstyrsanbefaling (jerngryte og brødform) tilpasset deigvekten
 - Flere meltyper samtidig: to typer auto-balanseres (den andre følger), tre+ justeres fritt med sum-indikator. Vektet hydreringsanbefaling (område, ikke ett tall)
+- Tilsetninger (havregryn, frø, knekt rug, nøtter, tørket frukt) i prosent av melet, med ekstra vann så de ikke stjeler vann fra deigen. Varsel over 35 %, tak på 50 %
 - To hevemetoder: klassisk lang bulk, eller kort bulk + kald etterheving i banneton
 - Tre heveformer: tørrgjær, ferskgjær eller surdeig (aktiv 100%-hydrert starter)
 - Bakplan med toveis editerbare Start- og Klar-tidspunkter
@@ -54,6 +55,22 @@ Hydrering er alltid et område, ikke ett tall. Verdiene i `src/logic.js` er fora
 - Spelt har svakere gluten og tar ~5 % mindre vann → 65–72 % ([The Fresh Loaf](https://www.thefreshloaf.com/node/21548/hydration-speltwholewheat-sourdough)).
 - Durum suger ~2 % mer enn brødmel men gir fast deig → 65–72 % ([sourdoughhydration.com](https://sourdoughhydration.com/flour/durum-semolina)).
 - Havre og bygg har lite gluten; tallene er avledet fra helkorns-prinsippet, ikke en egen sitert kilde.
+
+### Tilsetninger
+
+Tilsetninger regnes i prosent av melet og ligger utenfor hydreringen. Hver har en vannfaktor: gram ekstra vann per gram tørr tilsetning, lagt på deigvannet. Faktorene gjelder kald bløtlegging i deigen, ikke soaker med kokende vann, som omtrent dobler opptaket for gryn og knekt rug.
+
+| Tilsetning | Faktor | Grunnlag |
+|---|---|---|
+| Havregryn | 1,0 | [homebaking.at](https://www.homebaking.at/en/quellen-und-quellen-lassen/); målt 0,9 på [The Fresh Loaf](https://www.thefreshloaf.com/node/61245/soaker-ingredient-hydration-percents-some-data) |
+| Linfrø | 1,5 | homebaking.at; målt 1,3–1,4. Hamelman og [King Arthur](https://www.kingarthurbaking.com/pro/formulas/sourdough-seed-bread) bruker 3,0, men i en soaker laget på forhånd |
+| Solsikke, gresskar, sesam | 0,5 | homebaking.at; målt 0,4–0,8 |
+| Knekt rug | 1,0 | Hamelmans Vollkornbrot-soaker; homebaking.at; målt 0,65 |
+| Chia | 2,5 | Bare målt i samme forumtest |
+| Valnøtter, hasselnøtter | 0,25 | Utledet. Kildene spriker fra 0 ([The Perfect Loaf](https://www.theperfectloaf.com/walnut-cranberry-sourdough/), ristede valnøtter uten justering) til 0,5 (homebaking.at) |
+| Rosiner, tørket frukt | 0 | Ingen bakerkilde oppgir en faktor |
+
+Faktorene treffer vannet i Hamelmans Five-Grain og to frøbrød fra The Perfect Loaf innenfor noen få prosent. Vanlig mengde er 15–25 %. Over 30–35 % blir brødet tyngre, og rundt 50 % er praktisk tak ([King Arthur No-Knead Harvest Bread](https://shop.kingarthurbaking.com/content/recipes/211898_NoKneadHarvestBread.pdf) ligger på ~54 %).
 
 ## Kjør lokalt
 

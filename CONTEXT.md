@@ -81,6 +81,14 @@ Intervallet hydrering en meltype trives med. Blandinger vektes etter melandel,
 og appen foreslår midtpunktet.
 _Unngå_: anbefalt hydrering (det er ett tall, dette er alltid et intervall)
 
+**Tilsetning**:
+Frø, gryn, nøtter eller tørket frukt rørt inn i deigen, for eksempel havregryn,
+linfrø eller valnøtter. Oppgis i prosent av melet, men er ikke mel: teller
+ikke i melandelene og ikke i hydreringen. Hver har en vannfaktor, og vannet
+den trekker legges på deigvannet. Tilsetninger gjør deigen tyngre, så gryte
+og antall rundstykker følger deigvekten.
+_Unngå_: topping (det er utenpå brødet), havre alene (Havremel er en meltype)
+
 **Inokulering**:
 Surdeig i prosent av totalt mel. Regnes på en 100 % hydrert starter, altså
 halvparten mel og halvparten vann. Kalles Surdeig-mengde i grensesnittet.
@@ -166,7 +174,7 @@ eller skru av alarmen kvitterer; da slutter den å gjenta seg.
 ## Utstyret
 
 **Jerngryte**:
-Gryta med lokk brødet stekes i, forvarmet. Størrelsen følger melvekten per
+Gryta med lokk brødet stekes i, forvarmet. Størrelsen følger deigvekten per
 brød. Brødform er alternativet, med lavere temperatur og uten lokk.
 
 **Banneton**:

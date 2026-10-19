@@ -14,7 +14,7 @@
 
 (() => {
   const {
-    FLOUR_TYPES,
+    FLOUR_TYPES, ADDIN_TYPES, ADDIN_MAX_PCT,
     addMinutes, modeTotalMinutes, riseDoneMinutes, planWindow,
     sourCoupling
   } = window.EltefrittLogic;
@@ -256,113 +256,162 @@
     }
   }
 
+  // Én rad med typevelger, prosent, fjern-knapp og evt. stepper. Brukes av
+  // både melandelene og tilsetningene.
+  function shareRow(o) {
+    const name = t(o.prefix + o.type);
+    const row = document.createElement('div');
+    row.className = 'flour-row';
+
+    const top = document.createElement('div');
+    top.className = 'flour-row-top';
+
+    const select = document.createElement('select');
+    select.className = 'flour-type-select';
+    Object.keys(o.types).forEach((key) => {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = t(o.prefix + key);
+      if (key === o.type) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', e => o.onType(e.target.value));
+
+    const pctLabel = document.createElement('span');
+    pctLabel.className = 'flour-pct';
+    pctLabel.textContent = `${o.pct}%`;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-btn';
+    removeBtn.setAttribute('aria-label', o.removeLabel);
+    removeBtn.innerHTML = '×';
+    if (!o.canRemove) removeBtn.style.visibility = 'hidden';
+    removeBtn.addEventListener('click', o.onRemove);
+
+    top.appendChild(select);
+    top.appendChild(pctLabel);
+    top.appendChild(removeBtn);
+    row.appendChild(top);
+    if (!o.stepper) return row;
+
+    const stepper = document.createElement('div');
+    stepper.className = 'stepper';
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'flour-slider visually-hidden';
+    slider.min = '0';
+    slider.max = String(o.stepper.max);
+    slider.step = String(o.stepper.step);
+    slider.value = o.pct;
+    slider.setAttribute('aria-label', t('aria.flourShare', { name }));
+
+    const minusBtn = document.createElement('button');
+    minusBtn.type = 'button';
+    minusBtn.className = 'step-btn';
+    minusBtn.setAttribute('data-step-dir', '-1');
+    minusBtn.setAttribute('aria-label', t('aria.decrease', { field: t('aria.flourShareField', { name }) }));
+    minusBtn.textContent = '−';
+
+    const track = document.createElement('div');
+    track.className = 'step-track';
+    track.setAttribute('aria-hidden', 'true');
+    const fill = document.createElement('div');
+    fill.className = 'step-fill';
+    track.appendChild(fill);
+
+    const plusBtn = document.createElement('button');
+    plusBtn.type = 'button';
+    plusBtn.className = 'step-btn';
+    plusBtn.setAttribute('data-step-dir', '1');
+    plusBtn.setAttribute('aria-label', t('aria.increase', { field: t('aria.flourShareField', { name }) }));
+    plusBtn.textContent = '+';
+
+    stepper.appendChild(slider);
+    stepper.appendChild(minusBtn);
+    stepper.appendChild(track);
+    stepper.appendChild(plusBtn);
+
+    slider.addEventListener('input', e => o.onInput(parseInt(e.target.value, 10), slider));
+
+    row.appendChild(stepper);
+    initStepper(slider);
+    return row;
+  }
+
   // Med 3+ frie glidere må brukeren selv treffe 100 %. Vis hvor langt unna.
   function renderFlourList() {
     const list = $('#flour-list');
     list.innerHTML = '';
     state.flours.forEach((f, idx) => {
-      const row = document.createElement('div');
-      row.className = 'flour-row';
-
-      const top = document.createElement('div');
-      top.className = 'flour-row-top';
-
-      const select = document.createElement('select');
-      select.className = 'flour-type-select';
-      Object.keys(FLOUR_TYPES).forEach((key) => {
-        const opt = document.createElement('option');
-        opt.value = key;
-        opt.textContent = t('flour.' + key);
-        if (key === f.type) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener('change', e => {
-        state.flours[idx].type = e.target.value;
-        state.hydrationManual = false;
-        update();
-      });
-
-      const pctLabel = document.createElement('span');
-      pctLabel.className = 'flour-pct';
-      pctLabel.textContent = `${f.pct}%`;
-
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'remove-btn';
-      removeBtn.setAttribute('aria-label', t('aria.removeFlour'));
-      removeBtn.innerHTML = '×';
-      if (state.flours.length === 1) {
-        removeBtn.style.visibility = 'hidden';
-      }
-      removeBtn.addEventListener('click', () => {
-        state.flours.splice(idx, 1);
-        // Re-normaliser etter fjerning
-        const total = state.flours.reduce((s, ff) => s + ff.pct, 0);
-        if (total > 0 && total !== 100) {
-          state.flours.forEach(ff => ff.pct = Math.round((ff.pct / total) * 100));
-          const newTotal = state.flours.reduce((s, ff) => s + ff.pct, 0);
-          if (newTotal !== 100) state.flours[0].pct += (100 - newTotal);
+      list.appendChild(shareRow({
+        types: FLOUR_TYPES,
+        prefix: 'flour.',
+        type: f.type,
+        pct: f.pct,
+        removeLabel: t('aria.removeFlour'),
+        canRemove: state.flours.length > 1,
+        // Én meltype er alltid 100 %; da er det ingenting å justere.
+        stepper: state.flours.length > 1 ? { max: 100, step: 5 } : null,
+        onType: type => {
+          state.flours[idx].type = type;
+          state.hydrationManual = false;
+          update();
+        },
+        onRemove: () => {
+          state.flours.splice(idx, 1);
+          // Re-normaliser etter fjerning
+          const total = state.flours.reduce((s, ff) => s + ff.pct, 0);
+          if (total > 0 && total !== 100) {
+            state.flours.forEach(ff => ff.pct = Math.round((ff.pct / total) * 100));
+            const newTotal = state.flours.reduce((s, ff) => s + ff.pct, 0);
+            if (newTotal !== 100) state.flours[0].pct += (100 - newTotal);
+          }
+          state.hydrationManual = false;
+          update();
+        },
+        onInput: v => {
+          setFlourPct(idx, v);
+          state.hydrationManual = false;
+          update({ skipFlourList: true, fromSlider: idx });
         }
-        state.hydrationManual = false;
-        update();
-      });
+      }));
+    });
+  }
 
-      top.appendChild(select);
-      top.appendChild(pctLabel);
-      top.appendChild(removeBtn);
-
-      const stepper = document.createElement('div');
-      stepper.className = 'stepper';
-
-      const slider = document.createElement('input');
-      slider.type = 'range';
-      slider.className = 'flour-slider visually-hidden';
-      slider.min = '0';
-      slider.max = '100';
-      slider.step = '5';
-      slider.value = f.pct;
-      slider.setAttribute('aria-label', t('aria.flourShare', { name: t('flour.' + f.type) }));
-
-      const minusBtn = document.createElement('button');
-      minusBtn.type = 'button';
-      minusBtn.className = 'step-btn';
-      minusBtn.setAttribute('data-step-dir', '-1');
-      minusBtn.setAttribute('aria-label', t('aria.decrease', { field: t('aria.flourShareField', { name: t('flour.' + f.type) }) }));
-      minusBtn.textContent = '−';
-
-      const track = document.createElement('div');
-      track.className = 'step-track';
-      track.setAttribute('aria-hidden', 'true');
-      const fill = document.createElement('div');
-      fill.className = 'step-fill';
-      track.appendChild(fill);
-
-      const plusBtn = document.createElement('button');
-      plusBtn.type = 'button';
-      plusBtn.className = 'step-btn';
-      plusBtn.setAttribute('data-step-dir', '1');
-      plusBtn.setAttribute('aria-label', t('aria.increase', { field: t('aria.flourShareField', { name: t('flour.' + f.type) }) }));
-      plusBtn.textContent = '+';
-
-      stepper.appendChild(slider);
-      stepper.appendChild(minusBtn);
-      stepper.appendChild(track);
-      stepper.appendChild(plusBtn);
-
-      slider.addEventListener('input', e => {
-        const v = parseInt(e.target.value, 10);
-        setFlourPct(idx, v);
-        state.hydrationManual = false;
-        update({ skipFlourList: true, fromSlider: idx });
-      });
-
-      row.appendChild(top);
-      // Én meltype er alltid 100 %; da er det ingenting å justere.
-      if (state.flours.length > 1) {
-        row.appendChild(stepper);
-        initStepper(slider);
-      }
-      list.appendChild(row);
+  function renderAddinList() {
+    const list = $('#addin-list');
+    list.innerHTML = '';
+    state.addins.forEach((a, idx) => {
+      list.appendChild(shareRow({
+        types: ADDIN_TYPES,
+        prefix: 'addin.',
+        type: a.type,
+        pct: a.pct,
+        removeLabel: t('aria.removeAddin'),
+        canRemove: true,
+        stepper: { max: ADDIN_MAX_PCT, step: 1 },
+        onType: type => {
+          state.addins[idx].type = type;
+          update();
+        },
+        onRemove: () => {
+          state.addins.splice(idx, 1);
+          update();
+        },
+        onInput: (v, slider) => {
+          // Taket gjelder summen, så de andre tilsetningene begrenser denne.
+          const others = state.addins.reduce((s, x, i) => s + (i === idx ? 0 : x.pct), 0);
+          const pct = Math.min(v, ADDIN_MAX_PCT - others);
+          if (pct !== v) {
+            slider.value = pct;
+            refreshStepperVisual(slider);
+          }
+          state.addins[idx].pct = pct;
+          update({ skipFlourList: true, fromAddinSlider: idx });
+        }
+      }));
     });
   }
 
@@ -401,6 +450,36 @@
       row.innerHTML = `
         <span class="name">${t('flour.' + f.type)} <span class="sub">${f.pct}%</span></span>
         <span class="amount">${formatGrams(f.grams)} g</span>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
+  function applyAddins(addins, opts) {
+    if (!opts.skipFlourList) {
+      renderAddinList();
+    } else {
+      const rows = $('#addin-list').children;
+      addins.rows.forEach((a, i) => {
+        const row = rows[i];
+        if (!row) return;
+        row.querySelector('.flour-pct').textContent = `${a.pct}%`;
+        const slider = row.querySelector('.flour-slider');
+        if (i !== opts.fromAddinSlider) {
+          slider.value = a.pct;
+          refreshStepperVisual(slider);
+        }
+      });
+    }
+
+    const wrap = $('#addin-ingredients');
+    wrap.innerHTML = '';
+    addins.breakdown.forEach(a => {
+      const row = document.createElement('div');
+      row.className = 'ingredient';
+      row.innerHTML = `
+        <span class="name">${t('addin.' + a.type)} <span class="sub">${a.pct}%</span></span>
+        <span class="amount">${formatGrams(a.grams)} g</span>
       `;
       wrap.appendChild(row);
     });
@@ -874,6 +953,7 @@
     renderMarks();
     renderInstructions(view.instructions);
     applyFlour(view.flour, opts);
+    applyAddins(view.addins, opts);
     renderPlan(view.plan);
     renderAlarm();
   }
@@ -1138,6 +1218,14 @@
     const total = state.flours.reduce((s, f) => s + f.pct, 0);
     if (total !== 100) state.flours[0].pct += (100 - total);
     state.hydrationManual = false;
+    update();
+  });
+
+  $('#add-addin-btn').addEventListener('click', () => {
+    const used = new Set(state.addins.map(a => a.type));
+    const type = Object.keys(ADDIN_TYPES).find(k => !used.has(k)) || 'havregryn';
+    const total = state.addins.reduce((s, a) => s + a.pct, 0);
+    state.addins.push({ type, pct: Math.min(10, ADDIN_MAX_PCT - total) });
     update();
   });
 

@@ -137,3 +137,13 @@ test('prosa: engelsk stekesteg konverterer ovnstemp til °F via params', () => {
   assert.match(body, /428 °F/);
   assert.doesNotMatch(body, /°C/);
 });
+
+test('tilsetninger: hver type har navn på begge språk', () => {
+  const L = require('../src/logic.js');
+  ['nb', 'en'].forEach(lang => {
+    const { t } = I.createTranslator(lang);
+    Object.keys(L.ADDIN_TYPES).forEach(k => {
+      assert.notEqual(t('addin.' + k), 'addin.' + k, `${lang}: addin.${k}`);
+    });
+  });
+});

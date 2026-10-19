@@ -51,6 +51,7 @@
       'field.sizeCustomLabel': 'eller egen vekt',
       'field.sizeUnit': 'g mel',
       'field.flourType': 'Meltype',
+      'field.addins': 'Tilsetninger',
       'field.hydration': 'Hydrering',
       'field.leaven': 'Heveform',
       'field.riseMethod': 'Hevemetode',
@@ -80,6 +81,7 @@
 
       // ── Knapper ──
       'flour.addBtn': '+ Legg til meltype',
+      'addin.addBtn': '+ Legg til frø, gryn eller nøtter',
 
       // ── Segmenter ──
       'size.small': 'Lite',
@@ -134,6 +136,7 @@
       'ingredient.starter': 'Surdeig',
       'ingredient.starter.sub': 'aktiv, 100% hydrering',
       'water.sub.roomTemp': 'romtemperert',
+      'water.sub.addins': 'inkl. {grams} g til tilsetninger',
       'yeast.dry': 'Tørrgjær',
       'yeast.fresh': 'Ferskgjær',
       'yeast.detail.dry': '{pct} % · {grams} g fersk',
@@ -153,6 +156,19 @@
       'flour.durum': 'Durumhvete',
       'flour.havre': 'Havremel',
       'flour.bygg': 'Byggmel',
+
+      // ── Tilsetninger ──
+      'addin.total': '{pct}% av melet',
+      'addin.havregryn': 'Havregryn',
+      'addin.linfro': 'Linfrø',
+      'addin.solsikke': 'Solsikkekjerner',
+      'addin.gresskar': 'Gresskarkjerner',
+      'addin.sesam': 'Sesamfrø',
+      'addin.knektrug': 'Knekt rug',
+      'addin.chia': 'Chiafrø',
+      'addin.valnott': 'Valnøtter',
+      'addin.hasselnott': 'Hasselnøtter',
+      'addin.rosiner': 'Rosiner, tørket frukt',
 
       // ── Hydreringsforslag ──
       'hydration.suggestion.single': '~{n}% vann',
@@ -202,6 +218,8 @@
       // ── Instruksjonssteg ──
       'step.starterCheck.title': 'Sjekk starter',
       'step.starterCheck.body': 'Bruk en aktiv, 100%-hydrert starter (peak ca. 4–8 t etter mating ved romtemp). Float-test: en liten klatt skal flyte i et glass vann.',
+      'step.addins.title': 'Tilsetninger',
+      'step.addins.body': 'Bland frø, gryn og nøtter med melet før du starter. Vannet de trekker er regnet med i vannmengden.',
       'step.mix.title': 'Bland',
       'step.mix.dryTitle': 'Bland tørt',
       'step.mix.body.dry': 'Visp sammen mel, salt og tørrgjær i en stor bolle. Hell i alt vannet og rør med slikkepott til alt er fuktet. Deigen skal være klissete og uregelmessig. Ikke elt.',
@@ -238,6 +256,7 @@
       // ── Mel-tips ──
       'tip.rye': 'Rene rugbrød hever dårlig med vanlig gjær. Vurder surdeig, eller bland inn mer hvete.',
       'tip.lowGluten': 'Havre og bygg har lite gluten. Hold andelen under 30 % for en deig som hever godt.',
+      'tip.addinsHigh': 'Over 35 % tilsetninger gir et tyngre brød med tettere krumme.',
 
       // ── Surdeig-klampe-notater ──
       'sour.recUnder1': 'under 1',
@@ -260,6 +279,7 @@
       'aria.flourShare': 'Andel {name}',
       'aria.flourShareField': 'andel {name}',
       'aria.removeFlour': 'Fjern meltype',
+      'aria.removeAddin': 'Fjern tilsetning',
 
       // ── Footer ──
       'footer.line1': 'Eltefritt-kalkulator · etter Jim Laheys oppskrift',
@@ -290,6 +310,7 @@
       'field.sizeCustomLabel': 'or custom weight',
       'field.sizeUnit': 'g flour',
       'field.flourType': 'Flour type',
+      'field.addins': 'Add-ins',
       'field.hydration': 'Hydration',
       'field.leaven': 'Leaven',
       'field.riseMethod': 'Rise method',
@@ -319,6 +340,7 @@
 
       // ── Buttons ──
       'flour.addBtn': '+ Add flour type',
+      'addin.addBtn': '+ Add seeds, grains or nuts',
 
       // ── Segments ──
       'size.small': 'Small',
@@ -373,6 +395,7 @@
       'ingredient.starter': 'Sourdough',
       'ingredient.starter.sub': 'active, 100% hydration',
       'water.sub.roomTemp': 'room temp',
+      'water.sub.addins': 'incl. {grams} g for add-ins',
       'yeast.dry': 'Dry yeast',
       'yeast.fresh': 'Fresh yeast',
       'yeast.detail.dry': '{pct}% · {grams} g fresh',
@@ -392,6 +415,19 @@
       'flour.durum': 'Durum wheat',
       'flour.havre': 'Oat flour',
       'flour.bygg': 'Barley flour',
+
+      // ── Add-ins ──
+      'addin.total': '{pct}% of flour',
+      'addin.havregryn': 'Rolled oats',
+      'addin.linfro': 'Flaxseed',
+      'addin.solsikke': 'Sunflower seeds',
+      'addin.gresskar': 'Pumpkin seeds',
+      'addin.sesam': 'Sesame seeds',
+      'addin.knektrug': 'Cracked rye',
+      'addin.chia': 'Chia seeds',
+      'addin.valnott': 'Walnuts',
+      'addin.hasselnott': 'Hazelnuts',
+      'addin.rosiner': 'Raisins, dried fruit',
 
       // ── Hydration suggestion ──
       'hydration.suggestion.single': '~{n}% water',
@@ -441,6 +477,8 @@
       // ── Instruction steps ──
       'step.starterCheck.title': 'Check the starter',
       'step.starterCheck.body': 'Use an active, 100%-hydration starter (peak about 4–8 h after feeding at room temp). Float test: a small blob should float in a glass of water.',
+      'step.addins.title': 'Add-ins',
+      'step.addins.body': 'Mix the seeds, grains and nuts into the flour before you start. The water they soak up is included in the water amount.',
       'step.mix.title': 'Mix',
       'step.mix.dryTitle': 'Mix dry',
       'step.mix.body.dry': 'Whisk together flour, salt and dry yeast in a large bowl. Pour in all the water and stir with a spatula until everything is moistened. The dough should be sticky and shaggy. Do not knead.',
@@ -477,6 +515,7 @@
       // ── Flour tips ──
       'tip.rye': 'Pure rye breads rise poorly with regular yeast. Consider sourdough, or mix in more wheat.',
       'tip.lowGluten': 'Oats and barley have little gluten. Keep them below 30% for a dough that rises well.',
+      'tip.addinsHigh': 'More than 35% add-ins makes a heavier loaf with a denser crumb.',
 
       // ── Sourdough clamp notes ──
       'sour.recUnder1': 'under 1',
@@ -499,6 +538,7 @@
       'aria.flourShare': '{name} share',
       'aria.flourShareField': '{name} share',
       'aria.removeFlour': 'Remove flour type',
+      'aria.removeAddin': 'Remove add-in',
 
       // ── Footer ──
       'footer.line1': 'No-knead calculator · based on the Jim Lahey method',

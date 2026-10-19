@@ -497,3 +497,35 @@ test('surdeig: klampet bulk-anbefaling viser hint med "~" og kald-tillegget', as
     close();
   }
 });
+
+test('legg til tilsetning: ny rad, ingrediensrad og mer vann', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const waterBefore = document.getElementById('water-amount').textContent;
+    fire(window, document.getElementById('add-addin-btn'), 'click');
+
+    assert.equal(document.querySelectorAll('#addin-list .flour-row').length, 1);
+    const out = document.querySelector('#addin-ingredients .ingredient');
+    assert.match(out.textContent, /Havregryn/);
+    assert.match(out.textContent, /10%/);
+    assert.notEqual(document.getElementById('water-amount').textContent, waterBefore);
+  } finally {
+    close();
+  }
+});
+
+test('tilsetning: glideren stopper ved taket for summen', async () => {
+  const { window, document, close } = await loadPage();
+  try {
+    const add = document.getElementById('add-addin-btn');
+    fire(window, add, 'click');
+    fire(window, add, 'click');
+    const sliders = document.querySelectorAll('#addin-list .flour-slider');
+    sliders[0].value = '45';
+    fire(window, sliders[0], 'input');
+    assert.equal(sliders[0].value, '40', 'den andre har 10 %, så taket på 50 gir 40');
+    assert.equal(window.getComputedStyle(add).display, 'none');
+  } finally {
+    close();
+  }
+});

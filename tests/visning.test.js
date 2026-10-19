@@ -136,8 +136,8 @@ test('ferskgjær: mengden er 3× tørrgjær, detaljlinja regner tilbake', () => 
 
 test('vannrad: sub-teksten sier fra bare når vannet følger romtemp', () => {
   assert.deepEqual(view({ temperatureC: 21, waterTempC: 21 }).v.text['water-sub'],
-    { key: 'water.sub.roomTemp' });
-  assert.deepEqual(view({ temperatureC: 21, waterTempC: 35 }).v.text['water-sub'], { text: '' });
+    [{ key: 'water.sub.roomTemp' }]);
+  assert.deepEqual(view({ temperatureC: 21, waterTempC: 35 }).v.text['water-sub'], []);
 });
 
 test('avlesninger: temperaturer sendes som celsius, ikke som ferdig tekst', () => {
@@ -248,4 +248,51 @@ test('rundstykker: auto-hydreringen følger det lavere området', () => {
   const loaf = view().state.hydration;
   const rolls = view({ product: 'rolls' }).state.hydration;
   assert.equal(rolls, loaf + L.ROLLS_HYDRATION_OFFSET);
+});
+
+// ---- Tilsetninger ----
+
+test('tilsetninger: vannlinja tar med ekstravannet og sier hvor mye', () => {
+  const { v } = view({ addins: [{ type: 'havregryn', pct: 10 }] });
+  assert.equal(v.text['water-amount'].grams, v.recipe.water + 50);
+  assert.equal(v.text['water-temp-grams'].params.grams.grams, v.recipe.water + 50);
+  assert.deepEqual(v.text['water-sub'], [
+    { key: 'water.sub.roomTemp' }, { text: ' · ' },
+    { key: 'water.sub.addins', params: { grams: { grams: 50 } } }
+  ]);
+});
+
+test('tilsetninger: tørket frukt uten vannfaktor gir ingen vann-sub', () => {
+  const { v } = view({ waterTempC: 30, addins: [{ type: 'rosiner', pct: 10 }] });
+  assert.deepEqual(v.text['water-sub'], []);
+});
+
+test('tilsetninger: tyngre deig gir flere rundstykker', () => {
+  const plain = view({ product: 'rolls', sizePerLoaf: 500 }).v.text['size-detail'].params.count;
+  const seeded = view({ product: 'rolls', sizePerLoaf: 500, addins: [{ type: 'havregryn', pct: 20 }] })
+    .v.text['size-detail'].params.count;
+  assert.ok(seeded > plain, `${seeded} > ${plain}`);
+});
+
+test('tilsetninger: gryta følger deigvekten, ikke bare melet', () => {
+  const pot = s => s.v.text['equipment-detail'][0].params.pot.i18n;
+  assert.equal(pot(view({ sizePerLoaf: 550 })), 'equipment.pot.s');
+  assert.equal(pot(view({ sizePerLoaf: 550, addins: [{ type: 'havregryn', pct: 20 }] })), 'equipment.pot.m');
+});
+
+test('tilsetninger: varsel over 35 %, legg-til-knappen borte ved taket', () => {
+  const a = view({ addins: [{ type: 'havregryn', pct: 35 }] }).v;
+  assert.equal(a.hidden['addin-tip'], true);
+  assert.equal(a.hidden['add-addin-btn'], false);
+  const b = view({ addins: [{ type: 'havregryn', pct: 40 }, { type: 'sesam', pct: 10 }] }).v;
+  assert.equal(b.hidden['addin-tip'], false);
+  assert.equal(b.hidden['add-addin-btn'], true);
+  assert.deepEqual(b.text['addin-total'], { key: 'addin.total', params: { pct: 50 } });
+  assert.deepEqual(view().v.text['addin-total'], { text: '' });
+});
+
+test('tilsetninger: oppdelingen viser bare dem med andel', () => {
+  const { v } = view({ addins: [{ type: 'sesam', pct: 0 }, { type: 'linfro', pct: 8 }] });
+  assert.deepEqual(v.addins.breakdown, [{ type: 'linfro', pct: 8, grams: 40 }]);
+  assert.equal(v.addins.rows.length, 2);
 });

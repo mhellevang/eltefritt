@@ -574,3 +574,37 @@ test('rollCount: deigvekt delt på emnevekt, aldri under 1', () => {
   assert.equal(L.rollCount(900), 10);
   assert.equal(L.rollCount(10), 1);
 });
+
+// ─── Tilsetninger ───────────────────────────────────────────────────────────
+
+test('addinsFor: gram i % av melet, ekstra vann etter vannfaktor', () => {
+  const r = L.addinsFor([{ type: 'havregryn', pct: 10 }, { type: 'linfro', pct: 5 }], 500);
+  assert.equal(r.grams, 50 + 25);
+  assert.equal(r.water, 50 * 1.0 + 25 * 1.5);
+  assert.equal(r.pct, 15);
+});
+
+test('addinsFor: ukjent tilsetning og manglende liste ignoreres', () => {
+  assert.equal(L.addinsFor([{ type: 'sjokolade', pct: 10 }], 500).grams, 0);
+  assert.equal(L.addinsFor(undefined, 500).water, 0);
+});
+
+test('computeRecipe: tilsetninger rører ikke hydreringen eller melvannet', () => {
+  const base = { mode: 'classic', leaven: 'dry', product: 'loaf', loaves: 2, sizePerLoaf: 500,
+    flours: [{ type: 'hvete', pct: 100 }], temperatureC: 21, waterTempC: 21, riseHours: 14 };
+  const plain = L.computeRecipe(base);
+  const seeded = L.computeRecipe({ ...base, addins: [{ type: 'solsikke', pct: 10 }] });
+  assert.equal(seeded.water, plain.water);
+  assert.equal(seeded.hydration, plain.hydration);
+  assert.equal(seeded.addins.grams, 100, 'regnes av totalt mel, alle brød');
+  assert.equal(seeded.addins.water, 50);
+});
+
+test('modeInstructions: eget tilsetningssteg før blanding, bare når noe er valgt', () => {
+  const state = { mode: 'classic', leaven: 'dry', product: 'loaf' };
+  assert.ok(!L.modeInstructions(state).some(s => s.titleKey === 'step.addins.title'));
+  assert.ok(!L.modeInstructions({ ...state, addins: [{ type: 'sesam', pct: 0 }] })
+    .some(s => s.titleKey === 'step.addins.title'));
+  const steps = L.modeInstructions({ ...state, addins: [{ type: 'sesam', pct: 5 }] });
+  assert.equal(steps[0].titleKey, 'step.addins.title');
+});

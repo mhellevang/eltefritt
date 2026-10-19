@@ -17,7 +17,7 @@
 //   hidden  elementId → bool
 //   temps   elementId → grader celsius (render-laget velger enhet)
 //   values  input-id  → tallverdi kontrollen skal tvinges til
-//   hydrationBand, instructions, flour, plan, recipe
+//   hydrationBand, instructions, flour, addins, plan, recipe
 //
 // Slot-former (én per måte å vise en verdi på):
 //   { key, params }   i18n-oppslag; params kan bære markører som { grams: n }
@@ -77,10 +77,12 @@
     text['size-value'] = sizeKey
       ? { key: sizeKey }
       : { key: 'size.custom', params: { g: state.sizePerLoaf } };
-    // Deig = mel × (1 + hydrering + 2 % salt); ferdig brød ≈ deig × 0.88
-    // (litt vekttap fra stekning), avrundet til nærmeste 50 g.
+    // Deig = mel × (1 + hydrering + 2 % salt) + tilsetninger med vannet sitt;
+    // ferdig brød ≈ deig × 0.88 (litt vekttap fra stekning), avrundet til
+    // nærmeste 50 g.
     const doughFactor = 1 + recipe.hydration / 100 + 0.02;
-    const dough = state.sizePerLoaf * doughFactor;
+    const loafAddins = Logic.addinsFor(state.addins, state.sizePerLoaf);
+    const dough = state.sizePerLoaf * doughFactor + loafAddins.grams + loafAddins.water;
     hidden['loaves-field'] = rolls;
     text['size-label'] = { key: rolls ? 'field.size.rolls' : 'field.size' };
     if (rolls) {
@@ -95,7 +97,8 @@
         key: 'size.detail',
         params: { flour: { grams: state.sizePerLoaf }, finished: { grams: finished } }
       };
-      const step = sizeStep(state.sizePerLoaf);
+      // Trappen er i gram mel; tilsetninger regnes om til mel med samme deigvekt.
+      const step = sizeStep(dough / doughFactor);
       text['equipment-detail'] = [
         { key: 'equipment.line', params: { pot: { i18n: 'equipment.pot.' + step }, banneton: { i18n: 'banneton.' + step } } }
       ];
@@ -134,12 +137,20 @@
 
     // ---- Ingredienser ----
     text['flour-amount'] = { grams: recipe.flourAdded };
-    text['water-amount'] = { grams: recipe.water };
-    text['water-temp-grams'] = { key: 'field.waterTemp.grams', params: { grams: { grams: recipe.water } } };
+    // Vannet til tilsetningene helles i sammen med resten, men holdes utenfor
+    // hydreringen og vises som egen del av vannlinja.
+    const waterTotal = recipe.water + recipe.addins.water;
+    text['water-amount'] = { grams: waterTotal };
+    text['water-temp-grams'] = { key: 'field.waterTemp.grams', params: { grams: { grams: waterTotal } } };
     // Temp-tallet vises alltid i inline-stepperen; sub-teksten sier bare fra
     // når vannet fortsatt følger romtemp.
-    text['water-sub'] = state.waterTempC === state.temperatureC
-      ? { key: 'water.sub.roomTemp' } : { text: '' };
+    const waterSub = [];
+    if (state.waterTempC === state.temperatureC) waterSub.push({ key: 'water.sub.roomTemp' });
+    if (recipe.addins.water > 0) {
+      if (waterSub.length) waterSub.push({ text: ' · ' });
+      waterSub.push({ key: 'water.sub.addins', params: { grams: { grams: recipe.addins.water } } });
+    }
+    text['water-sub'] = waterSub;
     text['salt-amount'] = { grams: recipe.salt };
 
     const sourdough = recipe.leaven === 'sourdough';
@@ -185,6 +196,19 @@
         }))
     };
 
+    // ---- Tilsetninger ----
+    const addinPct = recipe.addins.pct;
+    hidden['addin-tip'] = addinPct <= Logic.ADDIN_WARN_PCT;
+    hidden['add-addin-btn'] = addinPct >= Logic.ADDIN_MAX_PCT;
+    text['addin-total'] = addinPct > 0
+      ? { key: 'addin.total', params: { pct: addinPct } } : { text: '' };
+    const addins = {
+      rows: state.addins.map(a => ({ type: a.type, pct: a.pct })),
+      breakdown: recipe.addins.items
+        .filter(a => a.pct > 0)
+        .map(a => ({ type: a.type, pct: a.pct, grams: a.grams }))
+    };
+
     // ---- Tidsplan ----
     const { start, ready } = Logic.planWindow(state, nowMs);
     const plan = { start, ready, items: Logic.modePlanItems(state, start) };
@@ -195,6 +219,7 @@
       hydrationBand: { min: band.min, max: band.max },
       instructions: Logic.modeInstructions(state),
       flour,
+      addins,
       plan
     };
   }

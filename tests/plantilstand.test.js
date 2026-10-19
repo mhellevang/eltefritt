@@ -180,3 +180,23 @@ test('load: gammel state uten bakverk gir brød', () => {
   assert.equal(P.load(JSON.stringify({ product: 'rolls' }), Date.now()).state.product, 'rolls');
   assert.equal(P.load(JSON.stringify({ product: 'cake' }), Date.now()).state.product, 'loaf');
 });
+
+// ---- Tilsetninger ----
+
+test('load: tilsetninger med ukjent type eller ugyldig prosent forkastes', () => {
+  const { state } = load(JSON.stringify({ addins: [
+    { type: 'havregryn', pct: 10 }, { type: 'sjokolade', pct: 5 }, { type: 'sesam', pct: -1 }, null
+  ] }));
+  assert.deepEqual(state.addins, [{ type: 'havregryn', pct: 10 }]);
+});
+
+test('load: summen av tilsetninger holdes under taket', () => {
+  const { state } = load(JSON.stringify({ addins: [
+    { type: 'havregryn', pct: 30 }, { type: 'linfro', pct: 20 }, { type: 'sesam', pct: 10 }
+  ] }));
+  assert.deepEqual(state.addins.map(a => a.type), ['havregryn', 'linfro']);
+});
+
+test('defaults: ingen tilsetninger', () => {
+  assert.deepEqual(P.defaults().addins, []);
+});

@@ -68,6 +68,8 @@
     Object.entries(FIELDS).forEach(([name, f]) => { state[name] = f.default; });
     // Ikke i FIELDS: egne former, ikke enkle felt med område.
     state.flours = [{ type: 'hvete', pct: 100 }];
+    // Tilsetninger i % av melet, utenfor melandelene.
+    state.addins = [];
     state.anchorTime = '10:00';   // HH:MM
     // Absolutt starttidspunkt, fryst mens alarmen er på (HH:MM er tvetydig
     // over døgngrenser).
@@ -106,6 +108,14 @@
         if (newTotal !== 100) flours[0].pct += (100 - newTotal);
         state.flours = flours.map(f => ({ type: f.type, pct: f.pct }));
       }
+    }
+
+    if (Array.isArray(parsed.addins)) {
+      let total = 0;
+      state.addins = parsed.addins
+        .filter(a => a && Logic.ADDIN_TYPES[a.type] && Number.isInteger(a.pct) && a.pct >= 0)
+        .filter(a => (total += a.pct) <= Logic.ADDIN_MAX_PCT)
+        .map(a => ({ type: a.type, pct: a.pct }));
     }
 
     // Gammel state manglet vanntemp: la den følge romtemp.

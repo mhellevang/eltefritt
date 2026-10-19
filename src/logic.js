@@ -88,6 +88,51 @@
   const RYE_TYPES = new Set(['rug', 'sammaltrug']);
   const LOW_GLUTEN_TYPES = new Set(['havre', 'bygg']);
 
+  // ---- Tilsetninger ----
+  // Frø, gryn, nøtter og tørket frukt, i prosent av melvekten og utenfor
+  // hydreringen. water = gram ekstra vann per gram tørr tilsetning, som
+  // legges på deigvannet så tilsetningen ikke stjeler vann fra melet. Kald
+  // bløtlegging i deigen, ikke soaker med kokende vann (som dobler opptaket
+  // for gryn og knekt rug). Forankring, se README:
+  //  - Havregryn, frø, knekt rug: homebaking.at sin quelltabell, bekreftet av
+  //    målinger på The Fresh Loaf (node 61245).
+  //  - Linfrø 1,5, ikke Hamelman/King Arthur sine 3,0: de gjelder en soaker
+  //    laget på forhånd der geléen holder vannet.
+  //  - Chia: bare målt i samme forumtest.
+  //  - Nøtter 0,25: utledet. Kildene spriker fra 0 (The Perfect Loaf, ristede
+  //    valnøtter uten justering) til 0,5 (homebaking.at); for mye vann gir
+  //    flytende deig, for lite merkes knapt i en allerede våt deig.
+  //  - Tørket frukt 0: ingen bakerkilde oppgir en faktor.
+  const ADDIN_TYPES = {
+    havregryn:  { water: 1.0 },
+    linfro:     { water: 1.5 },
+    solsikke:   { water: 0.5 },
+    gresskar:   { water: 0.5 },
+    sesam:      { water: 0.5 },
+    knektrug:   { water: 1.0 },
+    chia:       { water: 2.5 },
+    valnott:    { water: 0.25 },
+    hasselnott: { water: 0.25 },
+    rosiner:    { water: 0 }
+  };
+  // Vanlig er 15–25 %. Over ~35 % blir brødet merkbart tyngre; rundt 50 % er
+  // praktisk tak (King Arthur No-Knead Harvest Bread ligger på ~54 %).
+  const ADDIN_WARN_PCT = 35;
+  const ADDIN_MAX_PCT = 50;
+
+  function addinsFor(addins, flourGrams) {
+    const items = (addins || []).filter(a => ADDIN_TYPES[a.type]).map(a => {
+      const grams = flourGrams * a.pct / 100;
+      return { type: a.type, pct: a.pct, grams, water: grams * ADDIN_TYPES[a.type].water };
+    });
+    return {
+      items,
+      grams: items.reduce((s, a) => s + a.grams, 0),
+      water: items.reduce((s, a) => s + a.water, 0),
+      pct: items.reduce((s, a) => s + a.pct, 0)
+    };
+  }
+
   // Heveform- og hevemetode-detaljer er nå deskriptorer (i18n-nøkler); render-
   // laget slår opp og fyller inn evt. params. Celsius-verdier markeres som
   // { celsius: N } slik at visningen kan konvertere til valgt enhet.
@@ -422,6 +467,7 @@
   }
 
   const SOURDOUGH_CHECK = { titleKey: 'step.starterCheck.title', bodyKey: 'step.starterCheck.body' };
+  const ADDINS_STEP = { titleKey: 'step.addins.title', bodyKey: 'step.addins.body' };
 
   const BAKE_PARAMS = {
     hot: { celsius: BAKE_POT_TEMP_C },
@@ -435,6 +481,7 @@
     const rolls = isRolls(state.product);
     const steps = [];
     if (leaven === 'sourdough') steps.push(SOURDOUGH_CHECK);
+    if ((state.addins || []).some(a => a.pct > 0)) steps.push(ADDINS_STEP);
     steps.push(blandStep(leaven));
 
     if (state.mode === 'classic') {
@@ -493,6 +540,7 @@
     }
     const totalWater = flourTotal * (hydration / 100);
     const salt = flourTotal * 0.02;
+    const addins = addinsFor(state.addins, flourTotal);
 
     if (state.leaven === 'sourdough') {
       const starter = flourTotal * (state.sourInoculation / 100);
@@ -506,6 +554,7 @@
         water: totalWater - starterWater,
         salt,
         starter,
+        addins,
         leaven: 'sourdough'
       };
     }
@@ -519,6 +568,7 @@
       salt,
       yeast: yeastInfo.grams,
       yeastPct: yeastInfo.pct,
+      addins,
       leaven: state.leaven
     };
   }
@@ -548,6 +598,7 @@
     FLOUR_HEAT_CAPACITY, WATER_HEAT_CAPACITY,
     LOW_TEMP_KNEE_C, FERMENT_MIN_TEMP_C, fermentationFactor,
     FLOUR_TYPES, RYE_TYPES, LOW_GLUTEN_TYPES,
+    ADDIN_TYPES, ADDIN_WARN_PCT, ADDIN_MAX_PCT, addinsFor,
     LEAVEN_DETAILS, MODE_META,
     addMinutes, addHours,
     weightedHydration, calculateYeast,

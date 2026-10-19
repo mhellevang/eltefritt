@@ -624,6 +624,7 @@
     font-weight: 700;
     font-size: 1.1rem;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   .ingredient .sub {
@@ -1241,6 +1242,16 @@
 
     <div class="field">
       <div class="field-label">
+        <span data-i18n="field.addins">Tilsetninger</span>
+        <span class="field-value" id="addin-total"></span>
+      </div>
+      <div id="addin-list"></div>
+      <button type="button" class="add-flour" id="add-addin-btn" data-i18n="addin.addBtn">+ Legg til frø, gryn eller nøtter</button>
+      <div class="flour-tip" id="addin-tip" hidden><p data-i18n="tip.addinsHigh"></p></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">
         <span data-i18n="field.hydration">Hydrering</span>
         <span class="field-value"><span id="hydration-value">75</span>%</span>
       </div>
@@ -1490,6 +1501,8 @@
       <span class="name"><span data-i18n="ingredient.starter">Surdeig</span> <span class="sub" data-i18n="ingredient.starter.sub">aktiv, 100% hydrering</span></span>
       <span class="amount"><span id="starter-amount">100</span> g</span>
     </div>
+
+    <div id="addin-ingredients"></div>
 
     <details>
       <summary data-i18n="method.summary">Slik gjør du det</summary>
