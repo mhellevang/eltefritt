@@ -12,7 +12,7 @@
   // Steking: 30 min med lokk + ~15 min uten. Matcher "~45 min" i instruksjonene.
   const BAKE_MIN = 45;
   // Rundstykker stekes på brett uten lokk, varmt og kort.
-  const ROLLS_BAKE_MIN = 20;
+  const ROLLS_BAKE_MIN = 23;
   const ROLLS_BAKE_TEMP_C = 230;
   // Rundstykker må kunne deles og formes uten å flyte ut: litt stivere deig
   // enn brød av samme mel.
